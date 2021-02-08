@@ -1,5 +1,5 @@
 JDKPATH = ${JAVA_HOME}
-LIBPATH = ~/skyline/minjava/javaminibase/construction
+LIBPATH = ~/cse510dbmsi/minjava/javaminibase/construction
 CLASSPATH = $(JDKPATH)/lib/classes.zip:.:..:$(LIBPATH)
 BINPATH = $(JDKPATH)/bin
 JAVAC = $(JDKPATH)/bin/javac -classpath $(CLASSPATH)
