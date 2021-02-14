@@ -3,6 +3,8 @@ package iterator;
 
 import heap.*;
 import global.*;
+import org.w3c.dom.Attr;
+
 import java.io.*;
 import java.lang.*;
 
@@ -11,6 +13,38 @@ import java.lang.*;
  */
 public class TupleUtils
 {
+	/**
+	 * This function checks if t1 dominates t2
+	 *@param    t1        		 the first tuple.
+	 *@param    type1   		 the field types for tuple 1
+	 *@param    t2        		 the second tuple.
+	 *@param    type2   		 the field types for tuple 2
+	 *@param    len_in   		 num of attributes of t1 and t2
+	 *@param    str_sizes 		 shows the length of the string fields in t1 and t2
+	 *@param    pref_list 		 the field numbers in the tuples to be compared.
+	 *@param    pref_list_length number of fields to be compared
+	 *@exception UnknowAttrType don't know the attribute type
+	 *@exception IOException some I/O fault
+	 *@exception TupleUtilsException exception from this class
+	 *@return   true        if the t1 dominates t2,
+	 *          false       otherwise,
+	 */
+	public static boolean Dominates(Tuple t1,
+									AttrType[] type1,
+									Tuple t2,
+									AttrType[] type2,
+									short len_in,
+									short[] str_sizes,
+									int[] pref_list,
+									int pref_list_length)
+			throws IOException, UnknowAttrType, TupleUtilsException
+	{
+		for (int i = 1; i <= pref_list_length; i++) {
+			if (CompareTupleWithTuple(type1[i-1], t1, pref_list[i], t2, pref_list[i]) != 1)
+				return false;
+		}
+		return true;
+	}
   
   /**
    * This function compares a tuple with another tuple in respective field, and
@@ -117,7 +151,7 @@ public class TupleUtils
    *This function Compares two Tuple inn all fields 
    * @param t1 the first tuple
    * @param t2 the secocnd tuple
-   * @param type[] the field types
+   * @param types the field types
    * @param len the field numbers
    * @return  0        if the two are not equal,
    *          1        if the two are equal,
@@ -126,7 +160,7 @@ public class TupleUtils
    *@exception TupleUtilsException exception from this class
    */            
   
-  public static boolean Equal(Tuple t1, Tuple t2, AttrType types[], int len)
+  public static boolean Equal(Tuple t1, Tuple t2, AttrType[] types, int len)
     throws IOException,UnknowAttrType,TupleUtilsException
     {
       int i;
@@ -140,7 +174,7 @@ public class TupleUtils
   /**
    *get the string specified by the field number
    *@param tuple the tuple 
-   *@param fidno the field number
+   *@param fldno the field number
    *@return the content of the field number
    *@exception IOException some I/O fault
    *@exception TupleUtilsException exception from this class
