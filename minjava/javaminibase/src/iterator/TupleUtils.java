@@ -39,6 +39,8 @@ public class TupleUtils
 									int pref_list_length)
 			throws IOException, UnknowAttrType, TupleUtilsException
 	{
+		// TODO: check if AttrType are same for both else throw exception
+		// TODO: check if pref_list and types arrays have same length else throw exception
 		for (int i = 0; i < pref_list_length; i++) {
 			if (CompareTupleWithTuple(type1[i], t1, pref_list[i], t2, pref_list[i]) != 1)
 				return false;
@@ -73,6 +75,8 @@ public class TupleUtils
 									int pref_list_length)
 			throws IOException, UnknowAttrType, TupleUtilsException
 	{
+		// TODO: check if AttrType are same for both else throw exception
+		// TODO: check if pref_list and types arrays have same length else throw exception
 		int   t1_i,  t2_i;
 		float t1_r,  t2_r;
 		float t1_sum = 0, t2_sum = 0;
