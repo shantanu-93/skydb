@@ -1,16 +1,15 @@
 
 package iterator;
-import global.*;
-import bufmgr.*;
-import diskmgr.*;
-import heap.*;
-import java.io.*;
+import global.AttrType;
+import global.TupleOrder;
+
+import java.io.IOException;
 
 /**
  * Implements a sorted binary tree.
- * abstract methods <code>enq</code> and <code>deq</code> are used to add 
+ * abstract methods <code>enq</code> and <code>deq</code> are used to add
  * or remove elements from the tree.
- */  
+ */
 public abstract class pnodePQ
 {
   /** number of elements in the tree */
@@ -28,20 +27,20 @@ public abstract class pnodePQ
   /**
    * class constructor, set <code>count</code> to <code>0</code>.
    */
-  public pnodePQ() { count = 0; } 
+  public pnodePQ() { count = 0; }
 
   /**
    * returns the number of elements in the tree.
    * @return number of elements in the tree.
    */
-  public int       length(){ return count; }  
+  public int       length(){ return count; }
 
-  /** 
+  /**
    * tests whether the tree is empty
    * @return true if tree is empty, false otherwise
    */
   public boolean   empty() { return count == 0; }
-  
+
 
   /**
    * insert an element in the tree in the correct order.
@@ -51,8 +50,8 @@ public abstract class pnodePQ
    *                           <code>attrNull</code> encountered
    * @exception TupleUtilsException error in tuple compare routines
    */
-  abstract public void  enq(pnode  item) 
-           throws IOException, UnknowAttrType, TupleUtilsException;      
+  abstract public void  enq(pnode  item)
+          throws IOException, UnknowAttrType, TupleUtilsException;
 
   /**
    * removes the minimum (Ascending) or maximum (Descending) element
@@ -60,7 +59,7 @@ public abstract class pnodePQ
    * @return the element removed, null if the tree is empty
    */
   abstract public pnode    deq();
-	
+
 
   /**
    * compares two elements.
@@ -70,13 +69,21 @@ public abstract class pnodePQ
    *          <code>1</code> if <code>a</code> is greater,
    *         <code>-1</code> if <code>b</code> is greater
    * @exception IOException from lower layers
-   * @exception UnknowAttrType <code>attrSymbol</code> or 
+   * @exception UnknowAttrType <code>attrSymbol</code> or
    *                           <code>attrNull</code> encountered
    * @exception TupleUtilsException error in tuple compare routines
    */
-  public int pnodeCMP(pnode a, pnode b) 
-         throws IOException, UnknowAttrType, TupleUtilsException {
+  public int pnodeCMP(pnode a, pnode b)
+          throws IOException, UnknowAttrType, TupleUtilsException {
     int ans = TupleUtils.CompareTupleWithTuple(fld_type, a.tuple, fld_no, b.tuple, fld_no);
+    return ans;
+  }
+
+  //  For comparing sum of pref_list attributes
+  public int pnodeCMPPref(pnode a, pnode b,AttrType[] t1, AttrType[] t2,short len_in, short[] str_sizes, int[] pref_list, int pref_list_length)
+          throws IOException, UnknowAttrType, TupleUtilsException {
+    int ans = TupleUtils.CompareTupleWithTuplePref(a.tuple,t1,b.tuple,t2,len_in,str_sizes,pref_list,pref_list_length);
+
     return ans;
   }
 
@@ -90,11 +97,11 @@ public abstract class pnodePQ
    * @exception UnknowAttrType <code>attrSymbol</code> or 
    *                           <code>attrNull</code> encountered
    * @exception TupleUtilsException error in tuple compare routines
-   */  
+   */
   public boolean pnodeEQ(pnode a, pnode b) throws IOException, UnknowAttrType, TupleUtilsException {
     return pnodeCMP(a, b) == 0;
   }
-  
+
   /**
    * tests whether the a is less than or equal to b
    * @param a one of the element for comparison
