@@ -42,7 +42,7 @@ public class TupleUtils
 		// TODO: check if AttrType are same for both else throw exception
 		// TODO: check if pref_list and types arrays have same length else throw exception
 		for (int i = 0; i < pref_list_length; i++) {
-			if (CompareTupleWithTuple(type1[i], t1, pref_list[i], t2, pref_list[i]) != 1)
+			if (CompareTupleWithTuple(type1[i], t1, pref_list[i], t2, pref_list[i]) == -1)
 				return false;
 		}
 		return true;
