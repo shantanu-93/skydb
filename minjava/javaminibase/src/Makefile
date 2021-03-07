@@ -6,18 +6,18 @@
 JARFILES=bufmgr/*.class diskmgr/*.class global/*.class iterator/*.class\
          heap/*.class chainexception/*.class  btree/*.class index/*.class tests/*.class
 
-JDKPATH = ${JAVA_HOME}
+JDKPATH = /Library/Java/JavaVirtualMachines/jdk1.8.0_251.jdk/
 LIBPATH = .:..
 CLASSPATH = $(LIBPATH)
 BINPATH = $(JDKPATH)/bin
-JAVAC = $(JDKPATH)/bin/javac -classpath $(CLASSPATH)
-JAVA  = $(JDKPATH)/bin/java  -classpath $(CLASSPATH)
+JAVAC = $(JDKPATH)/Contents/Home/bin/javac -classpath $(CLASSPATH)
+JAVA  = $(JDKPATH)/Contents/Home/bin/java  -classpath $(CLASSPATH)
 
 DOCFILES=bufmgr diskmgr global chainexception heap btree iterator index
 
 ##############  update the above for each assignment in making
 
-ASSIGN=~/cse510dbmsi/minjava/javaminibase/src
+ASSIGN=/Users/christianbagaya/Documents/ASU/Spring_sem_1/DBMSI/Phase_1/minjava/javaminibase/src
 LIBDIR=$(ASSIGN)/lib
 KEY=$(ASSIGN)/key
 SRC=$(ASSIGN)/src
@@ -42,7 +42,7 @@ doc:
 	$(JAVADOC) $(DOCFILES)
 
 test: 
-	cd tests; make bmtest dbtest; whoami; make hftest bttest indextest jointest sorttest sortmerge
+	cd tests; make bmtest dbtest; whoami; make hftest bttest indextest jointest sorttest sortmerge blocknestedlooptest
 
 clean:
 	\rm -f $(CLASSPATH)/*.class *~ \#* core $(JARFILES) TRACE

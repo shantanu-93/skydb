@@ -221,6 +221,7 @@ public class HFPage extends Page
    * @param	pageNo	page number for next page
    * @exception IOException I/O errors
    */
+  
   public void setNextPage(PageId pageNo)   
     throws IOException
     {
