@@ -53,8 +53,18 @@ public class Scan implements GlobalConst{
 
     /** Status of next user status */
     private boolean nextUserStatus;
-    
-     
+
+    private boolean isPageLeftBlockScan;
+
+    private RID nextPageBlockRid;
+
+    private int numRecPerPage;
+
+    private boolean doneCountFirstPage;
+
+    private int totalRecords;
+
+
     /** The constructor pins the first directory page in the file
      * and initializes its private data members from the private
      * data member from hf
@@ -196,13 +206,55 @@ public class Scan implements GlobalConst{
     	firstDataPage();
   }
 
+    public Tuple getNextAndCountRecords(RID rid)
+            throws InvalidTupleSizeException,
+            IOException
+    {
+
+        do{
+
+            Tuple recptrtuple = null;
+
+            if (nextUserStatus != true) {
+                break;
+
+            }
+
+            if (datapage == null)
+                return null;
+
+            rid.pageNo.pid = userrid.pageNo.pid;
+            rid.slotNo = userrid.slotNo;
+
+            try {
+                recptrtuple = datapage.getRecord(rid);
+                numRecPerPage++;
+            }
+
+            catch (Exception e) {
+                //    System.err.println("SCAN: Error in Scan" + e);
+                e.printStackTrace();
+            }
+
+            userrid = datapage.nextRecord(rid);
+            if(userrid == null) nextUserStatus = false;
+            else nextUserStatus = true;
+        }while(true);
+        return null;
+
+    }
+
+
 
     /** Closes the Scan object */
     public void closescan()
     {
     	reset();
     }
-   
+
+    public int getNumberOfRecordsPerOnePage(){
+        return numRecPerPage;
+    }
 
     /** Reset everything and unpin all pages. */
     private void reset()
