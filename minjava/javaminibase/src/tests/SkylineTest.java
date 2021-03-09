@@ -210,7 +210,7 @@ class SkylineDriver extends TestDriver
         int[] pref_list = new int[] {1,2};
         SortFirstSky sort = null;
         try {
-            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "", pref_list, 2, 1);
+            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "test1.in", pref_list, 2, 1);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -310,7 +310,7 @@ class SkylineDriver extends TestDriver
         int j = 10;
 
         System.out.println("\n -- Generating anti-correlated tuples -- ");
-        int num_elements = 20;
+        int num_elements = 400;
         for (int i = 0; i < num_elements; i++) {
             // setting fields
             inum1 = i+1;
@@ -355,7 +355,7 @@ class SkylineDriver extends TestDriver
         int[] pref_list = new int[] {1,2};
         SortFirstSky sort = null;
         try {
-            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "", pref_list, 2, 1);
+            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "test2.in", pref_list, 2, 7);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();

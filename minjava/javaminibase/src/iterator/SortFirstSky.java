@@ -22,7 +22,7 @@ public class SortFirstSky extends Iterator {
         private   Iterator  sort;
         private List<Tuple> inner;
         private short[] t1_str_sizes_cls;
-
+        int maxRecordSize;
 
         public SortFirstSky(
                          AttrType[] in1,
@@ -55,6 +55,33 @@ public class SortFirstSky extends Iterator {
                 pref_list_cls = pref_list;
                 pref_list_length_cls = pref_list_length;
                 t1_str_sizes_cls = t1_str_sizes;
+
+                //Getting the maximum number of records on one page.
+                RID id = new RID();
+                Heapfile hf = null;
+                try {
+                        hf = new Heapfile(relationName);
+                }
+                catch(Exception e) {
+                        throw new SortException(e, "Create new heapfile failed.");
+                }
+
+                Scan sc = null;
+                try{
+                        sc = hf.openScan();
+                }catch(Exception e){
+                        throw new SortException(e, "openScan failed");
+                }
+
+                try{
+                        sc.getNextAndCountRecords(id);
+
+                }catch(Exception e){
+                        throw new SortException(e, "Could not get number of records on page 1");
+                }
+                System.out.println(sc.getNumberOfRecordsPerOnePage());
+
+                maxRecordSize = sc.getNumberOfRecordsPerOnePage()* n_buf_pgs;
 
                 try {
                         sort = new SortPref(_in1, in1_len, t1_str_sizes, outer, new TupleOrder(TupleOrder.Descending) , pref_list_cls, pref_list_length_cls, n_buf_pgs);
@@ -103,7 +130,12 @@ public class SortFirstSky extends Iterator {
 
                         if (!dominated) {
                                 Tuple temp = new Tuple(currentOuter);
-                                inner.add(temp);
+                                if (inner.size() < maxRecordSize) {
+                                        inner.add(temp);
+                                } else {
+                                        throw new LowMemException("SortFirstSky.java: Not enough memory");
+                                }
+
                                 skylineTuple = currentOuter;
                                 break;
                         }
