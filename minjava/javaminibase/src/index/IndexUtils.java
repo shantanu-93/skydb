@@ -138,17 +138,15 @@ public class IndexUtils {
 	    indScan = ((BTreeFile)indFile).new_scan(key2, key1);
 	  }
 	  return indScan;
-	  
+		// [SG]: add attrReal support
 	case AttrType.attrReal:
-	  /*
-	    if ((FloatKey)key1.getKey().floatValue() < (FloatKey)key2.getKey().floatValue()) {
+	    if ((((FloatKey)key1).getKey()).floatValue() < (((FloatKey)key2).getKey()).floatValue()) {
 	    indScan = ((BTreeFile)indFile).new_scan(key1, key2);
 	    }
 	    else {
 	    indScan = ((BTreeFile)indFile).new_scan(key2, key1);
 	    }
 	    return indScan;
-	  */
 	default:
 	  // error condition
 	  throw new UnknownKeyTypeException("IndexUtils.java: Only Integer and String keys are supported so far");	
@@ -184,11 +182,10 @@ public class IndexUtils {
       if (choice == 1) return new IntegerKey(new Integer(cd.operand1.integer));
       else return new IntegerKey(new Integer(cd.operand2.integer));
     case AttrType.attrReal:
-      /*
-      // need FloatKey class in bt.java
-      if (choice == 1) return new FloatKey(new Float(cd.operand.real));
-      else return new FloatKey(new Float(cd.operand.real));
-      */
+			// [SG]: add attrReal support
+			// need FloatKey class in bt.java
+      if (choice == 1) return new FloatKey(new Float(cd.operand1.real));
+      else return new FloatKey(new Float(cd.operand2.real));
     default:
 	throw new UnknownKeyTypeException("IndexUtils.java: Only Integer and String keys are supported so far");
     }

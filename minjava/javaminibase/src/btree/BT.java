@@ -11,7 +11,6 @@ import java.lang.*;
 import global.*;
 import diskmgr.*;
 import bufmgr.*;
-import heap.*;
 
 /**  
  * This file contains, among some debug utilities, the interface to our
@@ -55,10 +54,13 @@ public class BT  implements GlobalConst{
 	return  (((IntegerKey)key1).getKey()).intValue() 
 	  - (((IntegerKey)key2).getKey()).intValue();
       }
+      else if ((key1 instanceof FloatKey) && (key2 instanceof FloatKey)){
+        // [SG]: add attrReal support
+          return ((FloatKey)key1).getKey().compareTo(((FloatKey)key2).getKey());
+      }
       else if  ( (key1 instanceof StringKey) && (key2 instanceof StringKey)){
         return ((StringKey)key1).getKey().compareTo(((StringKey)key2).getKey());
       }
-      
       else { throw new  KeyNotMatchException(null, "key types do not match");}
     } 
   
@@ -81,9 +83,11 @@ public class BT  implements GlobalConst{
 	outstr.writeUTF(((StringKey)key).getKey()); 
 	return  outstr.size();
     }
-      else if ( key instanceof IntegerKey)
-	return 4;
-      else throw new KeyNotMatchException(null, "key types do not match"); 
+    else if ( key instanceof IntegerKey || key instanceof FloatKey){
+      // [SG]: add attrReal support
+      return 4;
+    }
+      else throw new KeyNotMatchException(null, "key types do not match");
     }
   
   
@@ -171,7 +175,11 @@ public class BT  implements GlobalConst{
 	else if (keyType== AttrType.attrString) {
 	  //System.out.println(" offset  "+ offset + "  " + length + "  "+n);
           key= new StringKey( Convert.getStrValue(offset, from, length-n));
-	} 
+	}
+	else if ( keyType== AttrType.attrReal) {
+      // [SG]: add attrReal support
+      key= new FloatKey( new Float(Convert.getFloValue(offset, from)));
+    }
 	else 
           throw new KeyNotMatchException(null, "key types do not match");
 	
@@ -216,6 +224,12 @@ public class BT  implements GlobalConst{
 	  Convert.setStrValue( ((StringKey)entry.key).getKey(),
 			       0, data);            
         }
+        else if ( entry.key instanceof FloatKey) {
+            // [SG]: add attrReal support
+            Convert.setFloValue( ((FloatKey)entry.key).getKey().floatValue(),
+                    0, data);
+        }
+
         else throw new KeyNotMatchException(null, "key types do not match");
         
         if ( entry.data instanceof IndexData ) {
@@ -282,8 +296,12 @@ public class BT  implements GlobalConst{
 	  if( keyType==AttrType.attrString) 
 	    System.out.println(i+" (key, pageId):   ("+ 
 			       (StringKey)entry.key + ",  "+(IndexData)entry.data+ " )");
-	  
-	  i++;    
+    // [SG]: add attrReal support
+    if( keyType==AttrType.attrReal)
+      System.out.println(i+" (key, pageId):   ("+
+              (FloatKey)entry.key + ",  "+(IndexData)entry.data+ " )");
+
+            i++;
         }
 	
         System.out.println("************** END ********");
@@ -306,8 +324,12 @@ public class BT  implements GlobalConst{
 			       (IntegerKey)entry.key+ ",  "+(LeafData)entry.data+ " )");
 	  if( keyType==AttrType.attrString) 
 	    System.out.println(i+" (key, [pageNo, slotNo]):   ("+ 
-			       (StringKey)entry.key + ",  "+(LeafData)entry.data); 
-	  
+			       (StringKey)entry.key + ",  "+(LeafData)entry.data);
+    // [SG]: add attrReal support
+    if( keyType==AttrType.attrReal)
+      System.out.println(i+" (key, [pageNo, slotNo]):   ("+
+              (FloatKey)entry.key+ ",  "+(LeafData)entry.data+ " )");
+
 	  i++;
         }
 	

@@ -384,12 +384,18 @@ public class BTreeFile extends IndexFile
 	  throw new KeyNotMatchException(null,"");
 	}
       }
-      else if ( key instanceof IntegerKey ) {
-	if ( headerPage.get_keyType() != AttrType.attrInteger ) {
-	  throw new KeyNotMatchException(null,"");
-	}
-      }   
-      else 
+	  else if ( key instanceof IntegerKey ) {
+		  if ( headerPage.get_keyType() != AttrType.attrInteger ) {
+			  throw new KeyNotMatchException(null,"");
+		  }
+	  }
+	  else if (key instanceof FloatKey) {
+			// [SG]: add attrReal support
+		  if ( headerPage.get_keyType() != AttrType.attrReal ) {
+			  throw new KeyNotMatchException(null,"");
+		  }
+	  }
+	  else
 	throw new KeyNotMatchException(null,"");
       
       

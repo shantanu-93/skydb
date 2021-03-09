@@ -19,13 +19,18 @@ public class KeyDataEntry {
   /** Class constructor
    */
   public KeyDataEntry( Integer key, PageId pageNo) {
-     this.key = new IntegerKey(key); 
-     this.data = new IndexData(pageNo);
-  }; 
+      this.key = new IntegerKey(key);
+      this.data = new IndexData(pageNo);
+  };
+  // [SG]: add real type constructor
+  public KeyDataEntry( Float key, PageId pageNo) {
+      this.key = new FloatKey(key);
+      this.data = new IndexData(pageNo);
+  };
 
 
 
-  /** Class constructor.
+    /** Class constructor.
    */
   public KeyDataEntry( KeyClass key, PageId pageNo) {
 
@@ -33,7 +38,11 @@ public class KeyDataEntry {
      if ( key instanceof IntegerKey ) 
         this.key= new IntegerKey(((IntegerKey)key).getKey());
      else if ( key instanceof StringKey ) 
-        this.key= new StringKey(((StringKey)key).getKey());    
+        this.key= new StringKey(((StringKey)key).getKey());
+     else if(key instanceof FloatKey){
+       // [SG]: add real type support
+       this.key= new FloatKey(((FloatKey)key).getKey());
+     }
   };
 
 
@@ -47,8 +56,13 @@ public class KeyDataEntry {
   /** Class constructor.
    */
   public KeyDataEntry( Integer key, RID rid) {
-     this.key = new IntegerKey(key); 
-     this.data = new LeafData(rid);
+    this.key = new IntegerKey(key);
+    this.data = new LeafData(rid);
+  };
+  // [SG]: add real type constructor
+  public KeyDataEntry( Float key, RID rid) {
+    this.key = new FloatKey(key);
+    this.data = new LeafData(rid);
   };
 
   /** Class constructor.
@@ -58,7 +72,11 @@ public class KeyDataEntry {
      if ( key instanceof IntegerKey ) 
         this.key= new IntegerKey(((IntegerKey)key).getKey());
      else if ( key instanceof StringKey ) 
-        this.key= new StringKey(((StringKey)key).getKey());    
+        this.key= new StringKey(((StringKey)key).getKey());
+     else if ( key instanceof FloatKey) {
+       // [SG]: add real type support
+       this.key= new FloatKey(((FloatKey)key).getKey());
+     }
   };
 
 
@@ -76,8 +94,11 @@ public class KeyDataEntry {
         this.key= new IntegerKey(((IntegerKey)key).getKey());
      else if ( key instanceof StringKey ) 
         this.key= new StringKey(((StringKey)key).getKey()); 
-
-     if ( data instanceof IndexData ) 
+      else if ( key instanceof FloatKey) {
+        // [SG]: add real type support
+        this.key= new FloatKey(((FloatKey)key).getKey());
+      }
+    if ( data instanceof IndexData )
         this.data= new IndexData(((IndexData)data).getData());
      else if ( data instanceof LeafData ) 
         this.data= new LeafData(((LeafData)data).getData()); 
@@ -90,10 +111,14 @@ public class KeyDataEntry {
   public boolean equals(KeyDataEntry entry) {
       boolean st1,st2;
 
-      if ( key instanceof IntegerKey )
-         st1= ((IntegerKey)key).getKey().equals
-                  (((IntegerKey)entry.key).getKey());
-      else 
+    if ( key instanceof IntegerKey )
+      st1= ((IntegerKey)key).getKey().equals
+              (((IntegerKey)entry.key).getKey());
+    else if ( key instanceof FloatKey) {
+      // [SG]: add real type support
+      st1= ((FloatKey)key).getKey().equals
+              (((FloatKey)entry.key).getKey());
+      } else
          st1= ((StringKey)key).getKey().equals
                   (((StringKey)entry.key).getKey());
 

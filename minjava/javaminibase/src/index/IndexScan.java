@@ -155,7 +155,7 @@ public class IndexScan extends Iterator {
 
 	AttrType[] attrType = new AttrType[1];
 	short[] s_sizes = new short[1];
-	
+
 	if (_types[_fldNum -1].attrType == AttrType.attrInteger) {
 	  attrType[0] = new AttrType(AttrType.attrInteger);
 	  try {
@@ -164,14 +164,31 @@ public class IndexScan extends Iterator {
 	  catch (Exception e) {
 	    throw new IndexException(e, "IndexScan.java: Heapfile error");
 	  }
-	  
+
 	  try {
 	    Jtuple.setIntFld(1, ((IntegerKey)nextentry.key).getKey().intValue());
 	  }
 	  catch (Exception e) {
 	    throw new IndexException(e, "IndexScan.java: Heapfile error");
-	  }	  
+	  }
 	}
+// [SG]: add real attr scan support for index tuple
+  else if (_types[_fldNum -1].attrType == AttrType.attrReal) {
+    attrType[0] = new AttrType(AttrType.attrReal);
+    try {
+      Jtuple.setHdr((short) 1, attrType, s_sizes);
+    }
+    catch (Exception e) {
+      throw new IndexException(e, "IndexScan.java: Heapfile error");
+    }
+
+    try {
+      Jtuple.setFloFld(1, ((FloatKey)nextentry.key).getKey().floatValue());
+    }
+    catch (Exception e) {
+      throw new IndexException(e, "IndexScan.java: Heapfile error");
+    }
+  }
 	else if (_types[_fldNum -1].attrType == AttrType.attrString) {
 	  
 	  attrType[0] = new AttrType(AttrType.attrString);
@@ -199,7 +216,8 @@ public class IndexScan extends Iterator {
 	}
 	else {
 	  // attrReal not supported for now
-	  throw new UnknownKeyTypeException("Only Integer and String keys are supported so far"); 
+    // [SG]: Update attrReal supported now
+	  throw new UnknownKeyTypeException("Only Integer, Float and String keys are supported so far");
 	}
 	return Jtuple;
       }
