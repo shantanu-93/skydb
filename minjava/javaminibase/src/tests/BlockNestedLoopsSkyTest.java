@@ -59,7 +59,7 @@ class SkylineDriver extends TestDriver
 
         System.out.println("\n" + "Running " + testName() + " tests...." + "\n");
 
-        SystemDefs sysdef = new SystemDefs(dbpath, 300, NUMBUF, "Clock");
+        SystemDefs sysdef = new SystemDefs(dbpath, 10000, NUMBUF, "Clock");
 
         // Kill anything that might be hanging around
         String newdbpath;
@@ -310,7 +310,7 @@ class SkylineDriver extends TestDriver
         int j = 10;
 
         System.out.println("\n -- Generating anti-correlated tuples -- ");
-        int num_elements = 95;
+        int num_elements = 1000;
         for (int i = 0; i < num_elements; i++) {
             // setting fields
             inum1 = i+1;

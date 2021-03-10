@@ -109,6 +109,9 @@ public class Scan implements GlobalConst{
     if (datapage == null)
       return null;
     
+    if(userrid == null)
+      return null;
+
     rid.pageNo.pid = userrid.pageNo.pid;    
     rid.slotNo = userrid.slotNo;
          

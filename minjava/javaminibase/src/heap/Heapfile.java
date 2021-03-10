@@ -892,9 +892,13 @@ public class Heapfile implements Filetype,  GlobalConst {
 	   HFDiskMgrException,
 	   IOException
     {
+		System.out.println("Deleted: "+_file_deleted);
+		
+		
       if(_file_deleted ) 
    	throw new FileAlreadyDeletedException(null, "file alread deleted");
-      
+    
+	   
       
       // Mark the deleted flag (even if it doesn't get all the way done).
       _file_deleted = true;
@@ -1042,6 +1046,10 @@ public class Heapfile implements Filetype,  GlobalConst {
     }
 
   } // end of delete_file_entry
+
+  public void hasNotBeenDeleted(){
+	  _file_deleted = false;
+  }
 
 
   

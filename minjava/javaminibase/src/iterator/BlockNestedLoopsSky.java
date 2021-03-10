@@ -92,7 +92,7 @@ public class BlockNestedLoopsSky  extends Iterator
       _pref_list_length = pref_list_length;
       n_buff_pgs = n_pages;
       relationName = (String)relName;
-
+      iterationNumber = 0;
       outer_tuple = new Tuple();
       //Creating an output iterator
       finalOutput = new ArrayList<Tuple>();
@@ -197,7 +197,7 @@ public class BlockNestedLoopsSky  extends Iterator
     
     // System.out.println("The count in the heap file is: "+tempScan.getTotalNumberRecords());
 
-    if(tempHeap == null || countTempR<=0){
+    if((tempHeap == null || countTempR<=0)&& iterationNumber<1){
 
       try{
         blockSkyline(hf, tempHeap);
@@ -251,8 +251,23 @@ public class BlockNestedLoopsSky  extends Iterator
       windowMemory.clear();
       // System.out.println(countTempR);
     
-      if(countTempR>0){
-        performSkyline();
+      while(countTempR>0){
+        // performSkyline();
+        try {
+          blockSkyline(tempHf, tempHeap);
+          windowMemory.clear();
+        } catch (Exception e) {
+          //TODO: handle exception
+        }
+        if(tempHeap != null){
+          try {
+            countTempR = tempHeap.getRecCnt();
+            // System.out.println(countTempR);
+          } catch (Exception e) {
+            //TODO: handle exception
+            e.printStackTrace();
+          }
+        }
       }
      }
 
@@ -290,6 +305,7 @@ public class BlockNestedLoopsSky  extends Iterator
       
       try {
         System.out.println("HH Inmput before"+ inputHeap.getRecCnt());
+        System.out.println("Window heap size before"+ windowHeap.getRecCnt());
         
         // while(windowHeap.getRecCnt()>1){
         //   Scan s = new Scan(windowHeap);
@@ -299,6 +315,7 @@ public class BlockNestedLoopsSky  extends Iterator
         //   s=null;
         // }
         if(windowHeap.getRecCnt()>1){
+          windowHeap.hasNotBeenDeleted();
           windowHeap.deleteFile();
           windowHeap=new Heapfile("temporary.in");
         }
@@ -308,6 +325,7 @@ public class BlockNestedLoopsSky  extends Iterator
         System.out.println("HH Inmput"+ inputHeap.getRecCnt());
       } catch (Exception e) {
         //TODO: handle exception
+        
       }
       
       do{
@@ -340,7 +358,7 @@ public class BlockNestedLoopsSky  extends Iterator
         // }
         try{
 
-        
+        System.out.println(outer);
         while(outer!=null &&(outer_tuple=outer.getNext(rid))!=null){
           
 
@@ -511,9 +529,9 @@ public class BlockNestedLoopsSky  extends Iterator
       
       
         
-        System.out.println("Hf at the end "+hf.getRecCnt());
+        System.out.println("Hf at the end "+tempHf.getRecCnt());
         System.out.println("Outside");
-        System.out.println("Window at the end "+tempHeap.getRecCnt());
+        System.out.println("Window at the end "+windowHeap.getRecCnt());
       } catch (Exception e) {
         //TODO: handle exception
       }
