@@ -64,7 +64,7 @@ public class BTreeCombinedIndex{
 
         double[][] data = readData(filePath);
         String filename = "AAA";
-        int col = records[0].length;
+        int col = data[0].length;
 
         int keyType = AttrType.attrReal;
         int keySize = 4;
@@ -83,7 +83,7 @@ public class BTreeCombinedIndex{
         short [] Ssizes = null;
 
         tuple.setHdr((short) col,Stypes, Ssizes);
-        int size = t.size();
+        int size = tuple.size();
         
 
         tuple = new Tuple(size);
