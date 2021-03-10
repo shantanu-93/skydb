@@ -891,9 +891,7 @@ public class Heapfile implements Filetype,  GlobalConst {
 	   HFBufMgrException,
 	   HFDiskMgrException,
 	   IOException
-    {
-		System.out.println("Deleted: "+_file_deleted);
-		
+    {		
 		
       if(_file_deleted ) 
    	throw new FileAlreadyDeletedException(null, "file alread deleted");
