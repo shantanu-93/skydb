@@ -310,7 +310,7 @@ class SkylineDriver extends TestDriver
         int j = 10;
 
         System.out.println("\n -- Generating anti-correlated tuples -- ");
-        int num_elements = 90;
+        int num_elements = 95;
         for (int i = 0; i < num_elements; i++) {
             // setting fields
             inum1 = i+1;
