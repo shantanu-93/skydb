@@ -131,46 +131,6 @@ public class Scan implements GlobalConst{
     return recptrtuple;
   }
 
-
-
-  public Tuple getNextAndCountRecords(RID rid)
-  throws InvalidTupleSizeException,
-   IOException
-{
-
-  do{
-
-    Tuple recptrtuple = null;
-
-      if (nextUserStatus != true) {
-          break;
-
-      }
-
-      if (datapage == null)
-        return null;
-
-      rid.pageNo.pid = userrid.pageNo.pid;
-      rid.slotNo = userrid.slotNo;
-
-      try {
-        recptrtuple = datapage.getRecord(rid);
-        numRecPerPage++;
-      }
-
-      catch (Exception e) {
-    //    System.err.println("SCAN: Error in Scan" + e);
-        e.printStackTrace();
-      }
-
-      userrid = datapage.nextRecord(rid);
-      if(userrid == null) nextUserStatus = false;
-      else nextUserStatus = true;
-  }while(true);
-    return null;
-
-}
-
 public Tuple CountAllFileRecords(RID rid)
 throws InvalidTupleSizeException,
  IOException
@@ -206,10 +166,6 @@ do{
 }while(true);
   // return null;
 
-}
-
-public int getNumberOfRecordsPerOnePage(){
-  return numRecPerPage;
 }
 
 public int getTotalNumberRecords(){
