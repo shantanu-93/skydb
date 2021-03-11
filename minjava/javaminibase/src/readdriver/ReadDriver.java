@@ -155,7 +155,7 @@ class Driver  extends TestDriver implements GlobalConst
             col= sc.nextInt();
 
             attrType = new AttrType[col];
-            attrSize = new short[col];
+            attrSize = new short[0];
 
             for(int i=0; i<attrType.length; i++){
                 attrType[i] = new AttrType(AttrType.attrReal);
@@ -163,7 +163,7 @@ class Driver  extends TestDriver implements GlobalConst
 
             Tuple t = new Tuple();
             try {
-                t.setHdr((short) col,attrType, new short[0]);
+                t.setHdr((short) col,attrType, attrSize);
             }
             catch (Exception e) {
                 System.err.println("*** error in Tuple.setHdr() ***");
