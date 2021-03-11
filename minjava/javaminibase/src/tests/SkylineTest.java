@@ -59,7 +59,7 @@ class SkylineDriver extends TestDriver
 
         System.out.println("\n" + "Running " + testName() + " tests...." + "\n");
 
-        SystemDefs sysdef = new SystemDefs(dbpath, 300, NUMBUF, "Clock");
+        SystemDefs sysdef = new SystemDefs(dbpath, 10000, 10000, "Clock");
 
         // Kill anything that might be hanging around
         String newdbpath;
@@ -210,7 +210,7 @@ class SkylineDriver extends TestDriver
         int[] pref_list = new int[] {1,2};
         SortFirstSky sort = null;
         try {
-            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "test1.in", pref_list, 2, 1);
+            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "test1.in", pref_list, 2, 5);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -310,7 +310,7 @@ class SkylineDriver extends TestDriver
         int j = 10;
 
         System.out.println("\n -- Generating anti-correlated tuples -- ");
-        int num_elements = 400;
+        int num_elements = 7000;
         for (int i = 0; i < num_elements; i++) {
             // setting fields
             inum1 = i+1;
@@ -355,7 +355,7 @@ class SkylineDriver extends TestDriver
         int[] pref_list = new int[] {1,2};
         SortFirstSky sort = null;
         try {
-            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "test2.in", pref_list, 2, 7);
+            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "test2.in", pref_list, 2, 5);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
