@@ -200,7 +200,7 @@ public class SortFirstSky extends Iterator {
                 IOException,
                 IndexException, SortException {
                 if (!closeFlag) {
-                        sort.close();
+//                        sort.close();
                         inner.clear();
                         closeFlag = true;
                 }

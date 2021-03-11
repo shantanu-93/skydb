@@ -14,6 +14,7 @@ import btree.*;
 import iterator.FileScan;
 import iterator.FldSpec;
 import iterator.RelSpec;
+import iterator.SortFirstSky;
 import tests.TestDriver;
 
 /** Note that in JAVA, methods can't be overridden to be more private.
@@ -159,6 +160,12 @@ class Driver  extends TestDriver implements GlobalConst
 
             for(int i=0; i<attrType.length; i++){
                 attrType[i] = new AttrType(AttrType.attrReal);
+            }
+
+            projlist = new FldSpec[col];
+
+            for(int i=0; i<col; i++){
+                projlist[i] = new FldSpec(rel, i+1);;
             }
 
             Tuple t = new Tuple();
@@ -351,11 +358,11 @@ class Driver  extends TestDriver implements GlobalConst
                 switch(choice) {
 
                     case 1:
-                        readData("data2");
+                        readData("/Users/musabafzal/Desktop/dbmsi-data/data2");
                         break;
 
                     case 2:
-                        readData("data3");
+                        readData("/Users/musabafzal/Desktop/dbmsi-data/data31");
                         break;
 
                     case 3:
@@ -397,7 +404,68 @@ class Driver  extends TestDriver implements GlobalConst
                         break;
 
                     case 12:
-                        // call sort first sky
+                        FileScan fscan = null;
+
+                        try {
+                            fscan = new FileScan(heapFile, attrType, attrSize, (short) pref_attr_lst.length, pref_attr_lst.length, projlist, null);
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        SortFirstSky sort = null;
+                        try {
+                            sort = new SortFirstSky(attrType, attrType.length, attrSize, fscan, heapFile, pref_attr_lst, pref_attr_lst.length, _n_pages);
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        int count = 0;
+                        Tuple t = null;
+
+                        try {
+                            t = sort.get_next();
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        while (t != null) {
+                            try {
+                                for (int i = 1; i <= t.noOfFlds(); i++) {
+                                    System.out.print(t.getFloFld(i) + ", ");
+                                }
+                                System.out.println();
+                            } catch (Exception e) {
+                                status = FAIL;
+                                e.printStackTrace();
+                            }
+
+                            count++;
+
+                            try {
+                                t = sort.get_next();
+                            } catch (Exception e) {
+                                status = FAIL;
+                                e.printStackTrace();
+                            }
+                        }
+
+                        try {
+                            fscan.close();
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        try {
+                            sort.close();
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
                         break;
 
                     case 13:
