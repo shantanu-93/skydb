@@ -6,10 +6,9 @@ import heap.Tuple;
 import iterator.*;
 
 import java.io.IOException;
-import java.util.Random;
 
 
-class SkylineDriver extends TestDriver
+class SortFirstSkylineDriver extends TestDriver
         implements GlobalConst {
 
     private static String data1[] = {
@@ -51,7 +50,7 @@ class SkylineDriver extends TestDriver
     private static int SORTPGNUM = 12;
 
 
-    public SkylineDriver() {
+    public SortFirstSkylineDriver() {
         super("skylinetest");
     }
 
@@ -427,7 +426,7 @@ public class SkylineTest {
     public static void main(String argv[]) {
         boolean sortstatus;
 
-        SkylineDriver sortt = new SkylineDriver();
+        BlockNestedSkylineDriver sortt = new SortFirstSkylineDriver();
 
         sortstatus = sortt.runTests();
         if (sortstatus != true) {
