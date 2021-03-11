@@ -161,19 +161,9 @@ class Driver  extends TestDriver implements GlobalConst
                 attrType[i] = new AttrType(AttrType.attrReal);
             }
 
-            for(int i=0; i<attrSize.length; i++){
-                attrSize[i] = 32;
-            }
-
-            projlist = new FldSpec[col];
-
-            for(int i=0; i<attrSize.length; i++){
-                projlist[i] = new FldSpec(rel, i+1);;
-            }
-
             Tuple t = new Tuple();
             try {
-                t.setHdr((short) col,attrType, attrSize);
+                t.setHdr((short) col,attrType, new short[0]);
             }
             catch (Exception e) {
                 System.err.println("*** error in Tuple.setHdr() ***");
@@ -181,7 +171,7 @@ class Driver  extends TestDriver implements GlobalConst
                 e.printStackTrace();
             }
 
-            int size = t.size();
+            short size = t.size();
             System.out.println("Size: "+size);
 			tSize = size;
 
