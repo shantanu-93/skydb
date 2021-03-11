@@ -362,7 +362,7 @@ class Driver  extends TestDriver implements GlobalConst
                         break;
 
                     case 2:
-                        readData("/Users/musabafzal/Desktop/dbmsi-data/data31");
+                        readData("/Users/musabafzal/Desktop/dbmsi-data/data3");
                         break;
 
                     case 3:
@@ -421,7 +421,7 @@ class Driver  extends TestDriver implements GlobalConst
                             e.printStackTrace();
                         }
 
-                        int count = 0;
+                        int count = 1;
                         Tuple t = null;
 
                         try {
@@ -430,7 +430,7 @@ class Driver  extends TestDriver implements GlobalConst
                             status = FAIL;
                             e.printStackTrace();
                         }
-
+                        System.out.println("\n -- Skyline candidates -- ");
                         while (t != null) {
                             try {
                                 for (int i = 1; i <= t.noOfFlds(); i++) {
@@ -451,6 +451,8 @@ class Driver  extends TestDriver implements GlobalConst
                                 e.printStackTrace();
                             }
                         }
+
+                        System.out.println("\n Number of Skyline candidates: " + count);
 
                         try {
                             fscan.close();
