@@ -224,30 +224,44 @@ public class NestedLoopsSky  extends Iterator
         outer = outerHf.openScan();
         Tuple tpl = new Tuple();
 
-        while ((tpl = outer.getNext(outerRid)) != null){
-            tpl.setHdr((short)in1_len, _in1,_t1_str_sizes);
-            inputList.add(tpl);
-        }
-        // System.out.println(inputList.size());
     } catch (Exception e) {
         //TODO: handle exception
         e.printStackTrace();
     }
 
-    int inputSize = inputList.size();
-    for (int i =0; i<inputSize; i++){
-        for(int j=0; j<inputSize; j++){
-            boolean outerDominate = false;
-            // innerDominate = TupleUtils.Dominates(inner_tuple,_in1,outer_tuple, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);
-            outerDominate = TupleUtils.Dominates(inputList.get(i),_in1,inputList.get(j), _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);
-            if(outerDominate){
-                inputList.remove(inputList.get(j));
+    try{
+        Tuple tpl = new Tuple();
+        while((tpl=outer.getNext(outerRid))!=null){
+            tpl.setHdr((short)in1_len, _in1,_t1_str_sizes);
+            RID rid = new RID();
+            inner = hf.openScan();
+            Tuple tplInner = new Tuple();
+
+            while((tplInner=inner.getNext(rid))!=null){
+                tplInner.setHdr((short)in1_len, _in1,_t1_str_sizes);
+                boolean outerDominate = false;
+                outerDominate = TupleUtils.Dominates(tpl,_in1,tplInner, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);
+                if(outerDominate){
+                    hf.deleteRecord(rid);
+                }
+
             }
-            
         }
+
+        inner = hf.openScan();
+        Tuple tempTpl = new Tuple();
+        RID temId = new RID();
+
+        while((tempTpl=inner.getNext(temId))!=null){
+            tempTpl.setHdr((short)in1_len, _in1,_t1_str_sizes);
+            finalOutput.add(tempTpl);
+        }
+
+    }catch (Exception e) {
+        e.printStackTrace();
     }
 
-    finalOutput = inputList;
+
 
     }
       
