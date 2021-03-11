@@ -10,7 +10,8 @@ public class DB implements GlobalConst {
 
   
   private static final int bits_per_page = MAX_SPACE * 8;
-  
+  public HashSet<Integer> rh = new HashSet<Integer>();
+  public HashSet<Integer> wh = new HashSet<Integer>(); 
   
   /** Open the database with the given name.
    *
@@ -50,7 +51,9 @@ public class DB implements GlobalConst {
   
   /** default constructor.
    */
-  public DB() { }
+  public DB() {
+	PCounter.initialize(); 
+  }
   
   
   /** DB Constructors.
@@ -149,6 +152,11 @@ public class DB implements GlobalConst {
     byte [] buffer = apage.getpage();  //new byte[MINIBASE_PAGESIZE];
     try{
       fp.read(buffer);
+      if(!(rh.contains(pageno.pid)))
+      {
+	      rh.add(pageno.pid);
+	      PCounter.readIncrement();
+    }
     }
     catch (IOException e) {
       throw new FileIOException(e, "DB file I/O error");
@@ -179,6 +187,10 @@ public class DB implements GlobalConst {
     // Write the appropriate number of bytes.
     try{
       fp.write(apage.getpage());
+      if(!(wh.contains(pageno.pid))){
+	      wh.add(pageno.pid);
+	      PCounter.writeIncreement();
+      }
     }
     catch (IOException e) {
       throw new FileIOException(e, "DB file I/O error");
