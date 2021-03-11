@@ -426,7 +426,7 @@ public class SkylineTest {
     public static void main(String argv[]) {
         boolean sortstatus;
 
-        BlockNestedSkylineDriver sortt = new SortFirstSkylineDriver();
+        SortFirstSkylineDriver sortt = new SortFirstSkylineDriver();
 
         sortstatus = sortt.runTests();
         if (sortstatus != true) {

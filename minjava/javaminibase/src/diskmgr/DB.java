@@ -191,7 +191,7 @@ public class DB implements GlobalConst {
       fp.write(apage.getpage());
       if(!(wh.contains(pageno.pid))){
 	      wh.add(pageno.pid);
-	      PCounter.writeIncreement();
+	      PCounter.writeIncrement();
       }
     }
     catch (IOException e) {

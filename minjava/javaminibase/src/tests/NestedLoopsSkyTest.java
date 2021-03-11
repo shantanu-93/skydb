@@ -432,7 +432,7 @@ public class NestedLoopsSkyTest {
     public static void main(String argv[]) {
         boolean sortstatus;
 
-        BlockNestedSkylineDriver sortt = new NestedLoopSkylineDriver();
+        NestedLoopSkylineDriver sortt = new NestedLoopSkylineDriver();
 
         sortstatus = sortt.runTests();
         if (sortstatus != true) {
