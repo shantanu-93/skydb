@@ -143,7 +143,7 @@ public class SortFirstSky extends Iterator {
                                                 break;
                                         }
 
-                                        tempHFTuple.setHdr((short) 2, _in1, t1_str_sizes_cls);
+                                        tempHFTuple.setHdr(in1_len, _in1, t1_str_sizes_cls);
 
                                         if (TupleUtils.Dominates(tempHFTuple, _in1, currentOuter, _in1, in1_len, t1_str_sizes_cls, pref_list_cls, pref_list_length_cls)) {
                                                 dominated = true;

@@ -407,11 +407,13 @@ class Driver  extends TestDriver implements GlobalConst
                         FileScan fscan = null;
 
                         try {
-                            fscan = new FileScan(heapFile, attrType, attrSize, (short) pref_attr_lst.length, pref_attr_lst.length, projlist, null);
+                            fscan = new FileScan(heapFile, attrType, attrSize, (short) attrType.length, attrType.length, projlist, null);
                         } catch (Exception e) {
                             status = FAIL;
                             e.printStackTrace();
                         }
+
+                        PCounter.initialize();
 
                         SortFirstSky sort = null;
                         try {
@@ -421,22 +423,18 @@ class Driver  extends TestDriver implements GlobalConst
                             e.printStackTrace();
                         }
 
-                        int count = 1;
+                        int count = -1;
                         Tuple t = null;
 
-                        try {
-                            t = sort.get_next();
-                        } catch (Exception e) {
-                            status = FAIL;
-                            e.printStackTrace();
-                        }
                         System.out.println("\n -- Skyline candidates -- ");
-                        while (t != null) {
+                        do {
                             try {
-                                for (int i = 1; i <= t.noOfFlds(); i++) {
-                                    System.out.print(t.getFloFld(i) + ", ");
+                                if (t != null) {
+                                    for (int i = 1; i <= t.noOfFlds(); i++) {
+                                        System.out.print(t.getFloFld(i) + ", ");
+                                    }
+                                    System.out.println();
                                 }
-                                System.out.println();
                             } catch (Exception e) {
                                 status = FAIL;
                                 e.printStackTrace();
@@ -450,7 +448,10 @@ class Driver  extends TestDriver implements GlobalConst
                                 status = FAIL;
                                 e.printStackTrace();
                             }
-                        }
+                        } while (t != null);
+
+                        System.out.println("Read statistics "+PCounter.rcounter);
+                        System.out.println("Write statistics "+PCounter.wcounter);
 
                         System.out.println("\n Number of Skyline candidates: " + count);
 
@@ -538,14 +539,9 @@ public class ReadDriver implements  GlobalConst{
 
     public static void main(String [] argvs) {
 
-        PCounter.initialize();
-
         try{
             Driver driver = new Driver();
             driver.runTests();
-
-            System.out.println("Read statistics "+PCounter.rcounter);
-            System.out.println("Write statistics "+PCounter.wcounter);
         }
         catch (Exception e) {
             System.err.println ("Error encountered during running main driver:\n");
