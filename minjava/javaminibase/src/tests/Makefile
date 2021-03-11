@@ -63,7 +63,12 @@ BlockNestedLoopsSkyTest:BlockNestedLoopsSkyTest.java
 blocknestedlooptest: BlockNestedLoopsSkyTest
 	$(JAVA) tests.BlockNestedLoopsSkyTest
 
+#Loopsky
+NestedLoopsskyTest:NestedLoopsSkyTest.java
+	$(JAVAC) TestDriver.java NestedLoopsSkyTest.java
 
+nestedloopskytest: NestedLoopsskyTest
+	$(JAVA) tests.NestedLoopsSkyTest
 # test sort
 
 SortTest:SortTest.java

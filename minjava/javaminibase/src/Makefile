@@ -42,7 +42,7 @@ doc:
 	$(JAVADOC) $(DOCFILES)
 
 test: 
-	cd tests; make bmtest dbtest; whoami; make hftest bttest indextest jointest sorttest sortmerge blocknestedlooptest
+	cd tests; make bmtest dbtest; whoami; make hftest bttest indextest jointest sorttest sortmerge blocknestedlooptest nestedloopskytest
 
 clean:
 	\rm -f $(CLASSPATH)/*.class *~ \#* core $(JARFILES) TRACE

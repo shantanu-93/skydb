@@ -52,7 +52,7 @@ class SkylineDriver extends TestDriver
 
 
     public SkylineDriver() {
-        super("BlockNestedLoopsSkyTest");
+        super("NestedLoopsSkyTest");
     }
 
     public boolean runTests() {
@@ -117,7 +117,7 @@ class SkylineDriver extends TestDriver
     protected boolean test1() {
         System.out.println("------------------------ TEST 1 --------------------------");
 
-        System.out.println("\n -- Testing BlockNestedLoopsSky on correlated tuples -- ");
+        System.out.println("\n -- Testing NestedLoopsSky on correlated tuples -- ");
         boolean status = OK;
 
         AttrType[] attrType = new AttrType[2];
@@ -208,9 +208,9 @@ class SkylineDriver extends TestDriver
         }
 
         int[] pref_list = new int[] {1,2};
-        BlockNestedLoopsSky blockNestedLoop = null;
+        NestedLoopsSky nestedLoop = null;
         try {
-            blockNestedLoop = new BlockNestedLoopsSky(attrType, (short) 2, attrSize, fscan, "test1.in", pref_list, 2, 1);
+            nestedLoop = new NestedLoopsSky(attrType, (short) 2, attrSize, fscan, "test1.in", pref_list, 2, 1);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -221,7 +221,7 @@ class SkylineDriver extends TestDriver
         t = null;
 
         try {
-            t = blockNestedLoop.get_next();
+            t = nestedLoop.get_next();
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -238,7 +238,7 @@ class SkylineDriver extends TestDriver
             count++;
 
             try {
-                t = blockNestedLoop.get_next();
+                t = nestedLoop.get_next();
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -247,7 +247,7 @@ class SkylineDriver extends TestDriver
 
         // clean up
         try {
-            blockNestedLoop.close();
+            nestedLoop.close();
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -262,7 +262,7 @@ class SkylineDriver extends TestDriver
     protected boolean test2() {
         System.out.println("------------------------ TEST 2 --------------------------");
 
-        System.out.println("\n -- Testing BlockNestedLoopsSky on anti-correlated tuples -- ");
+        System.out.println("\n -- Testing NestedLoopsSky on anti-correlated tuples -- ");
         boolean status = OK;
 
         AttrType[] attrType = new AttrType[2];
@@ -353,9 +353,9 @@ class SkylineDriver extends TestDriver
         }
 
         int[] pref_list = new int[] {1,2};
-        BlockNestedLoopsSky blockNestedLoop = null;
+        NestedLoopsSky nestedLoop = null;
         try {
-            blockNestedLoop = new BlockNestedLoopsSky(attrType, (short) 2, attrSize, fscan, "test2.in", pref_list, 2, 1);
+            nestedLoop = new NestedLoopsSky(attrType, (short) 2, attrSize, fscan, "test2.in", pref_list, 2, 1);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -366,13 +366,13 @@ class SkylineDriver extends TestDriver
         t = null;
 
         try{
-            blockNestedLoop.performSkyline();
+            nestedLoop.performSkyline();
            }catch(Exception e){
              e.printStackTrace();
            }
 
         try {
-            t = blockNestedLoop.get_next();
+            t = nestedLoop.get_next();
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -389,7 +389,7 @@ class SkylineDriver extends TestDriver
             count++;
 
             try {
-                t = blockNestedLoop.get_next();
+                t = nestedLoop.get_next();
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -398,7 +398,7 @@ class SkylineDriver extends TestDriver
 
         // clean up
         try {
-            blockNestedLoop.close();
+            nestedLoop.close();
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -429,7 +429,7 @@ class SkylineDriver extends TestDriver
     }
 }
 
-public class BlockNestedLoopsSkyTest {
+public class NestedLoopsSkyTest {
     public static void main(String argv[]) {
         boolean sortstatus;
 
@@ -439,7 +439,7 @@ public class BlockNestedLoopsSkyTest {
         if (sortstatus != true) {
             System.out.println("Error ocurred during sorting tests");
         } else {
-            System.out.println("BlockNestedLoopsSkyline tests completed successfully");
+            System.out.println("NestedLoopsSkyline tests completed successfully");
         }
     }
 }

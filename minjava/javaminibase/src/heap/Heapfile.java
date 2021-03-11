@@ -892,7 +892,6 @@ public class Heapfile implements Filetype,  GlobalConst {
 	   HFDiskMgrException,
 	   IOException
     {		
-		
       if(_file_deleted ) 
    	throw new FileAlreadyDeletedException(null, "file alread deleted");
     
