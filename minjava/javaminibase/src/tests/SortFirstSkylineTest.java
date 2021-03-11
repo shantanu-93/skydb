@@ -422,7 +422,7 @@ class SortFirstSkylineDriver extends TestDriver
     }
 }
 
-public class SkylineTest {
+public class SortFirstSkylineTest {
     public static void main(String argv[]) {
         boolean sortstatus;
 
