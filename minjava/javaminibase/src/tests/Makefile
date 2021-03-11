@@ -1,10 +1,10 @@
 # modify the paths appropriately
-JDKPATH = ${JAVA_HOME}
+JDKPATH = /Library/Java/JavaVirtualMachines/jdk1.8.0_251.jdk/
 LIBPATH = .:..
 CLASSPATH = $(LIBPATH)
-BINPATH = $(JDKPATH)/bin
-JAVAC = $(JDKPATH)/bin/javac -classpath $(CLASSPATH)
-JAVA  = $(JDKPATH)/bin/java  -classpath $(CLASSPATH)
+BINPATH = $(JDKPATH)/Contents/Home/bin
+JAVAC = $(JDKPATH)/Contents/Home/bin/javac -classpath $(CLASSPATH)
+JAVA  = $(JDKPATH)/Contents/Home/bin/java  -classpath $(CLASSPATH)
 
 # test buffer manager
 
@@ -54,6 +54,16 @@ JoinTest:JoinTest.java
 jointest: JoinTest
 	$(JAVA) tests.JoinTest
 
+
+# Blocknestedloopssky join
+
+BlockNestedLoopsSkyTest:BlockNestedLoopsSkyTest.java
+	$(JAVAC) TestDriver.java BlockNestedLoopsSkyTest.java
+
+blocknestedlooptest: BlockNestedLoopsSkyTest
+	$(JAVA) tests.BlockNestedLoopsSkyTest
+
+
 # test sort
 
 SortTest:SortTest.java
@@ -69,7 +79,3 @@ SMJoin:SM_JoinTest.java
 
 sortmerge: SMJoin
 	$(JAVA) tests.SM_JoinTest
-
-
-
-

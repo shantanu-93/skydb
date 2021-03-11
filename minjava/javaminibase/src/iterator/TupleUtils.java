@@ -1,12 +1,11 @@
 package iterator;
-
-
 import heap.*;
 import global.*;
 import org.w3c.dom.Attr;
-
 import java.io.*;
 import java.lang.*;
+
+
 
 /**
  *some useful method when processing Tuple 
@@ -438,7 +437,3 @@ public class TupleUtils
       return res_str_sizes;
     }
 }
-
-
-
-
