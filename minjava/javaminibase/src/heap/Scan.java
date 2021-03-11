@@ -4,12 +4,15 @@ package heap;
 /**
  * Scan.java-  class Scan
  *
+ *
+ *
  */
 
 import java.io.*;
 import global.*;
 import bufmgr.*;
 import diskmgr.*;
+import java.util.ArrayList;
 
 
 /**	
@@ -64,7 +67,6 @@ public class Scan implements GlobalConst{
 
     private int totalRecords;
 
-
     /** The constructor pins the first directory page in the file
      * and initializes its private data members from the private
      * data member from hf
@@ -95,20 +97,26 @@ public class Scan implements GlobalConst{
     throws InvalidTupleSizeException,
 	   IOException
   {
+
     Tuple recptrtuple = null;
     
     if (nextUserStatus != true) {
         nextDataPage();
+
     }
-     
+
     if (datapage == null)
       return null;
     
-    rid.pageNo.pid = userrid.pageNo.pid;    
+    if(userrid == null)
+      return null;
+
+    rid.pageNo.pid = userrid.pageNo.pid;
     rid.slotNo = userrid.slotNo;
          
     try {
       recptrtuple = datapage.getRecord(rid);
+
     }
     
     catch (Exception e) {
@@ -122,6 +130,47 @@ public class Scan implements GlobalConst{
      
     return recptrtuple;
   }
+
+public Tuple CountAllFileRecords(RID rid)
+throws InvalidTupleSizeException,
+ IOException
+{
+
+do{
+
+  Tuple recptrtuple = null;
+
+    if (nextUserStatus != true) {
+      nextDataPage();
+    }
+
+    if (datapage == null)
+      return null;
+
+    rid.pageNo.pid = userrid.pageNo.pid;
+    rid.slotNo = userrid.slotNo;
+
+    try {
+      recptrtuple = datapage.getRecord(rid);
+      totalRecords++;
+    }
+
+    catch (Exception e) {
+  //    System.err.println("SCAN: Error in Scan" + e);
+      e.printStackTrace();
+    }
+
+    userrid = datapage.nextRecord(rid);
+    if(userrid == null) nextUserStatus = false;
+    else nextUserStatus = true;
+}while(true);
+  // return null;
+
+}
+
+public int getTotalNumberRecords(){
+  return totalRecords;
+}
 
 
     /** Position the scan cursor to the record with the given rid.
@@ -349,7 +398,7 @@ public class Scan implements GlobalConst{
       
       nextDirPageId = dirpage.getNextPage();
       
-      if (nextDirPageId.pid != INVALID_PAGE) {
+      if (nextDirPageId.pid != INVALID_PAGE){
 	
 	try {
             unpinPage(dirpageId, false);
@@ -702,6 +751,67 @@ public class Scan implements GlobalConst{
     }
 
   } // end of unpinPage
+
+
+
+    /** Retrieve the next records from n pages in a sequential scan
+   *
+   * @exception InvalidTupleSizeException Invalid tuple size
+   * @exception IOException I/O errors
+   *
+   * @param rid Record ID of the record
+   * @return the Tuple of the retrieved record.
+   */
+  public ArrayList<Tuple> getNextRecordFromNPages(RID rid, int n_pages)
+    throws InvalidTupleSizeException,
+	   IOException
+  {
+     isPageLeftBlockScan = true;
+    ArrayList<Tuple> tuples = new ArrayList<Tuple>();
+    for(int i = 0; i<n_pages; i++){
+
+
+      if (nextUserStatus != true) {
+        nextDataPage();
+      }
+      while(nextUserStatus){
+        Tuple recptrtuple = null;
+
+          if (datapage == null)
+            return null;
+
+          rid.pageNo.pid = userrid.pageNo.pid;
+          rid.slotNo = userrid.slotNo;
+
+          try {
+            recptrtuple = datapage.getRecord(rid);
+            tuples.add(recptrtuple);
+          }
+
+          catch (Exception e) {
+        //    System.err.println("SCAN: Error in Scan" + e);
+            e.printStackTrace();
+          }
+
+          userrid = datapage.nextRecord(rid);
+          if(userrid == null) nextUserStatus = false;
+          else nextUserStatus = true;
+
+      }
+
+    }
+
+    isPageLeftBlockScan = nextDataPage();
+    nextPageBlockRid = datapage.nextRecord(rid);
+
+    return tuples;
+
+  }
+
+  public RID getnextPageBlockRid(){
+    return nextPageBlockRid;
+  }
+
 
 
 }

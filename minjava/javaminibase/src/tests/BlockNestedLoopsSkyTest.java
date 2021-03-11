@@ -12,39 +12,39 @@ import java.util.Random;
 class SkylineDriver extends TestDriver
         implements GlobalConst {
 
-    private static String data1[] = {
-            "raghu", "xbao", "cychan", "leela", "ketola", "soma", "ulloa",
-            "dhanoa", "dsilva", "kurniawa", "dissoswa", "waic", "susanc", "kinc",
-            "marc", "scottc", "yuc", "ireland", "rathgebe", "joyce", "daode",
-            "yuvadee", "he", "huxtable", "muerle", "flechtne", "thiodore", "jhowe",
-            "frankief", "yiching", "xiaoming", "jsong", "yung", "muthiah", "bloch",
-            "binh", "dai", "hai", "handi", "shi", "sonthi", "evgueni", "chung-pi",
-            "chui", "siddiqui", "mak", "tak", "sungk", "randal", "barthel",
-            "newell", "schiesl", "neuman", "heitzman", "wan", "gunawan", "djensen",
-            "juei-wen", "josephin", "harimin", "xin", "zmudzin", "feldmann",
-            "joon", "wawrzon", "yi-chun", "wenchao", "seo", "karsono", "dwiyono",
-            "ginther", "keeler", "peter", "lukas", "edwards", "mirwais", "schleis",
-            "haris", "meyers", "azat", "shun-kit", "robert", "markert", "wlau",
-            "honghu", "guangshu", "chingju", "bradw", "andyw", "gray", "vharvey",
-            "awny", "savoy", "meltz"};
+    // private static String data1[] = {
+    //         "raghu", "xbao", "cychan", "leela", "ketola", "soma", "ulloa",
+    //         "dhanoa", "dsilva", "kurniawa", "dissoswa", "waic", "susanc", "kinc",
+    //         "marc", "scottc", "yuc", "ireland", "rathgebe", "joyce", "daode",
+    //         "yuvadee", "he", "huxtable", "muerle", "flechtne", "thiodore", "jhowe",
+    //         "frankief", "yiching", "xiaoming", "jsong", "yung", "muthiah", "bloch",
+    //         "binh", "dai", "hai", "handi", "shi", "sonthi", "evgueni", "chung-pi",
+    //         "chui", "siddiqui", "mak", "tak", "sungk", "randal", "barthel",
+    //         "newell", "schiesl", "neuman", "heitzman", "wan", "gunawan", "djensen",
+    //         "juei-wen", "josephin", "harimin", "xin", "zmudzin", "feldmann",
+    //         "joon", "wawrzon", "yi-chun", "wenchao", "seo", "karsono", "dwiyono",
+    //         "ginther", "keeler", "peter", "lukas", "edwards", "mirwais", "schleis",
+    //         "haris", "meyers", "azat", "shun-kit", "robert", "markert", "wlau",
+    //         "honghu", "guangshu", "chingju", "bradw", "andyw", "gray", "vharvey",
+    //         "awny", "savoy", "meltz"};
 
-    private static String data2[] = {
-            "andyw", "awny", "azat", "barthel", "binh", "bloch", "bradw",
-            "chingju", "chui", "chung-pi", "cychan", "dai", "daode", "dhanoa",
-            "dissoswa", "djensen", "dsilva", "dwiyono", "edwards", "evgueni",
-            "feldmann", "flechtne", "frankief", "ginther", "gray", "guangshu",
-            "gunawan", "hai", "handi", "harimin", "haris", "he", "heitzman",
-            "honghu", "huxtable", "ireland", "jhowe", "joon", "josephin", "joyce",
-            "jsong", "juei-wen", "karsono", "keeler", "ketola", "kinc", "kurniawa",
-            "leela", "lukas", "mak", "marc", "markert", "meltz", "meyers",
-            "mirwais", "muerle", "muthiah", "neuman", "newell", "peter", "raghu",
-            "randal", "rathgebe", "robert", "savoy", "schiesl", "schleis",
-            "scottc", "seo", "shi", "shun-kit", "siddiqui", "soma", "sonthi",
-            "sungk", "susanc", "tak", "thiodore", "ulloa", "vharvey", "waic",
-            "wan", "wawrzon", "wenchao", "wlau", "xbao", "xiaoming", "xin",
-            "yi-chun", "yiching", "yuc", "yung", "yuvadee", "zmudzin"};
+    // private static String data2[] = {
+    //         "andyw", "awny", "azat", "barthel", "binh", "bloch", "bradw",
+    //         "chingju", "chui", "chung-pi", "cychan", "dai", "daode", "dhanoa",
+    //         "dissoswa", "djensen", "dsilva", "dwiyono", "edwards", "evgueni",
+    //         "feldmann", "flechtne", "frankief", "ginther", "gray", "guangshu",
+    //         "gunawan", "hai", "handi", "harimin", "haris", "he", "heitzman",
+    //         "honghu", "huxtable", "ireland", "jhowe", "joon", "josephin", "joyce",
+    //         "jsong", "juei-wen", "karsono", "keeler", "ketola", "kinc", "kurniawa",
+    //         "leela", "lukas", "mak", "marc", "markert", "meltz", "meyers",
+    //         "mirwais", "muerle", "muthiah", "neuman", "newell", "peter", "raghu",
+    //         "randal", "rathgebe", "robert", "savoy", "schiesl", "schleis",
+    //         "scottc", "seo", "shi", "shun-kit", "siddiqui", "soma", "sonthi",
+    //         "sungk", "susanc", "tak", "thiodore", "ulloa", "vharvey", "waic",
+    //         "wan", "wawrzon", "wenchao", "wlau", "xbao", "xiaoming", "xin",
+    //         "yi-chun", "yiching", "yuc", "yung", "yuvadee", "zmudzin"};
 
-    private static int NUM_RECORDS = data2.length;
+    // private static int NUM_RECORDS = data2.length;
     private static int LARGE = 1000;
     private static short REC_LEN1 = 32;
     private static short REC_LEN2 = 160;
@@ -52,14 +52,14 @@ class SkylineDriver extends TestDriver
 
 
     public SkylineDriver() {
-        super("skylinetest");
+        super("BlockNestedLoopsSkyTest");
     }
 
     public boolean runTests() {
 
         System.out.println("\n" + "Running " + testName() + " tests...." + "\n");
 
-        SystemDefs sysdef = new SystemDefs(dbpath, 10000, 10000, "Clock");
+        SystemDefs sysdef = new SystemDefs(dbpath, 10000, NUMBUF, "Clock");
 
         // Kill anything that might be hanging around
         String newdbpath;
@@ -117,7 +117,7 @@ class SkylineDriver extends TestDriver
     protected boolean test1() {
         System.out.println("------------------------ TEST 1 --------------------------");
 
-        System.out.println("\n -- Testing SortFirstSky on correlated tuples -- ");
+        System.out.println("\n -- Testing BlockNestedLoopsSky on correlated tuples -- ");
         boolean status = OK;
 
         AttrType[] attrType = new AttrType[2];
@@ -208,9 +208,9 @@ class SkylineDriver extends TestDriver
         }
 
         int[] pref_list = new int[] {1,2};
-        SortFirstSky sort = null;
+        BlockNestedLoopsSky blockNestedLoop = null;
         try {
-            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "test1.in", pref_list, 2, 5);
+            blockNestedLoop = new BlockNestedLoopsSky(attrType, (short) 2, attrSize, fscan, "test1.in", pref_list, 2, 1);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -221,7 +221,7 @@ class SkylineDriver extends TestDriver
         t = null;
 
         try {
-            t = sort.get_next();
+            t = blockNestedLoop.get_next();
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -238,7 +238,7 @@ class SkylineDriver extends TestDriver
             count++;
 
             try {
-                t = sort.get_next();
+                t = blockNestedLoop.get_next();
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -247,7 +247,7 @@ class SkylineDriver extends TestDriver
 
         // clean up
         try {
-            sort.close();
+            blockNestedLoop.close();
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -262,7 +262,7 @@ class SkylineDriver extends TestDriver
     protected boolean test2() {
         System.out.println("------------------------ TEST 2 --------------------------");
 
-        System.out.println("\n -- Testing SortFirstSky on anti-correlated tuples -- ");
+        System.out.println("\n -- Testing BlockNestedLoopsSky on anti-correlated tuples -- ");
         boolean status = OK;
 
         AttrType[] attrType = new AttrType[2];
@@ -310,7 +310,7 @@ class SkylineDriver extends TestDriver
         int j = 10;
 
         System.out.println("\n -- Generating anti-correlated tuples -- ");
-        int num_elements = 7000;
+        int num_elements = 1000;
         for (int i = 0; i < num_elements; i++) {
             // setting fields
             inum1 = i+1;
@@ -353,9 +353,9 @@ class SkylineDriver extends TestDriver
         }
 
         int[] pref_list = new int[] {1,2};
-        SortFirstSky sort = null;
+        BlockNestedLoopsSky blockNestedLoop = null;
         try {
-            sort = new SortFirstSky(attrType, (short) 2, attrSize, fscan, "test2.in", pref_list, 2, 5);
+            blockNestedLoop = new BlockNestedLoopsSky(attrType, (short) 2, attrSize, fscan, "test2.in", pref_list, 2, 1);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -365,8 +365,14 @@ class SkylineDriver extends TestDriver
         count = 0;
         t = null;
 
+        try{
+            blockNestedLoop.performSkyline();
+           }catch(Exception e){
+             e.printStackTrace();
+           }
+
         try {
-            t = sort.get_next();
+            t = blockNestedLoop.get_next();
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -383,7 +389,7 @@ class SkylineDriver extends TestDriver
             count++;
 
             try {
-                t = sort.get_next();
+                t = blockNestedLoop.get_next();
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -392,7 +398,7 @@ class SkylineDriver extends TestDriver
 
         // clean up
         try {
-            sort.close();
+            blockNestedLoop.close();
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -423,7 +429,7 @@ class SkylineDriver extends TestDriver
     }
 }
 
-public class SkylineTest {
+public class BlockNestedLoopsSkyTest {
     public static void main(String argv[]) {
         boolean sortstatus;
 
@@ -437,4 +443,3 @@ public class SkylineTest {
         }
     }
 }
-

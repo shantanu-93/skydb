@@ -224,7 +224,7 @@ public class Tuple implements GlobalConst{
         return val;
        }
       else 
-       throw new FieldNumberOutOfBoundException (null, "TUPLE:TUPLE_FLDNO_OUT_OF_BOUND");
+       throw new FieldNumberOutOfBoundException (null, "TUPLE:TUPLE_FLDNO_OUT_OF_BOUND"+String.valueOf(fldNo));
      }
 
 
@@ -520,6 +520,15 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
    System.out.println("]");
 
  }
+
+ public void printString()throws IOException {
+  // case AttrType.attrReal:
+    String sval;
+    sval = Convert.getStrValue(fldOffset[0], data,fldOffset[0+1] - fldOffset[0]);
+    System.out.println(sval);
+ }
+
+
 
   /**
    * private method
