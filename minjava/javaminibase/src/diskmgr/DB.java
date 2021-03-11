@@ -3,6 +3,8 @@
 package diskmgr;
 
 import java.io.*;
+import java.util.HashSet;
+
 import bufmgr.*;
 import global.*;
 
