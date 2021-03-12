@@ -399,6 +399,54 @@ public class BufMgr implements GlobalConst{
 	  throw new PagePinnedException (null, "BUFMGR: PAGE_PINNED.");
       }
     }
+
+    public void flushPages() throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
+        int i;
+        int unpinned = 0;
+        int all_pages = 1;
+        PageId pageid = new PageId();
+        for (i=0; i < numBuffers; i++)   // write all valid dirty pages to disk
+            if ( (all_pages !=0) || (frmeTable[i].pageNo.pid == pageid.pid)) {
+
+                if ( frmeTable[i].pin_count() != 0 )
+                    unpinned++;
+
+                if ( frmeTable[i].dirty != false ) {
+
+                    if(frmeTable[i].pageNo.pid == INVALID_PAGE)
+
+                        throw new PageNotFoundException( null, "BUFMGR: INVALID_PAGE_NO");
+                    pageid.pid = frmeTable[i].pageNo.pid;
+
+
+                    Page apage = new Page(bufPool[i]);
+
+                    write_page(pageid, apage);
+
+                    try {
+                        hashTable.remove(pageid);
+                    }
+
+                    catch (Exception e2){
+                        throw new HashOperationException(e2, "BUFMGR: HASH_TBL_ERROR.");
+                    }
+
+                    frmeTable[i].pageNo.pid = INVALID_PAGE; // frame is empty
+                    frmeTable[i].dirty = false ;
+                }
+                if (all_pages == 0) {
+
+                    if (unpinned != 0)
+                        throw new PagePinnedException (null, "BUFMGR: PAGE_PINNED.");
+                }
+            }
+
+        // if (all_pages != 0) {
+        //   if (unpinned != 0) {
+        //     // throw new PagePinnedException (null, "BUFMGR: PAGE_PINNED.");
+        //   }
+        // }
+    }
   
   
   /** 
