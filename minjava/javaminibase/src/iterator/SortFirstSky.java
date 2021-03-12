@@ -1,10 +1,7 @@
 package iterator;
 
 import bufmgr.PageNotReadException;
-import global.AttrType;
-import global.GlobalConst;
-import global.RID;
-import global.TupleOrder;
+import global.*;
 import heap.*;
 import index.IndexException;
 
@@ -125,6 +122,8 @@ public class SortFirstSky extends Iterator {
                 Tuple currentOuter = null;
 
                 while (true) {
+                        SystemDefs.JavabaseBM.flushPages();
+
                         currentOuter = sort.get_next();
 
                         if (currentOuter == null) {
