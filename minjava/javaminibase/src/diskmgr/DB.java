@@ -12,8 +12,6 @@ public class DB implements GlobalConst {
 
   
   private static final int bits_per_page = MAX_SPACE * 8;
-  public HashSet<Integer> rh = new HashSet<Integer>();
-  public HashSet<Integer> wh = new HashSet<Integer>(); 
   
   /** Open the database with the given name.
    *
@@ -154,9 +152,9 @@ public class DB implements GlobalConst {
     byte [] buffer = apage.getpage();  //new byte[MINIBASE_PAGESIZE];
     try{
       fp.read(buffer);
-      if(!(rh.contains(pageno.pid)))
+      if(!(PCounter.rh.contains(pageno.pid)))
       {
-	      rh.add(pageno.pid);
+          PCounter.rh.add(pageno.pid);
 	      PCounter.readIncrement();
     }
     }
@@ -189,8 +187,8 @@ public class DB implements GlobalConst {
     // Write the appropriate number of bytes.
     try{
       fp.write(apage.getpage());
-      if(!(wh.contains(pageno.pid))){
-	      wh.add(pageno.pid);
+      if(!(PCounter.wh.contains(pageno.pid))){
+          PCounter.wh.add(pageno.pid);
 	      PCounter.writeIncrement();
       }
     }
