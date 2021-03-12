@@ -4,12 +4,10 @@ package readdriver;
 import java.io.*;
 import java.util.*;
 import java.lang.*;
-import java.security.Key;
 
 import diskmgr.PCounter;
 import heap.*;
 import global.*;
-import bufmgr.*;
 import btree.*;
 import iterator.FileScan;
 import iterator.FldSpec;
@@ -55,8 +53,8 @@ class Driver  extends TestDriver implements GlobalConst
         System.out.println ("\n" + "Running " + testName() + " tests...." + "\n");
         dbpath = "/tmp/main"+System.getProperty("user.name")+".minibase-db";
         logpath = "/tmp/main"+System.getProperty("user.name")+".minibase-log";
-        // Each page can handle at most 25 tuples on original data => 7308 / 25 = 292
-        SystemDefs sysdef = new SystemDefs(dbpath,10000, 3000,"Clock");
+
+        SystemDefs sysdef = new SystemDefs(dbpath,50000, 40000,"Clock");
 
         // Kill anything that might be hanging around
         String newdbpath;
@@ -213,6 +211,15 @@ class Driver  extends TestDriver implements GlobalConst
                     }
                 }
 
+//                for (int i = 1; i <= t.noOfFlds(); i++) {
+//                    try {
+//                        System.out.print(t.getFloFld(i) + ", ");
+//                    } catch (FieldNumberOutOfBoundException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//                System.out.println();
+
                 try {
                     rid = f.insertRecord(t.returnTupleByteArray());
                 }
@@ -360,11 +367,11 @@ class Driver  extends TestDriver implements GlobalConst
                 switch(choice) {
 
                     case 1:
-                        readData("/Users/christianbagaya/Documents/cse510dbmsi/minjava/javaminibase/src/readdriver/data2");
+                        readData("/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/data/data2");
                         break;
 
                     case 2:
-                        readData("/Users/christianbagaya/Documents/cse510dbmsi/minjava/javaminibase/src/readdriver/data3");
+                        readData("/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/data/data3");
                         break;
 
                     case 3:
@@ -542,6 +549,8 @@ class Driver  extends TestDriver implements GlobalConst
                             status = FAIL;
                             e.printStackTrace();
                         }
+
+                        SystemDefs.JavabaseBM.flushPages();
 
                         PCounter.initialize();
 
