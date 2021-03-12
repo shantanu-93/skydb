@@ -191,7 +191,7 @@ class Driver  extends TestDriver implements GlobalConst
                 status = FAIL;
                 e.printStackTrace();
             }
-
+            sc.nextLine();
             while (sc.hasNextLine()) {
                 // create a tuple of appropriate size
 
