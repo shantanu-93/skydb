@@ -15,6 +15,8 @@ import iterator.FileScan;
 import iterator.FldSpec;
 import iterator.RelSpec;
 import iterator.SortFirstSky;
+import iterator.BlockNestedLoopsSky;
+import iterator.NestedLoopsSky;
 import tests.TestDriver;
 
 /** Note that in JAVA, methods can't be overridden to be more private.
@@ -358,11 +360,11 @@ class Driver  extends TestDriver implements GlobalConst
                 switch(choice) {
 
                     case 1:
-                        readData("/Users/musabafzal/Desktop/dbmsi-data/data2");
+                        readData("/Users/christianbagaya/Documents/cse510dbmsi/minjava/javaminibase/src/readdriver/data2");
                         break;
 
                     case 2:
-                        readData("/Users/musabafzal/Desktop/dbmsi-data/data3");
+                        readData("/Users/christianbagaya/Documents/cse510dbmsi/minjava/javaminibase/src/readdriver/data3");
                         break;
 
                     case 3:
@@ -397,10 +399,138 @@ class Driver  extends TestDriver implements GlobalConst
                         break;
 					case 10:
                         // call nested loop sky
+                        FileScan fscanNested = null;
+
+                        try {
+                            fscanNested = new FileScan(heapFile, attrType, attrSize, (short) attrType.length, attrType.length, projlist, null);
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        PCounter.initialize();
+
+                        NestedLoopsSky nested = null;
+                        try {
+                            nested = new NestedLoopsSky(attrType, attrType.length, attrSize, fscanNested, heapFile, pref_attr_lst, pref_attr_lst.length, _n_pages);
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        int nestedSkycount = -1;
+                        Tuple nestedSkyTuple = null;
+
+                        System.out.println("\n -- Skyline candidates -- ");
+                        do {
+                            try {
+                                if (nestedSkyTuple != null) {
+                                    for (int i = 1; i <= nestedSkyTuple.noOfFlds(); i++) {
+                                        System.out.print(nestedSkyTuple.getFloFld(i) + ", ");
+                                    }
+                                    System.out.println();
+                                }
+                            } catch (Exception e) {
+                                status = FAIL;
+                                e.printStackTrace();
+                            }
+
+                            nestedSkycount++;
+
+                            try {
+                                nestedSkyTuple = nested.get_next();
+                            } catch (Exception e) {
+                                status = FAIL;
+                                e.printStackTrace();
+                            }
+                        } while (nestedSkyTuple != null);
+
+                        System.out.println("Read statistics "+PCounter.rcounter);
+                        System.out.println("Write statistics "+PCounter.wcounter);
+
+                        System.out.println("\n Number of Skyline candidates: " + nestedSkycount);
+
+                        try {
+                            fscanNested.close();
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        try {
+                            nested.close();
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
                         break;
 
                     case 11:
                         // call block nested loop sky
+                        FileScan fscanBlock = null;
+
+                        try {
+                            fscanBlock = new FileScan(heapFile, attrType, attrSize, (short) attrType.length, attrType.length, projlist, null);
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        PCounter.initialize();
+
+                        BlockNestedLoopsSky block = null;
+                        try {
+                            block = new BlockNestedLoopsSky(attrType, attrType.length, attrSize, fscanBlock, heapFile, pref_attr_lst, pref_attr_lst.length, _n_pages);
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        int blockSkycount = -1;
+                        Tuple blockSkyTuple = null;
+
+                        System.out.println("\n -- Skyline candidates -- ");
+                        do {
+                            try {
+                                if (blockSkyTuple != null) {
+                                    for (int i = 1; i <= blockSkyTuple.noOfFlds(); i++) {
+                                        System.out.print(blockSkyTuple.getFloFld(i) + ", ");
+                                    }
+                                    System.out.println();
+                                }
+                            } catch (Exception e) {
+                                status = FAIL;
+                                e.printStackTrace();
+                            }
+
+                            blockSkycount++;
+
+                            try {
+                                blockSkyTuple = block.get_next();
+                            } catch (Exception e) {
+                                status = FAIL;
+                                e.printStackTrace();
+                            }
+                        } while (blockSkyTuple != null);
+
+                        System.out.println("Read statistics "+PCounter.rcounter);
+                        System.out.println("Write statistics "+PCounter.wcounter);
+
+                        System.out.println("\n Number of Skyline candidates: " + blockSkycount);
+
+                        try {
+                            fscanBlock.close();
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
+
+                        try {
+                            block.close();
+                        } catch (Exception e) {
+                            status = FAIL;
+                            e.printStackTrace();
+                        }
                         break;
 
                     case 12:
