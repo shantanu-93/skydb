@@ -56,6 +56,7 @@ public class BlockNestedLoopsSky  extends Iterator
   int n_buf_pgs; 
   boolean get_from_outer;
   int iterationNumber;
+  Heapfile copyHp;
 
 
   
@@ -96,7 +97,8 @@ public class BlockNestedLoopsSky  extends Iterator
       outer_tuple = new Tuple();
       //Creating an output iterator
       finalOutput = new ArrayList<Tuple>();
-      
+      // tempHFName = getRandomName();
+
       
       //Getting the maximum number of records on one page. 
       id = new RID();
@@ -119,8 +121,7 @@ public class BlockNestedLoopsSky  extends Iterator
       try{
         
         temptpl = sc.getNextAndCountRecords(id);
-        
-        
+         
       }catch(Exception e){
         throw new NestedLoopException(e, "Could not get number of records on page 1");
       }
@@ -144,6 +145,34 @@ public class BlockNestedLoopsSky  extends Iterator
       catch(Exception e) {
 	      throw new NestedLoopException(e, "Create new heapfile failed.");
       }
+
+
+
+      //Copy hf into another 
+//       try {
+//         copyHp = new Heapfile(tempHFName);        outerHf = new Heapfile(relationName);
+//         Scan tempScan = new Scan(hf);
+
+//         while (true) {
+//             Tuple tempTuple;
+
+//             RID tempRid = new RID();
+//             tempTuple = tempScan.getNext(tempRid);
+
+//             if (tempTuple == null) {
+//                 break;
+//             }
+
+//             byte [] tempBytes = tempTuple.returnTupleByteArray();
+//             copyHp.insertRecord(tempBytes);
+//         }
+//     }
+//     catch(Exception e) {
+// throw new NestedLoopException(e, "Create new heapfile failed.");
+//     }
+
+
+      
     }
   
   /**  
@@ -275,9 +304,13 @@ public class BlockNestedLoopsSky  extends Iterator
   
     public ArrayList<Tuple> blockSkyline(Heapfile inputHeap, Heapfile windowHeap) throws IOException,NestedLoopException{
       RID rid = new RID();
+      RID copyRid = new RID();
       iterationNumber++;
       done = false; //reinitialize for the subsequent recursions
       spaceInWindow = true;
+      // copyScan = null;
+
+
       
       
       try {
@@ -293,6 +326,8 @@ public class BlockNestedLoopsSky  extends Iterator
         //TODO: handle exception
         
       }
+
+
       
       do{
         // RID rid = new RID();
@@ -302,20 +337,29 @@ public class BlockNestedLoopsSky  extends Iterator
         
         try{
           outer = inputHeap.openScan();
+          // copyScan = copyHp.openScan();
 
         }catch(Exception e){
           throw new NestedLoopException(e, "openScan failed");
         }
         
         Tuple outerGetNext =null;
+        Tuple outerTemp = null;
         
         try{
 
-        while(outer!=null &&(outer_tuple=outer.getNext(rid))!=null){
+        
+        boolean isWindowFull = false;
+        while((outer_tuple=outer.getNext(rid))!=null){
+          // outerTemp = copyScan.getNext(copyRid);
+          // if(outerTemp==null){
+          //   break;
+          // }
           
 
           try{
             outer_tuple.setHdr(in1_len, _in1, _t1_str_sizes);
+            // outerTemp.setHdr(in1_len, _in1, _t1_str_sizes);
           }catch (Exception e) {
             e.printStackTrace();
           }
@@ -323,10 +367,8 @@ public class BlockNestedLoopsSky  extends Iterator
             boolean windowDominate=false;
             boolean outerDominate = false;
           
-              if(windowMemory.isEmpty()){
-                
+              if(windowMemory.isEmpty()){          
                 windowMemory.add(outer_tuple);
-      
               }else{
                 
                 java.util.Iterator iterWindow = windowMemory.iterator();
@@ -335,9 +377,10 @@ public class BlockNestedLoopsSky  extends Iterator
                 boolean inserted = false;
                 // for(int i = 0; i<sizeResult ; i++){
                 int i = 0;
+
                 while(iterWindow.hasNext()){
                   
-                  System.out.println("Memory size: "+sizeResult+" i= "+i);
+                  // System.out.println("Memory size: "+sizeResult+" i= "+i);
                   Tuple windowTuple = (Tuple)iterWindow.next();
                   try{
 
@@ -351,13 +394,13 @@ public class BlockNestedLoopsSky  extends Iterator
 
                   } catch (Exception e) {
                     e.printStackTrace();
-
                   }
 
                   if(windowDominate){
                     try {
-                      inputHeap.deleteRecord(rid);//delete record from the heap file
+                      // inputHeap.deleteRecord(rid);//delete record from the heap file
                       // rid = new RID();
+                      break;
                     } catch (Exception e) {
                       e.printStackTrace();
                     }
@@ -369,21 +412,18 @@ public class BlockNestedLoopsSky  extends Iterator
                     if(windowMemory.size()>=maxRecordSize){
                       //remove reocrd from window and set spaceWindow to false
                       iterWindow.remove();
-                      // i--;
-                      // sizeResult--;
-
+                     
+                      isWindowFull = true;
                       spaceInWindow = false;
                     }else if(windowMemory.size()<maxRecordSize){
                       iterWindow.remove();
-                      // i--;
-                      // sizeResult--;
+                      
                     }
                     
-                    if(spaceInWindow){//if there is still enough block memory
+                    if(spaceInWindow && !isWindowFull){//if there is still enough block memory
                       
-                      if(!windowMemory.contains(outer_tuple)){
+                      if(!windowMemory.contains(outer_tuple) && !temporaryWindow.contains(outer_tuple)){
                         temporaryWindow.add(outer_tuple);
-                        sizeResult++;
                       }
      
                     }else{
@@ -411,11 +451,14 @@ public class BlockNestedLoopsSky  extends Iterator
                     spaceInWindow= false;
                   }
 
-                  if(spaceInWindow){//if there is still enough block memory
+                  if(spaceInWindow && !isWindowFull){//if there is still enough block memory
                     
                     if(i==sizeResult-1){ //making sure we add after checking
+                      if(!windowMemory.contains(outer_tuple) && !temporaryWindow.contains(outer_tuple)){
+
                       temporaryWindow.add(outer_tuple);
-                      sizeResult++;
+                      // sizeResult++;
+                      }
 
                     }
                     
@@ -439,22 +482,17 @@ public class BlockNestedLoopsSky  extends Iterator
                 i++;
               }
               windowMemory.addAll(temporaryWindow);
-              
-              if(iterationNumber>1){//Avoiding to delete the actual input heap files
-
-
-                if(inputHeap.getRecCnt()>1){//deleting the temporary heapfile
-                  inputHeap.deleteRecord(rid);
-          
-                }
-                else if(inputHeap.getRecCnt()==1){
-                  done=true;
-                  break;
-                }
+               
             }
-            }
+          SystemDefs.JavabaseBM.flushPages();
+
       }
-      
+
+      if(iterationNumber>1){//Avoiding to delete the actual input heap files
+        inputHeap.hasNotBeenDeleted();
+        inputHeap.deleteFile();
+        inputHeap = new Heapfile("temporaryInput.in");
+    }
       
       
     }catch(Exception e) {
@@ -482,218 +520,6 @@ public class BlockNestedLoopsSky  extends Iterator
     
       return windowMemory;
     }
-
-
-
-
-//When the temporary heapfile is not empty
-// public ArrayList<Tuple> blockSkyline (String relName)throws IOException,NestedLoopException{
-//   spaceInWindow= true;
-  
-  
-//   // try {
-//     // hf.deleteFile();
-//     // System.out.println("hf before rec"+hf.getRecCnt());
-//     // hf = null;
-//     // hf=tempHeap;
-//     // System.out.println("hf  after rec"+hf.getRecCnt());
-//     // // tempHeap.deleteFile();
-//     // tempHeap = null;
-//     // // System.out.println("temo before rec"+tempHeap.getRecCnt());
-//     // tempHeap = new Heapfile(relName);
-//     // System.out.println("hf  after2 rec"+tempHeap.getRecCnt());
-
-
-
-//   // } catch (Exception e) {
-//   //   //TODO: handle exception
-
-//   // }
-  
-  
-//   // ArrayList<Tuple> result = new ArrayList<Tuple>();
-//     RID rid =new RID();
-//       do{
-//         // rid = 
-//         if(done2){
-//           break;
-//         }
-//     // creating a heapfile from the relationName
-//     // try {
-//     //   tempHeap = new Heapfile(relName);
-//     // }
-//     // catch(Exception e) {
-//     //   throw new NestedLoopException(e, "Create new heapfile failed.");
-//     // }
-//     //opening the scan
-    
-//     // if(tempHeap == null){
-//     //   done2 = true;
-//     //   break;
-//     // }else{
-//     try{
-//       outer = tempHeap.openScan();
-//     }catch(Exception e){
-//       throw new NestedLoopException(e, "openScan failed");
-//     }
-//     // }
-    
-    
-//     Tuple outerGetNext =null;
-//     try{
-//       outerGetNext = outer.getNext(rid);
-//       System.out.println("outer "+ outer.getNext(rid));
-//     }catch(Exception e){
-//       throw new NestedLoopException(e, "Cannot get next tuple");
-//     }
-//     if((outer_tuple=outerGetNext)== null){
-//       //DOne scanning the input file
-//       done2 = true;
-//       break;
-//     }
-//     else{
-      
-//       try {
-//         // if(tempHeap.getRecCnt()>1){
-        
-//           tempHeap.deleteRecord(rid);
-//           System.out.println("Records: "+tempHeap.getRecCnt());
-//           System.out.println("Window size: "+windowMemory.size());
-        
-//       // }
-      
-//     }catch (Exception e) {
-//         //TODO: handle exception
-//         e.printStackTrace();
-//       }
-//     }
-
-//     try{
-//       outer_tuple.setHdr((short) 2, _in1, _t1_str_sizes);
-//     }catch (Exception e) {
-//       e.printStackTrace();
-//     }
-
-//     //  = outer.getNext(rid));
-//     boolean windowDominate=false;
-//     boolean outerDominate = false;
-  
-//       if(windowMemory.isEmpty()){
-//         windowMemory.add(outer_tuple);
-
-//       }else{
-//         int sizeResult = windowMemory.size();
-//         boolean inserted = false;
-//         boolean deleted = false;
-
-//         for(int i = 0; i<sizeResult ; i++){
-//           Tuple windowTuple = windowMemory.get(i);
-//           // innerTuple, _in1, currentOuter, _in1, in1_len, t1_str_sizes_cls, pref_list_cls, pref_list_length_cls
-//           //Checking domination
-//           try{
-//             windowDominate = TupleUtils.Dominates(windowTuple,_in1,outer_tuple, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);// window dominate outer
-//             // windowDominate = TupleUtils.Dominates(windowTuple,_in1,outer_tuple, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);// window dominate outer
-
-//           }
-//             catch(Exception e) {
-//               e.printStackTrace();
-//             }
-//           try{outerDominate = TupleUtils.Dominates(outer_tuple,_in1,windowTuple, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);//outer dominate window
-//           }catch(Exception e) {
-//             e.printStackTrace();
-//           }
-
-//           if(windowDominate){
-//             try{
-//               // if(tempHeap.getRecCnt()>0){
-//               //   tempHeap.deleteRecord(rid);//delete record from the heap file
-//               // }
-//               if(!deleted){
-//                 tempHeap.deleteRecord(rid);
-//                 deleted = true;
-//               }
-              
-//             }catch(Exception e){
-//               e.printStackTrace();
-//             }
-//           }
-
-//           if(outerDominate){
-//             if(windowMemory.size()>=maxRecordSize){
-//               //remove reocrd from window and set spaceWindow to false 
-//               windowMemory.remove(windowTuple);
-//               spaceInWindow = false;
-//             }else{
-//               windowMemory.remove(windowTuple);
-//             }
-            
-//             if(spaceInWindow){//if there is still enough block memory
-//               windowMemory.add(outer_tuple);
-//             }else{
-//               //Write into the temporary heapfile
-//               byte [] outer_bytes=outer_tuple.getTupleByteArray();
-
-//               if(!inserted){
-//                 try {
-//                   tempHeap.insertRecord(outer_bytes);
-//                   inserted = true;
-//                 } catch (Exception e) {
-//                   //TODO: handle exception
-//                   e.printStackTrace();
-//                 }
-//               }
-              
-//             }
-            
-//           }
-        
-        
-//         //if outer_tuple neither dominate nor is dominated
-//         if(!windowDominate && !outerDominate){
-          
-//           if(windowMemory.size()>=maxRecordSize){
-//             spaceInWindow= false;
-//           }
-
-//           if(spaceInWindow){//if there is still enough block memory
-//             windowMemory.add(outer_tuple);
-//             System.out.println("Hello world");
-//             // try {
-//             //  System.out.println(tempHeap.getRecCnt());
-
-//             // } catch (Exception e) {
-//             //   e.printStackTrace();
-//             // }
-            
-//           }else{
-//               //Write into the temporary heapfile
-//               byte [] outer_bytes=outer_tuple.getTupleByteArray();
-//               if(!inserted){
-//                 try {
-//                   tempHeap.insertRecord(outer_bytes);
-
-//                 } catch (Exception e) {
-//                   //TODO: handle exception
-//                   e.printStackTrace();
-//                 }
-//               }
-//             }
-//         }
-
-        
-//     }
-//     outer.closescan();
-//     outer = null;
-//   }
-
-//   }while(true);
-//   // finalOutputIter.add();
-//   System.out.println("Window memory size: "+windowMemory.size());
-//   finalOutput.addAll(windowMemory);
-  
-//   return windowMemory;
-//   }
-
  
   /**
    * implement the abstract method close() from super class Iterator
@@ -707,9 +533,8 @@ public class BlockNestedLoopsSky  extends Iterator
       if (!closeFlag) {
 	
 	try {
-	  am1_iter.close();
 	}catch (Exception e) {
-	  throw new JoinsException(e, "NestedLoopsJoin.java: error in closing iterator.");
+	  throw new JoinsException(e, "BlockNestedLoopsSky.java: error in closing iterator.");
 	}
 	closeFlag = true;
       }
