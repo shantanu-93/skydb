@@ -128,8 +128,8 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         System.out.println("[10]  Run Nested Loop skyline on data with parameters ");
         System.out.println("[11]  Run Block Nested Loop on data with parameters ");
         System.out.println("[12]  Run Sort First Sky on data with parameters ");
-        System.out.println("[13]  Run Btree Sky on data with parameters ");
-        System.out.println("[14]  Run Btree Sort Sky on data with parameters ");
+        System.out.println("[13]  Run individual Btree Sky on data with parameters ");
+        System.out.println("[14]  Run combined Btree Sort Sky on data with parameters ");
         System.out.println("\n[0]  Quit!");
         System.out.print("Hi, Enter your choice :");
     }
@@ -219,15 +219,6 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
                     }
                 }
 
-//                for (int i = 1; i <= tuple1.noOfFlds(); i++) {
-//                    try {
-//                        System.out.print(tuple1.getFloFld(i) + ", ");
-//                    } catch (FieldNumberOutOfBoundException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//                System.out.println();
-
                 try {
                     rid = f.insertRecord(tuple1.returnTupleByteArray());
                 }
@@ -236,7 +227,6 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
                     e.printStackTrace();
                 }
 
-                //System.out.println("RID: "+rid);
             }
             try {
                 System.out.println("record count "+f.getRecCnt());
