@@ -88,7 +88,7 @@ public class SortFirstSky extends Iterator {
                 }
                 System.out.println(sc.getNumberOfRecordsPerOnePage());
 
-                n_buf_pgs_for_sort = Math.max((n_pages * 3/ 4), 3);
+                n_buf_pgs_for_sort = Math.max((n_pages * 9/ 10), 3);
                 n_buf_pgs = n_pages - n_buf_pgs_for_sort;
 
                 maxRecordSize = sc.getNumberOfRecordsPerOnePage()* n_buf_pgs;

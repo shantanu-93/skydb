@@ -9,7 +9,9 @@ import index.*;
 import java.lang.*;
 import java.io.*;
 import java.util.ArrayList;
-/** 
+import java.util.Random;
+
+/**
  *
  *  This file contains an implementation of the nested loops join
  *  algorithm as described in the Shapiro paper.
@@ -48,6 +50,7 @@ public class NestedLoopsSky  extends Iterator
   String relationName;
   Iterator am1_iter; 
   ArrayList<Tuple> inputList;
+  String tempHFName;
 
   
 
@@ -105,7 +108,7 @@ public class NestedLoopsSky  extends Iterator
       am1_iter = am1;
       finalOutput = new ArrayList<Tuple>();
       inputList = new ArrayList<Tuple>();
-
+      tempHFName = getRandomName();
 
       
     //   AttrType[] Jtypes = new AttrType[n_out_flds];
@@ -125,9 +128,25 @@ public class NestedLoopsSky  extends Iterator
       
       
       try {
-	  hf = new Heapfile(relationName);
-      outerHf = new Heapfile(relationName);
-	  
+          hf = new Heapfile(relationName);
+          outerHf = new Heapfile(relationName);
+          Scan tempScan = new Scan(outerHf);
+
+          hf = new Heapfile(tempHFName);
+
+          while (true) {
+              Tuple tempTuple;
+
+              RID tempRid = new RID();
+              tempTuple = tempScan.getNext(tempRid);
+
+              if (tempTuple == null) {
+                  break;
+              }
+
+              byte [] tempBytes = tempTuple.returnTupleByteArray();
+              hf.insertRecord(tempBytes);
+          }
       }
       catch(Exception e) {
 	throw new NestedLoopException(e, "Create new heapfile failed.");
@@ -246,6 +265,7 @@ public class NestedLoopsSky  extends Iterator
                 }
 
             }
+            SystemDefs.JavabaseBM.flushPages();
         }
 
         inner = hf.openScan();
@@ -279,11 +299,23 @@ public class NestedLoopsSky  extends Iterator
       if (!closeFlag) {
 	
 	try {
-	  am1_iter.close();
 	}catch (Exception e) {
 	  throw new JoinsException(e, "NestedLoopsJoin.java: error in closing iterator.");
 	}
 	closeFlag = true;
       }
+    }
+
+    protected String getRandomName() {
+        String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        StringBuilder salt = new StringBuilder();
+        Random rnd = new Random();
+        while (salt.length() < 18) { // length of the random string.
+            int index = (int) (rnd.nextFloat() * SALTCHARS.length());
+            salt.append(SALTCHARS.charAt(index));
+        }
+        String saltStr = salt.toString();
+        return saltStr;
+
     }
 }

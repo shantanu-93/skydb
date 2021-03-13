@@ -450,13 +450,6 @@ class Driver  extends TestDriver implements GlobalConst
                         System.out.println("\n Number of Skyline candidates: " + nestedSkycount);
 
                         try {
-                            fscanNested.close();
-                        } catch (Exception e) {
-                            status = FAIL;
-                            e.printStackTrace();
-                        }
-
-                        try {
                             nested.close();
                         } catch (Exception e) {
                             status = FAIL;
@@ -516,13 +509,6 @@ class Driver  extends TestDriver implements GlobalConst
                         System.out.println("Write statistics "+PCounter.wcounter);
 
                         System.out.println("\n Number of Skyline candidates: " + blockSkycount);
-
-                        try {
-                            fscanBlock.close();
-                        } catch (Exception e) {
-                            status = FAIL;
-                            e.printStackTrace();
-                        }
 
                         try {
                             block.close();
