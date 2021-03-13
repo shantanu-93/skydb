@@ -605,12 +605,14 @@ class Driver  extends TestDriver implements GlobalConst
                             System.out.println("Index created!");
 
                             System.out.println("CombinedBTreeIndex scanning"); 
-                            String fileName = "heap_AAA";
+                            String fileName = BTreeCombinedIndex.random_string1;
+
+                            PCounter.initialize();
 
                             BTreeSortedSky btree = new BTreeSortedSky(attrType, pref_attr_lst.length, attrSize, null, fileName, pref_attr_lst, pref_attr_lst.length, indexFile, _n_pages);
                             
                             btree.computeSkyline();
-                        
+                            
                             System.out.println("BTreeSortSky Complete");
                     
                         } catch (Exception e) {

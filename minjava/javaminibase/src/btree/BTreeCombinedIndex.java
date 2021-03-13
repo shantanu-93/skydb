@@ -1,12 +1,14 @@
 package btree;
 
 import heap.*;
+import iterator.NestedLoopsSky;
 import global.*;
 
 public class BTreeCombinedIndex{
     BTreeFile file;
     int id=0;
     public int prefix = 0;
+    public static String random_string1, random_string2;
     
     public BTreeCombinedIndex(){
     }
@@ -50,11 +52,13 @@ public class BTreeCombinedIndex{
 
         int keyType = AttrType.attrReal;
         int keySize = 4;
-
-        Heapfile heapfile = new Heapfile("heap_AAA");
+        
+        random_string1 = NestedLoopsSky.getRandomName();
+        random_string2 = NestedLoopsSky.getRandomName();
+        Heapfile heapfile = new Heapfile(random_string1);
         
         // Initialize Index File 
-        file = new BTreeFile("AAA", keyType, keySize, 1);
+        file = new BTreeFile(random_string2, keyType, keySize, 1);
 
         Tuple t = new Tuple();
 

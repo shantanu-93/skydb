@@ -299,7 +299,7 @@ public class NestedLoopsSky  extends Iterator
       }
     }
 
-    protected String getRandomName() {
+    public static String getRandomName() {
         String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
         StringBuilder salt = new StringBuilder();
         Random rnd = new Random();

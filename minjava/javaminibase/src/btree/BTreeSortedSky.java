@@ -87,10 +87,11 @@ public class BTreeSortedSky implements GlobalConst {
 
 			rid = ((LeafData) entry.data).getData();
 			Tuple temp_tuple = hf.getRecord(rid);
-
-			buffer_window[count++] = temp_tuple;
-
+			
 			temp_tuple.setHdr((short) 5, attrType, t1_str_sizes); 
+			buffer_window[count++] = temp_tuple;
+			temp_tuple.print(attrType);
+			
 			temp.insertRecord(temp_tuple.returnTupleByteArray());
 		    entry = scan.get_next();
 		}
@@ -135,7 +136,8 @@ public class BTreeSortedSky implements GlobalConst {
 			} 
 			entry = scan.get_next();
         }
-        
+		
+		scan.DestroyBTreeFileScan();
 		// System.out.println("Temp File objects ");
 		
 		// RID tempRid = new RID();
@@ -167,7 +169,7 @@ public class BTreeSortedSky implements GlobalConst {
 
 		int c = -1;
 		Tuple tuple1 = null;
-
+		int j = 1;
 		System.out.println("\n -- Skyline candidates -- ");
 		do {
 			// try {
@@ -183,11 +185,14 @@ public class BTreeSortedSky implements GlobalConst {
 			// }
 
 			c++;
-
+			
 			try {
 				tuple1 = sort.get_next();
-				if(tuple1 != null)
+				if(tuple1 != null){
+					System.out.print(j+" ");
+					j++;
 					tuple1.print(attrType);
+				}
 			} catch (Exception e) {
 				status = FAIL;
 				e.printStackTrace();
@@ -198,7 +203,7 @@ public class BTreeSortedSky implements GlobalConst {
 		System.out.println("Read statistics "+PCounter.rcounter);
 		System.out.println("Write statistics "+PCounter.wcounter);
 
-		System.out.println("\n Number of Skyline candidates: " + c);
+		System.out.println("\nNumber of Skyline candidates: " + c);
 
 		try {
 			fscan.close();
@@ -213,8 +218,8 @@ public class BTreeSortedSky implements GlobalConst {
 			status = FAIL;
 			e.printStackTrace();
 		}
-
 		hf.deleteFile();
+		temp.deleteFile();
 
         return;
     }
