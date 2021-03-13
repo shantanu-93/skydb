@@ -53,8 +53,7 @@ public class BTreeSortedSky implements GlobalConst {
 		this.am1 = am1;
 		this.pref_list = pref_list;
 		this.pref_list_length = pref_list_length;
-		this.n_pages = n_pages; 
-	
+		this.n_pages = n_pages; 	
 	}
 	
 	public void computeSkyline() throws InvalidSlotNumberException, InvalidTupleSizeException, Exception {
@@ -84,15 +83,15 @@ public class BTreeSortedSky implements GlobalConst {
 		
 		// Enter the tuples in temp heap and buffer window
 		while (entry != null && count < buffer_window.length) {
-				total++;
+		total++;
 
-				rid = ((LeafData) entry.data).getData();
-				Tuple temp_tuple = hf.getRecord(rid);
+		rid = ((LeafData) entry.data).getData();
+		Tuple temp_tuple = hf.getRecord(rid);
 
-				buffer_window[count++] = temp_tuple;
+		buffer_window[count++] = temp_tuple;
 
-				temp_tuple.setHdr((short) 5, attrType, t1_str_sizes); 
-				temp.insertRecord(temp_tuple.returnTupleByteArray());
+		temp_tuple.setHdr((short) 5, attrType, t1_str_sizes); 
+		temp.insertRecord(temp_tuple.returnTupleByteArray());
 		    entry = scan.get_next();
 		}
 	    
