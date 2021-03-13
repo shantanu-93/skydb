@@ -411,10 +411,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         do {
             try {
                 if (nestedSkyTuple != null) {
-                    for (int i = 1; i <= nestedSkyTuple.noOfFlds(); i++) {
-                        System.out.print(nestedSkyTuple.getFloFld(i) + ", ");
-                    }
-                    System.out.println();
+                    nestedSkyTuple.print(attrType);
                 }
             } catch (Exception e) {
                 status = FAIL;
@@ -473,10 +470,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         do {
             try {
                 if (blockSkyTuple != null) {
-                    for (int i = 1; i <= blockSkyTuple.noOfFlds(); i++) {
-                        System.out.print(blockSkyTuple.getFloFld(i) + ", ");
-                    }
-                    System.out.println();
+                    blockSkyTuple.print(attrType);
                 }
             } catch (Exception e) {
                 status = FAIL;
@@ -535,10 +529,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         do {
             try {
                 if (tuple1 != null) {
-                    for (int i = 1; i <= tuple1.noOfFlds(); i++) {
-                        System.out.print(tuple1.getFloFld(i) + ", ");
-                    }
-                    System.out.println();
+                    tuple1.print(attrType);
                 }
             } catch (Exception e) {
                 status = FAIL;
