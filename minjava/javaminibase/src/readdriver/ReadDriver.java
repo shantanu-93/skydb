@@ -357,6 +357,8 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     public static void runNestedLoopSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscanNested = initialiseFileScan(hf);
 
+        SystemDefs.JavabaseBM.flushPages();
+
         NestedLoopsSky nested = null;
         try {
             nested = new NestedLoopsSky(attrType, attrType.length, attrSizes, fscanNested, hf, pref_list, pref_list.length, _n_pages);
@@ -377,6 +379,8 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 
     public static void runBNLSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscanBlock = initialiseFileScan(hf);
+
+        SystemDefs.JavabaseBM.flushPages();
 
         Iterator block = null;
         try {
