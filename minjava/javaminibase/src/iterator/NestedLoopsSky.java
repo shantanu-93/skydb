@@ -41,9 +41,6 @@ public class NestedLoopsSky  extends Iterator
   private Heapfile outerHf;
   private   Scan      inner;
   private Scan outer;
-//   private ArrayList<Tuple> sm ;
-  ArrayList<Tuple> finalOutput;
-  java.util.Iterator finalOutputIter;
   int[] _pref_list;
   int _pref_list_length;
   short[] _t1_str_sizes;
@@ -51,6 +48,7 @@ public class NestedLoopsSky  extends Iterator
   Iterator am1_iter; 
   ArrayList<Tuple> inputList;
   String tempHFName;
+  boolean resComputed = false;
 
   
 
@@ -106,7 +104,6 @@ public class NestedLoopsSky  extends Iterator
       _t1_str_sizes = t1_str_sizes;
       relationName = (String)relName;
       am1_iter = am1;
-      finalOutput = new ArrayList<Tuple>();
       inputList = new ArrayList<Tuple>();
       tempHFName = getRandomName();
 
@@ -179,28 +176,31 @@ public class NestedLoopsSky  extends Iterator
           }catch(Exception e) {
             e.printStackTrace();
           }
-    
-         // finalOutputIter = new java.util.Iterator();  
-         finalOutputIter = finalOutput.iterator();    
+
+        resComputed = true;
+
          return null;
        }
 
 
-       public Tuple get_next(){
+       public Tuple get_next() throws InvalidTupleSizeException, IOException, InvalidTypeException {
 
-        if(finalOutput.isEmpty()){
+        if(!resComputed){
           try {
             performSkyline();
           } catch (Exception e) {
             //TODO: handle exception
             e.printStackTrace();
           }
-          
         }
-         
-         while(finalOutputIter.hasNext()){ 
-           return (Tuple)finalOutputIter.next();
-         }
+
+        Tuple tempTpl;
+        RID temId = new RID();
+        tempTpl = inner.getNext(temId);
+       if (tempTpl !=null){
+           tempTpl.setHdr((short)in1_len, _in1,_t1_str_sizes);
+           return tempTpl;
+       }
          return null;
         }
     
@@ -269,13 +269,6 @@ public class NestedLoopsSky  extends Iterator
         }
 
         inner = hf.openScan();
-        Tuple tempTpl = new Tuple();
-        RID temId = new RID();
-
-        while((tempTpl=inner.getNext(temId))!=null){
-            tempTpl.setHdr((short)in1_len, _in1,_t1_str_sizes);
-            finalOutput.add(tempTpl);
-        }
 
     }catch (Exception e) {
         e.printStackTrace();

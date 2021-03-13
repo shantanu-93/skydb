@@ -13,14 +13,14 @@ public class SortFirstSky extends Iterator {
         private AttrType      _in1[];
         private   short        in1_len;
         private   Iterator  outer;
-        private   int        n_buf_pgs;        // # of buffer pages available.
+        private   int n_buf_pgs_for_window;        // # of buffer pages available.
         private int n_buf_pgs_for_sort;
         private int[] pref_list_cls;
         private int pref_list_length_cls;
         private   Iterator  sort;
         private List<Tuple> inner;
         private short[] t1_str_sizes_cls;
-        int maxRecordSize;
+        int maxWindowSize;
         String sortFirstHFName;
         private Heapfile tempHF = null;
 
@@ -36,9 +36,7 @@ public class SortFirstSky extends Iterator {
                          int n_pages
 
         )
-                throws JoinNewFailed,
-                JoinLowMemory,
-                SortException,
+                throws
                 TupleUtilsException,
                 IOException,
                 SortException
@@ -57,15 +55,7 @@ public class SortFirstSky extends Iterator {
 
                 //Getting the maximum number of records on one page.
                 RID id = new RID();
-                Heapfile hf = null;
-                try {
-                        hf = new Heapfile(relationName);
-
-                }
-                catch(Exception e) {
-                        throw new SortException(e, "Create new heapfile failed.");
-                }
-
+                Heapfile hf;
                 try {
                         hf = new Heapfile(relationName);
                 }
@@ -73,13 +63,12 @@ public class SortFirstSky extends Iterator {
                         throw new SortException(e, "Create new heapfile failed.");
                 }
 
-                Scan sc = null;
+                Scan sc;
                 try{
                         sc = hf.openScan();
                 }catch(Exception e){
                         throw new SortException(e, "openScan failed");
                 }
-
                 try{
                         sc.getNextAndCountRecords(id);
 
@@ -88,10 +77,10 @@ public class SortFirstSky extends Iterator {
                 }
                 System.out.println(sc.getNumberOfRecordsPerOnePage());
 
-                n_buf_pgs_for_sort = Math.max((n_pages * 3/ 4), 3);
-                n_buf_pgs = n_pages - n_buf_pgs_for_sort;
+                n_buf_pgs_for_sort = Math.max((n_pages * 9/ 10), 3);
+                n_buf_pgs_for_window = n_pages - n_buf_pgs_for_sort;
 
-                maxRecordSize = sc.getNumberOfRecordsPerOnePage()* n_buf_pgs;
+                maxWindowSize = sc.getNumberOfRecordsPerOnePage()* n_buf_pgs_for_window;
 
                 try {
                         sort = new SortPref(_in1, in1_len, t1_str_sizes, outer, new TupleOrder(TupleOrder.Descending) , pref_list_cls, pref_list_length_cls, n_buf_pgs_for_sort);
@@ -132,7 +121,14 @@ public class SortFirstSky extends Iterator {
 
                         boolean dominated = false;
 
-                        if (tempHF != null) {
+                        for (Tuple innerTuple : inner) {
+                                if (TupleUtils.Dominates(innerTuple, _in1, currentOuter, _in1, in1_len, t1_str_sizes_cls, pref_list_cls, pref_list_length_cls)) {
+                                        dominated = true;
+                                        break;
+                                }
+                        }
+
+                        if (tempHF != null && !dominated) {
                                 RID tempRid = new RID();
                                 Scan scanTempHF = new Scan(tempHF);
                                 while (true) {
@@ -152,20 +148,10 @@ public class SortFirstSky extends Iterator {
                                 scanTempHF.closescan();
                         }
 
-                        if (!dominated) {
-                                for (Tuple innerTuple : inner) {
-                                        if (TupleUtils.Dominates(innerTuple, _in1, currentOuter, _in1, in1_len, t1_str_sizes_cls, pref_list_cls, pref_list_length_cls)) {
-                                                dominated = true;
-                                                break;
-                                        }
-                                }
-                        }
-
-
 
                         if (!dominated) {
                                 Tuple temp = new Tuple(currentOuter);
-                                if (inner.size() < maxRecordSize) {
+                                if (inner.size() < maxWindowSize) {
                                         inner.add(temp);
                                 } else {
 
