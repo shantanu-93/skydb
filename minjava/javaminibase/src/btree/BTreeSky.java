@@ -172,7 +172,7 @@ public class BTreeSky extends Iterator implements GlobalConst {
 //    ReadDriver.runNestedLoopSky(prunedHeapFileName);
 
     System.out.println("runBNLSky");
-    ReadDriver.runBNLSky(smallHeapFile);
+    ReadDriver.runSortFirstSky(smallHeapFile);
 
 //    System.out.println("runSortFirstSky");
 //    ReadDriver.runSortFirstSky(prunedHeapFileName);

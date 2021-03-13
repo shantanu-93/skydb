@@ -14,6 +14,7 @@ import global.*;
 import btree.*;
 import iterator.FileScan;
 import iterator.FldSpec;
+import iterator.Iterator;
 import iterator.RelSpec;
 import iterator.SortFirstSky;
 import iterator.BlockNestedLoopsSky;
@@ -311,9 +312,10 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
                     case 9:
                         System.out.println("Enter n_pages of your choice: ");
                         _n_pages = GetStuff.getChoice();
-                        if(_n_pages<0)
+                        if(_n_pages<=0)
                             break;
                         break;
+
                     case 10:
                         // call nested loop sky
                         runNestedLoopSky(heapFile);
@@ -326,7 +328,6 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 
                     case 12:
                         runSortFirstSky(heapFile);
-
                         break;
 
                     case 13:
@@ -334,27 +335,8 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
                         break;
 
                     case 14:
-                        // call btree sort sky
-
-                        try {
-                            BTreeCombinedIndex obj = new BTreeCombinedIndex();
-                            IndexFile indexFile = obj.combinedIndex(heapFile, attrType, attrSizes, pref_list, pref_list.length);
-                            System.out.println("Index created!");
-
-                            System.out.println("CombinedBTreeIndex scanning"); 
-                            String fileName = "heap_AAA";
-
-                            BTreeSortedSky btree = new BTreeSortedSky(attrType, pref_list.length, attrSizes, null, fileName, pref_list, pref_list.length, indexFile, _n_pages);
-                            
-                            btree.computeSkyline();
-                        
-                            System.out.println("BTreeSortSky Complete");
-                    
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        
-						            break;
+                        runBTreeSortedSky();
+						break;
 
                     case 0:
                         break;
@@ -373,18 +355,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     }
 
     public static void runNestedLoopSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
-        FileScan fscanNested = null;
-
-        try {
-            fscanNested = new FileScan(hf, attrType, attrSizes, (short) attrType.length, attrType.length, projlist, null);
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
-
-        SystemDefs.JavabaseBM.flushPages();
-
-        PCounter.initialize();
+        FileScan fscanNested = initialiseFileScan(hf);
 
         NestedLoopsSky nested = null;
         try {
@@ -394,34 +365,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             e.printStackTrace();
         }
 
-        int nestedSkycount = -1;
-        Tuple nestedSkyTuple = null;
-
-        System.out.println("\n -- Skyline candidates -- ");
-        do {
-            try {
-                if (nestedSkyTuple != null) {
-                    nestedSkyTuple.print(attrType);
-                }
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            nestedSkycount++;
-
-            try {
-                nestedSkyTuple = nested.get_next();
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-        } while (nestedSkyTuple != null);
-
-        System.out.println("Read statistics "+PCounter.rcounter);
-        System.out.println("Write statistics "+PCounter.wcounter);
-
-        System.out.println("\n Number of Skyline candidates: " + nestedSkycount);
+        getNextAndPrintAllSkyLine(nested);
 
         try {
             nested.close();
@@ -432,20 +376,9 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     }
 
     public static void runBNLSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
-        FileScan fscanBlock = null;
+        FileScan fscanBlock = initialiseFileScan(hf);
 
-        try {
-            fscanBlock = new FileScan(hf, attrType, attrSizes, (short) attrType.length, attrType.length, projlist, null);
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
-
-        SystemDefs.JavabaseBM.flushPages();
-
-        PCounter.initialize();
-
-        BlockNestedLoopsSky block = null;
+        Iterator block = null;
         try {
             block = new BlockNestedLoopsSky(attrType, attrType.length, attrSizes, fscanBlock, hf, pref_list, pref_list.length, _n_pages);
         } catch (Exception e) {
@@ -453,34 +386,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             e.printStackTrace();
         }
 
-        int blockSkycount = -1;
-        Tuple blockSkyTuple = null;
-
-        System.out.println("\n -- Skyline candidates -- ");
-        do {
-            try {
-                if (blockSkyTuple != null) {
-                    blockSkyTuple.print(attrType);
-                }
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            blockSkycount++;
-
-            try {
-                blockSkyTuple = block.get_next();
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-        } while (blockSkyTuple != null);
-
-        System.out.println("Read statistics "+PCounter.rcounter);
-        System.out.println("Write statistics "+PCounter.wcounter);
-
-        System.out.println("\n Number of Skyline candidates: " + blockSkycount);
+        getNextAndPrintAllSkyLine(block);
 
         try {
             block.close();
@@ -491,26 +397,74 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     }
 
     public static void runSortFirstSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
-        FileScan fscan = null;
-
-        try {
-            fscan = new FileScan(hf, attrType, attrSizes, (short) attrType.length, attrType.length, projlist, null);
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
+        FileScan fscan = initialiseFileScan(hf);
 
         SystemDefs.JavabaseBM.flushPages();
 
-        PCounter.initialize();
-
-        SortFirstSky sort = null;
+        Iterator sort = null;
         try {
             sort = new SortFirstSky(attrType, attrType.length, attrSizes, fscan, hf, pref_list, pref_list.length, _n_pages);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
         }
+
+        getNextAndPrintAllSkyLine(sort);
+
+        try {
+            sort.close();
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+    }
+
+    private void runBtreeSky() throws Exception {
+        System.out.println("Running BTreeSky");
+        System.out.println("DataFile: " + inputFile);
+        System.out.println("Preference list: " + Arrays.toString(pref_list));
+        System.out.println("Number of pages: " + _n_pages);
+        System.out.println("Pref list length: " + pref_list.length);
+
+        if (!indexesCreated) {
+            BTreeUtil.createBtreesForPrefList(heapFile, f, attrType, attrSizes, pref_list);
+            indexesCreated = true;
+        }
+
+        String relationName = heapFile;
+        // autobox to IndexFile type
+        IndexFile[] index_file_list = BTreeUtil.getBTrees(pref_list);
+
+        BTreeSky btreesky = new BTreeSky(attrType, nColumns, attrSizes, null, relationName, pref_list,
+                pref_list.length, index_file_list, _n_pages);
+        btreesky.findBTreeSky();
+
+        System.out.println("End of runBtreeSky");
+    }
+
+    public void runBTreeSortedSky() {
+        try {
+            BTreeCombinedIndex obj = new BTreeCombinedIndex();
+            IndexFile indexFile = obj.combinedIndex(heapFile, attrType, attrSizes, pref_list, pref_list.length);
+            System.out.println("Index created!");
+
+            System.out.println("CombinedBTreeIndex scanning");
+            String fileName = "heap_AAA";
+
+            BTreeSortedSky btree = new BTreeSortedSky(attrType, pref_list.length, attrSizes, null, fileName, pref_list, pref_list.length, indexFile, _n_pages);
+
+            btree.computeSkyline();
+
+            System.out.println("BTreeSortSky Complete");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void getNextAndPrintAllSkyLine(Iterator iter) {
+
+        PCounter.initialize();
 
         int count = -1;
         Tuple tuple1 = null;
@@ -529,7 +483,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             count++;
 
             try {
-                tuple1 = sort.get_next();
+                tuple1 = iter.get_next();
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -540,45 +494,20 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         System.out.println("Write statistics "+PCounter.wcounter);
 
         System.out.println("\n Number of Skyline candidates: " + count);
+    }
+
+    public static FileScan initialiseFileScan(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
+        FileScan fscan = null;
 
         try {
-            fscan.close();
+            fscan = new FileScan(hf, attrType, attrSizes, (short) attrType.length, attrType.length, projlist, null);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
         }
 
-        try {
-            sort.close();
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
+        return fscan;
     }
-
-    private void runBtreeSky() throws Exception {
-        System.out.println("Running BTreeSky");
-        System.out.println("DataFile: " + inputFile);
-        System.out.println("Preference list: " + Arrays.toString(pref_list));
-        System.out.println("Number of pages: " + _n_pages);
-        System.out.println("Pref list length: " + pref_list.length);
-
-        if (indexesCreated == false) {
-            BTreeUtil.createBtreesForPrefList(heapFile, f, attrType, attrSizes, pref_list);
-            indexesCreated = true;
-        }
-
-        String relationName = heapFile;
-        // autobox to IndexFile type
-        IndexFile[] index_file_list = BTreeUtil.getBTrees(pref_list);
-
-        BTreeSky btreesky = new BTreeSky(attrType, nColumns, attrSizes, null, relationName, pref_list,
-                pref_list.length, index_file_list, _n_pages);
-        btreesky.findBTreeSky();
-
-        System.out.println("End of runBtreeSky");
-    }
-
 
     public static void main(String [] args) {
 
