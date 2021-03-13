@@ -83,21 +83,21 @@ public class BTreeSortedSky implements GlobalConst {
 		
 		// Enter the tuples in temp heap and buffer window
 		while (entry != null && count < buffer_window.length) {
-		total++;
+			total++;
 
-		rid = ((LeafData) entry.data).getData();
-		Tuple temp_tuple = hf.getRecord(rid);
+			rid = ((LeafData) entry.data).getData();
+			Tuple temp_tuple = hf.getRecord(rid);
 
-		buffer_window[count++] = temp_tuple;
+			buffer_window[count++] = temp_tuple;
 
-		temp_tuple.setHdr((short) 5, attrType, t1_str_sizes); 
-		temp.insertRecord(temp_tuple.returnTupleByteArray());
+			temp_tuple.setHdr((short) 5, attrType, t1_str_sizes); 
+			temp.insertRecord(temp_tuple.returnTupleByteArray());
 		    entry = scan.get_next();
 		}
 	    
 		int temp_file_size = 0;
 		
-	// Iterate through the heap file and find dominating tuples (skyline candidates)
+		// Iterate through the heap file and find dominating tuples (skyline candidates)
         while (entry != null) {
             boolean check = false;
             total++;
@@ -186,12 +186,15 @@ public class BTreeSortedSky implements GlobalConst {
 
 			try {
 				tuple1 = sort.get_next();
+				if(tuple1 != null)
+					tuple1.print(attrType);
 			} catch (Exception e) {
 				status = FAIL;
 				e.printStackTrace();
 			}
 		} while (tuple1 != null);
-
+		
+		System.out.println();
 		System.out.println("Read statistics "+PCounter.rcounter);
 		System.out.println("Write statistics "+PCounter.wcounter);
 
