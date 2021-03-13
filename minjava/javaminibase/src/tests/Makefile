@@ -1,10 +1,10 @@
 # modify the paths appropriately
-JDKPATH = /Library/Java/JavaVirtualMachines/jdk1.8.0_251.jdk/
+JDKPATH = ${JAVA_HOME}
 LIBPATH = .:..
 CLASSPATH = $(LIBPATH)
 BINPATH = $(JDKPATH)/Contents/Home/bin
-JAVAC = $(JDKPATH)/Contents/Home/bin/javac -classpath $(CLASSPATH)
-JAVA  = $(JDKPATH)/Contents/Home/bin/java  -classpath $(CLASSPATH)
+JAVAC = $(JDKPATH)/bin/javac -classpath $(CLASSPATH)
+JAVA  = $(JDKPATH)/bin/java  -classpath $(CLASSPATH)
 
 # test buffer manager
 
