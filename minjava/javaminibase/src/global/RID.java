@@ -51,8 +51,12 @@ public class RID{
       Convert.setIntValue ( slotNo, offset, ary);
       Convert.setIntValue ( pageNo.pid, offset+4, ary);
     }
-  
-  
+
+  @Override
+  public String toString() {
+    return "RID(" + pageNo.pid + "," + slotNo +")";
+  }
+
   /** Compares two RID object, i.e, this to the rid
    * @param rid RID object to be compared to
    * @return true is they are equal
@@ -66,5 +70,4 @@ public class RID{
     else
       return false;
   }
-  
 }
