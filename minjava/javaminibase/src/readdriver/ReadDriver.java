@@ -564,7 +564,6 @@ class Driver  extends TestDriver implements GlobalConst
                             count++;
 
                             try {
-                                System.out.println("Hello");
                                 tuple1 = sort.get_next();
                             } catch (Exception e) {
                                 status = FAIL;
