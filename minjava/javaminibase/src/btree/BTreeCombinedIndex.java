@@ -1,112 +1,111 @@
 package btree;
 
-import java.io.*;
-import java.security.Key;
-import java.util.*;
-
-
-import java.lang.*;
-
 import heap.*;
-import bufmgr.*;
 import global.*;
-import btree.*;
-
-/**
- * Note that in JAVA, methods can't be overridden to be more private.
- * Therefore, the declaration of all private functions are now declared
- * protected as opposed to the private type in C++.
- */
 
 public class BTreeCombinedIndex{
     BTreeFile file;
-    int id = 0;
+    int id=0;
     public int prefix = 0;
     
     public BTreeCombinedIndex(){
     }
     
     float floatKey(double[] values, int[] pref_list, int pref_list_length) {
-		float sum = 0.0f;
+        float sum = 0.0f;
         int j = 0;
 		for(int i = 0; i < values.length; i++) {
-			if(pref_list[j] == i && j < pref_list_length) {
-				sum += (float) values[i];
+			if(j < pref_list_length && pref_list[j] == (i+1)) {
+                sum += (float) values[i];
                 j++;
 			}
 		}
 		return sum;
-	}
-
-    double[][] readData(String filePath) throws FileNotFoundException {
-        File dfile = new File(filePath);
-        Scanner sc = new Scanner(dfile);
-        int COLS = sc.nextInt();
-        List<double[]> records = new ArrayList<double[]>();
-
-        while (sc.hasNextLine()) {
-            double[] doubleArray = Arrays.stream(Arrays.stream(sc.nextLine().trim()
-                    .split("\\s+"))
-                    .filter(s -> !s.isEmpty())
-                    .toArray(String[]::new))
-                    .mapToDouble(Double::parseDouble)
-                    .toArray();
-            if(doubleArray.length != 0){
-                records.add(doubleArray);
-            }
-        }
-        double [][] ret = new double[records.size()][];
-        ret = records.toArray(ret);
-        return ret;
     }
 
-    public IndexFile combinedIndex(String filePath, int[] pref_list, int pref_list_length) throws Exception {
+    public IndexFile combinedIndex(String filePath, AttrType[] attrTypes, short[] t1_str_sizes, int[] pref_list, int pref_list_length)
+            throws Exception {
+        
+        // Get data file in heapfile
+        Heapfile hf = new Heapfile(filePath);
+        int cols = attrTypes.length;
+        double[][] records = new double[hf.getRecCnt()][cols];    
+    
+        RID tempRid = new RID();
+        Scan scanTempHF = new Scan(hf);
+        int j = 0; 
 
-        double[][] data = readData(filePath);
-        String filename = "AAA";
-        int col = data[0].length;
+        // Put the tuples from heap file to array
+        while (true) {
+            Tuple tempHFTuple = scanTempHF.getNext(tempRid);
+			if (tempHFTuple == null)
+				break;
+            tempHFTuple.setHdr((short) cols, attrTypes, t1_str_sizes); 
+            for(int i = 0; i < cols; i++)
+                records[j][i] = tempHFTuple.getFloFld(i+1);
+            j++;
+		}
+
+		scanTempHF.closescan(); 
 
         int keyType = AttrType.attrReal;
         int keySize = 4;
 
-        Heapfile heapfile = new Heapfile("heap_" + filename);
-
-        file = new BTreeFile(filename, keyType, keySize, 1);
-
-        AttrType [] Stypes = new AttrType[col];
-
-        for(int i=0; i < col; i++){
-            Stypes[i] = new AttrType(AttrType.attrReal);
-        }
-
-        Tuple tuple = new Tuple();
-        short [] Ssizes = null;
-
-        tuple.setHdr((short) col,Stypes, Ssizes);
-        int size = tuple.size();
+        Heapfile heapfile = new Heapfile("heap_AAA");
         
+        // Initialize Index File 
+        file = new BTreeFile("AAA", keyType, keySize, 1);
 
-        tuple = new Tuple(size);
-        tuple.setHdr((short) col, Stypes, Ssizes);
+        Tuple t = new Tuple();
+
+        t.setHdr((short) records[0].length,attrTypes, t1_str_sizes);
+        int size = t.size();
+        
+        t = new Tuple(size);
+        t.setHdr((short) records[0].length, attrTypes, t1_str_sizes);
 
         RID rid;
         
         float fkey;
         KeyClass ffkey;
         
-        for(double[] value: data){
+        // Set key and rid and insert in index file
+        for(double[] value :records){
             
             fkey = floatKey(value, pref_list, pref_list_length);
-            ffkey = new FloatKey(fkey);
-
-            for(int i=0; i<value.length; i++) {
-                tuple.setFloFld(i+1, (float) value[i]);
+            ffkey = new FloatKey(-fkey);
+            for(int i = 0; i<value.length; i++) {
+                t.setFloFld(i+1, (float) value[i]);
             }
             
-            rid = heapfile.insertRecord(tuple.returnTupleByteArray());
-                       
+            rid = heapfile.insertRecord(t.returnTupleByteArray());       
             file.insert(ffkey, rid);
         }
+        
+        // Print index file and tuples associated with its rid
+
+        // BTFileScan scan = ((BTreeFile) file).new_scan(null, null);
+        // KeyDataEntry entry = scan.get_next();
+            
+        // t = new Tuple();
+        
+        // t.setHdr((short)records[0].length, attrTypes, t1_str_sizes);            
+        
+        // t = new Tuple(size);
+        // t.setHdr((short)records[0].length, attrTypes, t1_str_sizes);  
+        
+        // while (entry != null) {
+        //     rid = ((LeafData) entry.data).getData();
+            
+        //     t.tupleCopy(heapfile.getRecord(rid));
+        //     t.print(attrTypes); 
+            
+        //     System.out.println("SCAN RESULT: " + entry.key + " > " + entry.data);
+        //     entry = scan.get_next();
+
+        // }
+
         return file;
     }
+
 }

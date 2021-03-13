@@ -3,8 +3,6 @@ package readdriver;
 
 import java.io.*;
 import java.util.*;
-import java.lang.*;
-
 import diskmgr.PCounter;
 import heap.*;
 import global.*;
@@ -16,8 +14,9 @@ import iterator.SortFirstSky;
 import iterator.BlockNestedLoopsSky;
 import iterator.NestedLoopsSky;
 import tests.TestDriver;
+import btree.BTreeSortedSky;
 
-/** Note that in JAVA, methods can't be overridden to be more private.
+/** Note that in JAVA, methods can'tuple1 be overridden to be more private.
  Therefore, the declaration of all private functions are now declared
  protected as opposed to the private type in C++.
  */
@@ -32,14 +31,14 @@ class Driver  extends TestDriver implements GlobalConst
     private static RID   rid;
     private static Heapfile  f = null;
     private boolean status = OK;
-    private static String _fileName = "data2.txt";
     private static int[] pref_attr_lst;
     private static int _n_pages;
     private static int col;
     private static final String heapFile= "hFile_100.in";
     private static AttrType[] attrType;
     private short[] attrSize;
-	private static short tSize = 34;
+    private static short tSize = 34;
+    private static IndexFile indexFile;
     // create an iterator by open a file scan
     private static FldSpec[] projlist;
     private static RelSpec rel = new RelSpec(RelSpec.outer);
@@ -168,9 +167,9 @@ class Driver  extends TestDriver implements GlobalConst
                 projlist[i] = new FldSpec(rel, i+1);;
             }
 
-            Tuple t = new Tuple();
+            Tuple tuple1 = new Tuple();
             try {
-                t.setHdr((short) col,attrType, attrSize);
+                tuple1.setHdr((short) col,attrType, attrSize);
             }
             catch (Exception e) {
                 System.err.println("*** error in Tuple.setHdr() ***");
@@ -178,13 +177,13 @@ class Driver  extends TestDriver implements GlobalConst
                 e.printStackTrace();
             }
 
-            short size = t.size();
+            short size = tuple1.size();
             System.out.println("Size: "+size);
 			tSize = size;
 
-            t = new Tuple(size);
+            tuple1 = new Tuple(size);
             try {
-                t.setHdr((short) col, attrType, attrSize);
+                tuple1.setHdr((short) col, attrType, attrSize);
             }
             catch (Exception e) {
                 System.err.println("*** error in Tuple.setHdr() ***");
@@ -193,7 +192,7 @@ class Driver  extends TestDriver implements GlobalConst
             }
             sc.nextLine();
             while (sc.hasNextLine()) {
-                // create a tuple of appropriate size
+                // create a tuple1 of appropriate size
 
                 double[] doubleArray = Arrays.stream(Arrays.stream(sc.nextLine().trim()
                         .split("\\s+"))
@@ -204,16 +203,16 @@ class Driver  extends TestDriver implements GlobalConst
 
                 for(int i=0; i<doubleArray.length; i++) {
                     try {
-                        t.setFloFld(i+1, (float) doubleArray[i]);
+                        tuple1.setFloFld(i+1, (float) doubleArray[i]);
                     } catch (Exception e) {
                         status = FAIL;
                         e.printStackTrace();
                     }
                 }
 
-//                for (int i = 1; i <= t.noOfFlds(); i++) {
+//                for (int i = 1; i <= tuple1.noOfFlds(); i++) {
 //                    try {
-//                        System.out.print(t.getFloFld(i) + ", ");
+//                        System.out.print(tuple1.getFloFld(i) + ", ");
 //                    } catch (FieldNumberOutOfBoundException e) {
 //                        e.printStackTrace();
 //                    }
@@ -221,7 +220,7 @@ class Driver  extends TestDriver implements GlobalConst
 //                System.out.println();
 
                 try {
-                    rid = f.insertRecord(t.returnTupleByteArray());
+                    rid = f.insertRecord(tuple1.returnTupleByteArray());
                 }
                 catch (Exception e) {
                     status = FAIL;
@@ -241,13 +240,13 @@ class Driver  extends TestDriver implements GlobalConst
             }
         }
     }
-    protected float floatKey(Tuple t, int[] pref_attr_lst, int pref_attr_lst_len) {
+    protected float floatKey(Tuple tuple1, int[] pref_attr_lst, int pref_attr_lst_len) {
 		float sum = 0.0f;
         int j = 0;
-		for(int i = 0; i < t.noOfFlds(); i++) {
+		for(int i = 0; i < tuple1.noOfFlds(); i++) {
 			if(pref_attr_lst[j] == i && j < pref_attr_lst_len) {
 				try {
-					sum += t.getFloFld(i-1);
+					sum += tuple1.getFloFld(i-1);
 				}
 				catch (Exception e){
 					status = FAIL;
@@ -264,23 +263,16 @@ class Driver  extends TestDriver implements GlobalConst
 	BTreeFile btf = null;
 	Scan scan = null;
 	try {
-		f = new Heapfile(heapFile);
-	    }
-	catch (Exception e) {
-		status = FAIL;
-		e.printStackTrace();
-	}	
-	try {
-      		scan = new Scan(f);
-    	}
-    	catch (Exception e) {
-      		status = FAIL;
-      		e.printStackTrace();
-      		Runtime.getRuntime().exit(1);
-    	}
+        f = new Heapfile(heapFile);
+        scan = new Scan(f);
+    }catch (Exception e) {
+        status = FAIL;
+        e.printStackTrace();
+        Runtime.getRuntime().exit(1);
+    }
 	int keyType = AttrType.attrReal;
-        int keySize = 4;
-        AttrType [] Stypes = new AttrType[col];
+    int keySize = 4;
+    AttrType [] Stypes = new AttrType[col];
 	IndexFile[] index_file_list = new IndexFile[pref_attr_lst_len];
 	BTreeFile[] btree_file_list = new BTreeFile[pref_attr_lst_len];
 	for(int i = 0; i< pref_attr_lst_len; i++){
@@ -300,7 +292,7 @@ class Driver  extends TestDriver implements GlobalConst
 	rid = new RID();
     	String key = null;
     	Tuple temp = null;
-	Tuple t = new Tuple(tSize);
+	Tuple tuple1 = new Tuple(tSize);
 	float fkey;
 	KeyClass ffkey;	
 	try {
@@ -311,14 +303,14 @@ class Driver  extends TestDriver implements GlobalConst
       		e.printStackTrace();
     	}
 	while ( temp != null) {
-      		t.tupleCopy(temp);
+      		tuple1.tupleCopy(temp);
       
       	
-			fkey = floatKey(t, pref_attr_lst, pref_attr_lst_len);
+			fkey = floatKey(tuple1, pref_attr_lst, pref_attr_lst_len);
             ffkey = new FloatKey(fkey);
       	
 			int j =  0;
-      		for (int i = 0; i < t.noOfFlds(); i ++){
+      		for (int i = 0; i < tuple1.noOfFlds(); i ++){
 			if(pref_attr_lst[j] == i && j < pref_attr_lst_len) {
 
       			try {
@@ -367,11 +359,11 @@ class Driver  extends TestDriver implements GlobalConst
                 switch(choice) {
 
                     case 1:
-                        readData("/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/data/data2");
+                        readData("../data/data2");
                         break;
 
                     case 2:
-                        readData("/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/data/data3");
+                        readData("../data/data3");
                         break;
 
                     case 3:
@@ -549,14 +541,15 @@ class Driver  extends TestDriver implements GlobalConst
                         }
 
                         int count = -1;
-                        Tuple t = null;
+                        Tuple tuple1 = null;
 
                         System.out.println("\n -- Skyline candidates -- ");
                         do {
                             try {
-                                if (t != null) {
-                                    for (int i = 1; i <= t.noOfFlds(); i++) {
-                                        System.out.print(t.getFloFld(i) + ", ");
+                                System.out.println("Hello1");
+                                if (tuple1 != null) {
+                                    for (int i = 1; i <= tuple1.noOfFlds(); i++) {
+                                        System.out.print(tuple1.getFloFld(i) + ", ");
                                     }
                                     System.out.println();
                                 }
@@ -568,12 +561,13 @@ class Driver  extends TestDriver implements GlobalConst
                             count++;
 
                             try {
-                                t = sort.get_next();
+                                System.out.println("Hello");
+                                tuple1 = sort.get_next();
                             } catch (Exception e) {
                                 status = FAIL;
                                 e.printStackTrace();
                             }
-                        } while (t != null);
+                        } while (tuple1 != null);
 
                         System.out.println("Read statistics "+PCounter.rcounter);
                         System.out.println("Write statistics "+PCounter.wcounter);
@@ -602,6 +596,25 @@ class Driver  extends TestDriver implements GlobalConst
 
                     case 14:
                         // call btree sort sky
+
+                        try {
+                            BTreeCombinedIndex obj = new BTreeCombinedIndex();
+                            IndexFile indexFile = obj.combinedIndex(heapFile, attrType, attrSize,pref_attr_lst, pref_attr_lst.length);
+                            System.out.println("Index created!");
+
+                            System.out.println("CombinedBTreeIndex scanning"); 
+                            String fileName = "heap_AAA";
+
+                            BTreeSortedSky btree = new BTreeSortedSky(attrType, pref_attr_lst.length, attrSize, null, fileName, pref_attr_lst, pref_attr_lst.length, indexFile, _n_pages);
+                            
+                            btree.computeSkyline();
+                        
+                            System.out.println("BTreeSortSky Complete");
+                    
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        
 						break;
 
                     case 0:

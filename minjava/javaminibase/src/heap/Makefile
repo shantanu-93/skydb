@@ -1,9 +1,9 @@
-JDKPATH = /Library/Java/JavaVirtualMachines/jdk1.8.0_251.jdk/
-LIBPATH = /Users/christianbagaya/Documents/ASU/Spring_sem_1/DBMSI/Phase_1/minjava/javaminibase/src
+JDKPATH = ${JAVA_HOME}
+LIBPATH = ~/cse510dbmsi/minjava/javaminibase/construction
 CLASSPATH = $(JDKPATH)/lib/classes.zip:.:..:$(LIBPATH)
 BINPATH = $(JDKPATH)/bin
-JAVAC = $(JDKPATH)/Contents/Home/bin/javac -classpath $(CLASSPATH)
-JAVA  = $(JDKPATH)/Contents/Home/bin/java  -classpath $(CLASSPATH)
+JAVAC = $(JDKPATH)/bin/javac -classpath $(CLASSPATH)
+JAVA  = $(JDKPATH)/bin/java  -classpath $(CLASSPATH)
 
 PROGS = together
 
