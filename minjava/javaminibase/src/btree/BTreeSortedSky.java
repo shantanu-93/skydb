@@ -23,21 +23,6 @@ import iterator.RelSpec;
 
 import iterator.SortFirstSky;
 
-/**
- * BTreeSortedSky(
- * AttrType[] in1, 
- * int len_in1, 
- * short[] t1_str_sizes, 
- * int Iterator am1, 
-   java.lang.String relationName, 
-   int[] pref_list, 
-   int[] pref_list_length, 
-   IndexFile index_file,
-	int n_pages)
- * @author kunjpatel
- *
- */
-
 public class BTreeSortedSky implements GlobalConst {
 	
 	private AttrType[] attrType;
@@ -72,7 +57,6 @@ public class BTreeSortedSky implements GlobalConst {
 	
 	}
 	
-	// 
 	public void computeSkyline() throws InvalidSlotNumberException, InvalidTupleSizeException, Exception {
 		
 		Heapfile hf = new Heapfile(relationName);
@@ -90,7 +74,7 @@ public class BTreeSortedSky implements GlobalConst {
 		System.out.println("Size of Buffer Window: " + (MINIBASE_PAGESIZE / t.size()) * n_pages);
 		
 		//Getting the first tuple
-	    entry = scan.get_next();
+	    	entry = scan.get_next();
 		
 		// For counting window size
 		int count = 0;
@@ -99,22 +83,22 @@ public class BTreeSortedSky implements GlobalConst {
 		int total = 0;
 		
 		// Enter the tuples in temp heap and buffer window
-	    while (entry != null && count < buffer_window.length) {
-			total++;
-			
-			rid = ((LeafData) entry.data).getData();
-			Tuple temp_tuple = hf.getRecord(rid);
+		while (entry != null && count < buffer_window.length) {
+				total++;
 
-			buffer_window[count++] = temp_tuple;
-			
-			temp_tuple.setHdr((short) 5, attrType, t1_str_sizes); 
-			temp.insertRecord(temp_tuple.returnTupleByteArray());
-            entry = scan.get_next();
-        }
+				rid = ((LeafData) entry.data).getData();
+				Tuple temp_tuple = hf.getRecord(rid);
+
+				buffer_window[count++] = temp_tuple;
+
+				temp_tuple.setHdr((short) 5, attrType, t1_str_sizes); 
+				temp.insertRecord(temp_tuple.returnTupleByteArray());
+		    entry = scan.get_next();
+		}
 	    
 		int temp_file_size = 0;
 		
-		// Iterate through the heap file and find dominating tuples (skyline candidates)
+	// Iterate through the heap file and find dominating tuples (skyline candidates)
         while (entry != null) {
             boolean check = false;
             total++;
