@@ -20,7 +20,7 @@ public class SortFirstSky extends Iterator {
         private   Iterator  sort;
         private List<Tuple> inner;
         private short[] t1_str_sizes_cls;
-        int maxRecordSize;
+        int maxWindowSize;
         String sortFirstHFName;
         private Heapfile tempHF = null;
 
@@ -80,7 +80,7 @@ public class SortFirstSky extends Iterator {
                 n_buf_pgs_for_sort = Math.max((n_pages * 9/ 10), 3);
                 n_buf_pgs_for_window = n_pages - n_buf_pgs_for_sort;
 
-                maxRecordSize = sc.getNumberOfRecordsPerOnePage()* n_buf_pgs_for_window;
+                maxWindowSize = sc.getNumberOfRecordsPerOnePage()* n_buf_pgs_for_window;
 
                 try {
                         sort = new SortPref(_in1, in1_len, t1_str_sizes, outer, new TupleOrder(TupleOrder.Descending) , pref_list_cls, pref_list_length_cls, n_buf_pgs_for_sort);
@@ -154,7 +154,7 @@ public class SortFirstSky extends Iterator {
 
                         if (!dominated) {
                                 Tuple temp = new Tuple(currentOuter);
-                                if (inner.size() < maxRecordSize) {
+                                if (inner.size() < maxWindowSize) {
                                         inner.add(temp);
                                 } else {
 
