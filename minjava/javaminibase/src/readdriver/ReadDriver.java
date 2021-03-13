@@ -367,11 +367,11 @@ class Driver  extends TestDriver implements GlobalConst
                 switch(choice) {
 
                     case 1:
-                        readData("/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/data/data2");
+                        readData("/Users/christianbagaya/Documents/cse510dbmsi/minjava/javaminibase/src/readdriver/data2");
                         break;
 
                     case 2:
-                        readData("/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/data/data3");
+                        readData("/Users/christianbagaya/Documents/cse510dbmsi/minjava/javaminibase/src/readdriver/data3");
                         break;
 
                     case 3:
@@ -519,7 +519,7 @@ class Driver  extends TestDriver implements GlobalConst
                         System.out.println("\n Number of Skyline candidates: " + blockSkycount);
 
                         try {
-                            fscanBlock.close();
+                            // fscanBlock.close();
                         } catch (Exception e) {
                             status = FAIL;
                             e.printStackTrace();
