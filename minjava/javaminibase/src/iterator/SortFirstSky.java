@@ -13,7 +13,7 @@ public class SortFirstSky extends Iterator {
         private AttrType      _in1[];
         private   short        in1_len;
         private   Iterator  outer;
-        private   int        n_buf_pgs;        // # of buffer pages available.
+        private   int n_buf_pgs_for_window;        // # of buffer pages available.
         private int n_buf_pgs_for_sort;
         private int[] pref_list_cls;
         private int pref_list_length_cls;
@@ -36,9 +36,7 @@ public class SortFirstSky extends Iterator {
                          int n_pages
 
         )
-                throws JoinNewFailed,
-                JoinLowMemory,
-                SortException,
+                throws
                 TupleUtilsException,
                 IOException,
                 SortException
@@ -57,15 +55,7 @@ public class SortFirstSky extends Iterator {
 
                 //Getting the maximum number of records on one page.
                 RID id = new RID();
-                Heapfile hf = null;
-                try {
-                        hf = new Heapfile(relationName);
-
-                }
-                catch(Exception e) {
-                        throw new SortException(e, "Create new heapfile failed.");
-                }
-
+                Heapfile hf;
                 try {
                         hf = new Heapfile(relationName);
                 }
@@ -73,13 +63,12 @@ public class SortFirstSky extends Iterator {
                         throw new SortException(e, "Create new heapfile failed.");
                 }
 
-                Scan sc = null;
+                Scan sc;
                 try{
                         sc = hf.openScan();
                 }catch(Exception e){
                         throw new SortException(e, "openScan failed");
                 }
-
                 try{
                         sc.getNextAndCountRecords(id);
 
@@ -89,9 +78,9 @@ public class SortFirstSky extends Iterator {
                 System.out.println(sc.getNumberOfRecordsPerOnePage());
 
                 n_buf_pgs_for_sort = Math.max((n_pages * 9/ 10), 3);
-                n_buf_pgs = n_pages - n_buf_pgs_for_sort;
+                n_buf_pgs_for_window = n_pages - n_buf_pgs_for_sort;
 
-                maxRecordSize = sc.getNumberOfRecordsPerOnePage()* n_buf_pgs;
+                maxRecordSize = sc.getNumberOfRecordsPerOnePage()* n_buf_pgs_for_window;
 
                 try {
                         sort = new SortPref(_in1, in1_len, t1_str_sizes, outer, new TupleOrder(TupleOrder.Descending) , pref_list_cls, pref_list_length_cls, n_buf_pgs_for_sort);
