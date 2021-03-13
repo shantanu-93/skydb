@@ -519,13 +519,6 @@ class Driver  extends TestDriver implements GlobalConst
                         System.out.println("\n Number of Skyline candidates: " + blockSkycount);
 
                         try {
-                            fscanBlock.close();
-                        } catch (Exception e) {
-                            status = FAIL;
-                            e.printStackTrace();
-                        }
-
-                        try {
                             block.close();
                         } catch (Exception e) {
                             status = FAIL;
