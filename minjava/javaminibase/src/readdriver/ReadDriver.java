@@ -359,11 +359,11 @@ class Driver  extends TestDriver implements GlobalConst
                 switch(choice) {
 
                     case 1:
-                        readData("../data/data2");
+                        readData("/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/data/data2");
                         break;
 
                     case 2:
-                        readData("../data/data3");
+                        readData("/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/data/data3");
                         break;
 
                     case 3:
@@ -406,6 +406,8 @@ class Driver  extends TestDriver implements GlobalConst
                             status = FAIL;
                             e.printStackTrace();
                         }
+
+                        SystemDefs.JavabaseBM.flushPages();
 
                         PCounter.initialize();
 
@@ -467,6 +469,8 @@ class Driver  extends TestDriver implements GlobalConst
                             status = FAIL;
                             e.printStackTrace();
                         }
+
+                        SystemDefs.JavabaseBM.flushPages();
 
                         PCounter.initialize();
 
