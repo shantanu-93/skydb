@@ -163,6 +163,10 @@ public class NestedLoopsSky  extends Iterator
 
                 innerTuple.setHdr(in1_len, _in1, _t1_str_sizes);
 
+                if (SystemDefs.JavabaseBM.getNumBuffers() - SystemDefs.JavabaseBM.getNumUnpinnedBuffers() >= n_buf_pgs) {
+                    SystemDefs.JavabaseBM.flushPages();
+                }
+
                 if (!TupleUtils.Dominates(outerTuple, _in1, innerTuple, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length)) {
                     if (tempHF1 == null) {
                         if (changeFile) {
