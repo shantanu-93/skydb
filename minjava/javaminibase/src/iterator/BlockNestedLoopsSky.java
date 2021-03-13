@@ -315,7 +315,7 @@ public class BlockNestedLoopsSky  extends Iterator
           
 
           try{
-            outer_tuple.setHdr((short) 2, _in1, _t1_str_sizes);
+            outer_tuple.setHdr(in1_len, _in1, _t1_str_sizes);
           }catch (Exception e) {
             e.printStackTrace();
           }
@@ -329,11 +329,16 @@ public class BlockNestedLoopsSky  extends Iterator
       
               }else{
                 
+                java.util.Iterator iterWindow = windowMemory.iterator();
                 int sizeResult = windowMemory.size();
+                ArrayList<Tuple> temporaryWindow = new ArrayList<Tuple>();
                 boolean inserted = false;
-                for(int i = 0; i<sizeResult ; i++){
+                // for(int i = 0; i<sizeResult ; i++){
+                int i = 0;
+                while(iterWindow.hasNext()){
                   
-                  Tuple windowTuple = windowMemory.get(i);
+                  System.out.println("Memory size: "+sizeResult+" i= "+i);
+                  Tuple windowTuple = (Tuple)iterWindow.next();
                   try{
 
                     windowDominate = TupleUtils.Dominates(windowTuple,_in1,outer_tuple, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);// window dominate outer
@@ -352,6 +357,7 @@ public class BlockNestedLoopsSky  extends Iterator
                   if(windowDominate){
                     try {
                       inputHeap.deleteRecord(rid);//delete record from the heap file
+                      // rid = new RID();
                     } catch (Exception e) {
                       e.printStackTrace();
                     }
@@ -362,17 +368,22 @@ public class BlockNestedLoopsSky  extends Iterator
 
                     if(windowMemory.size()>=maxRecordSize){
                       //remove reocrd from window and set spaceWindow to false
-                      windowMemory.remove(windowTuple);
+                      iterWindow.remove();
+                      // i--;
+                      // sizeResult--;
+
                       spaceInWindow = false;
-                    }if(windowMemory.size()<maxRecordSize){
-                      windowMemory.remove(windowTuple);
+                    }else if(windowMemory.size()<maxRecordSize){
+                      iterWindow.remove();
+                      // i--;
+                      // sizeResult--;
                     }
                     
                     if(spaceInWindow){//if there is still enough block memory
                       
                       if(!windowMemory.contains(outer_tuple)){
-                        windowMemory.add(outer_tuple);
-                        
+                        temporaryWindow.add(outer_tuple);
+                        sizeResult++;
                       }
      
                     }else{
@@ -403,7 +414,8 @@ public class BlockNestedLoopsSky  extends Iterator
                   if(spaceInWindow){//if there is still enough block memory
                     
                     if(i==sizeResult-1){ //making sure we add after checking
-                      windowMemory.add(outer_tuple);
+                      temporaryWindow.add(outer_tuple);
+                      sizeResult++;
 
                     }
                     
@@ -424,7 +436,9 @@ public class BlockNestedLoopsSky  extends Iterator
                     
                   }
                 }
+                i++;
               }
+              windowMemory.addAll(temporaryWindow);
               
               if(iterationNumber>1){//Avoiding to delete the actual input heap files
 
@@ -448,10 +462,6 @@ public class BlockNestedLoopsSky  extends Iterator
     }
       done = true;
       }while(true);
-
-      
-
-
 
       // this.hf = null;
       try {
