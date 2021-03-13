@@ -121,7 +121,14 @@ public class SortFirstSky extends Iterator {
 
                         boolean dominated = false;
 
-                        if (tempHF != null) {
+                        for (Tuple innerTuple : inner) {
+                                if (TupleUtils.Dominates(innerTuple, _in1, currentOuter, _in1, in1_len, t1_str_sizes_cls, pref_list_cls, pref_list_length_cls)) {
+                                        dominated = true;
+                                        break;
+                                }
+                        }
+
+                        if (tempHF != null && !dominated) {
                                 RID tempRid = new RID();
                                 Scan scanTempHF = new Scan(tempHF);
                                 while (true) {
@@ -140,16 +147,6 @@ public class SortFirstSky extends Iterator {
                                 }
                                 scanTempHF.closescan();
                         }
-
-                        if (!dominated) {
-                                for (Tuple innerTuple : inner) {
-                                        if (TupleUtils.Dominates(innerTuple, _in1, currentOuter, _in1, in1_len, t1_str_sizes_cls, pref_list_cls, pref_list_length_cls)) {
-                                                dominated = true;
-                                                break;
-                                        }
-                                }
-                        }
-
 
 
                         if (!dominated) {
