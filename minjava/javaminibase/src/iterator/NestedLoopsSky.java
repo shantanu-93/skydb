@@ -4,12 +4,13 @@ package iterator;
 import heap.*;
 import global.*;
 import bufmgr.*;
-import diskmgr.*;
 import index.*;
 import java.lang.*;
 import java.io.*;
 import java.util.ArrayList;
-/** 
+import java.util.Random;
+
+/**
  *
  *  This file contains an implementation of the nested loops join
  *  algorithm as described in the Shapiro paper.
@@ -48,11 +49,13 @@ public class NestedLoopsSky  extends Iterator
   String relationName;
   Iterator am1_iter; 
   ArrayList<Tuple> inputList;
+  String tempHFName;
+  Heapfile tempHF = null;
+  String tempHF1Name;
+  Heapfile tempHF1 = null;
+  Scan finalRes;
 
-  
 
-  
-  
   /**constructor
    *Initialize the two relations which are joined, including relation type,
    *@param in1  Array containing field types of R.
@@ -80,19 +83,14 @@ public class NestedLoopsSky  extends Iterator
             int[] pref_list,
             int pref_list_length,
             int n_pages   
-			   ) throws IOException,NestedLoopException
-    {
+			   ) throws IOException, NestedLoopException, UnknowAttrType, TupleUtilsException, HFDiskMgrException, HFBufMgrException, HFException, InvalidTupleSizeException, InvalidTypeException, SpaceNotAvailableException, InvalidSlotNumberException, FileAlreadyDeletedException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
       
       _in1 = new AttrType[in1.length];
       System.arraycopy(in1,0,_in1,0,in1.length);
       in1_len = (short)len_in1;
-      
-    //   outer = am1;
-    //   t2_str_sizescopy =  t2_str_sizes;
+
       inner_tuple = new Tuple();
       Jtuple = new Tuple();
-    //   OutputFilter = outFilter;
-    //   RightFilter  = rightFilter;
       
       n_buf_pgs    = n_pages;
       inner = null;
@@ -106,166 +104,110 @@ public class NestedLoopsSky  extends Iterator
       finalOutput = new ArrayList<Tuple>();
       inputList = new ArrayList<Tuple>();
 
+      tempHFName = getRandomName();
+      tempHF1Name = getRandomName();
 
-      
-    //   AttrType[] Jtypes = new AttrType[n_out_flds];
-    //   short[]    t_size;
-      
-    //   perm_mat = proj_list;
-    //   nOutFlds = n_out_flds;
-    //   try {
-	// // t_size = TupleUtils.setup_op_tuple(Jtuple, Jtypes,
-	// // 				   in1, len_in1, in1, len_in1,
-	// // 				   t1_str_sizes, t1_str_sizes,
-	// // 				   proj_list, nOutFlds);
-    //   }catch (TupleUtilsException e){
-	// throw new NestedLoopException(e,"TupleUtilsException is caught by NestedLoopsJoins.java");
-    //   }
-      
-      
-      
-      try {
-	  hf = new Heapfile(relationName);
-      outerHf = new Heapfile(relationName);
-	  
-      }
-      catch(Exception e) {
-	throw new NestedLoopException(e, "Create new heapfile failed.");
-      }
-    }
-  
+        Heapfile mainFile;
+        mainFile = new Heapfile(relationName);
+        Scan tempScan = new Scan(mainFile);
 
-    public Tuple performSkyline() throws IOException{
+        tempHF = new Heapfile(tempHFName);
 
-        // try {
-        //     RID rid = new RID();
-        //     Tuple result = new Tuple();
-        //     Scan rScan = new Scan(hf);
-        //     while((result = rScan.getNext(rid))!= null){
-        //         finalOutput.add(result);
+        while (true) {
+          Tuple tempTuple;
 
-        //     }
-            
-        // } catch (Exception e) {
-        //     //TODO: handle exception
-        //     e.printStackTrace();
-        // }
-        
-          // call the function again
-          try{    
-            skyLine();
-            
-            // windowIterator = windowMemory.iterator();
-    
-          }catch(Exception e) {
-            e.printStackTrace();
-          }
-    
-         // finalOutputIter = new java.util.Iterator();  
-         finalOutputIter = finalOutput.iterator();    
-         return null;
-       }
+          RID tempRid = new RID();
+          tempTuple = tempScan.getNext(tempRid);
 
+            if (tempTuple == null) {
+                break;
+            }
 
-       public Tuple get_next(){
-
-        if(finalOutput.isEmpty()){
-          try {
-            performSkyline();
-          } catch (Exception e) {
-            //TODO: handle exception
-            e.printStackTrace();
-          }
-          
+          byte [] tempBytes = tempTuple.returnTupleByteArray();
+          tempHF.insertRecord(tempBytes);
         }
-         
-         while(finalOutputIter.hasNext()){ 
-           return (Tuple)finalOutputIter.next();
-         }
-         return null;
-        }
-    
-  /**  
-   *@return The joined tuple is returned
-   *@exception IOException I/O errors
-   *@exception JoinsException some join exception
-   *@exception IndexException exception from super class
-   *@exception InvalidTupleSizeException invalid tuple size
-   *@exception InvalidTypeException tuple type not valid
-   *@exception PageNotReadException exception from lower layer
-   *@exception TupleUtilsException exception from using tuple utilities
-   *@exception PredEvalException exception from PredEval class
-   *@exception SortException sort exception
-   *@exception LowMemException memory error
-   *@exception UnknowAttrType attribute type unknown
-   *@exception UnknownKeyTypeException key type unknown
-   *@exception Exception other exceptions
 
-   */
-  public void skyLine()
-    throws IOException,
-	   JoinsException ,
-	   IndexException,
-	   InvalidTupleSizeException,
-	   InvalidTypeException, 
-	   PageNotReadException,
-	   TupleUtilsException, 
-	   PredEvalException,
-	   SortException,
-	   LowMemException,
-	   UnknowAttrType,
-	   UnknownKeyTypeException,
-	   Exception
-    {
-      // This is a DUMBEST form of a join, not making use of any key information...
-    // m = new ArrayList<Tuple>();
-    RID outerRid = new RID();
-    try {
-        outer = outerHf.openScan();
-        Tuple tpl = new Tuple();
+        int count = 0;
 
-    } catch (Exception e) {
-        //TODO: handle exception
-        e.printStackTrace();
-    }
+        boolean changeFile = false;
 
-    try{
-        Tuple tpl = new Tuple();
-        while((tpl=outer.getNext(outerRid))!=null){
-            tpl.setHdr((short)in1_len, _in1,_t1_str_sizes);
-            RID rid = new RID();
-            inner = hf.openScan();
-            Tuple tplInner = new Tuple();
+        Scan outer = new Scan(mainFile);
+        while (true) {
 
-            while((tplInner=inner.getNext(rid))!=null){
-                tplInner.setHdr((short)in1_len, _in1,_t1_str_sizes);
-                boolean outerDominate = false;
-                outerDominate = TupleUtils.Dominates(tpl,_in1,tplInner, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);
-                if(outerDominate){
-                    hf.deleteRecord(rid);
+            Scan inner = new Scan(tempHF);
+
+            Tuple outerTuple;
+
+            RID tempRid = new RID();
+            outerTuple = outer.getNext(tempRid);
+
+            if (outerTuple == null) {
+                break;
+            }
+
+            outerTuple.setHdr(in1_len, _in1, _t1_str_sizes);
+
+            int innerCount = 0;
+
+            while (true) {
+
+                Tuple innerTuple;
+
+                RID tempRid1 = new RID();
+                innerTuple = inner.getNext(tempRid1);
+
+                if (innerTuple == null) {
+                    inner.closescan();
+                    break;
                 }
 
+                innerTuple.setHdr(in1_len, _in1, _t1_str_sizes);
+
+                if (!TupleUtils.Dominates(outerTuple, _in1, innerTuple, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length)) {
+                    if (tempHF1 == null) {
+                        if (changeFile) {
+                            tempHF1 = new Heapfile(tempHFName);
+                        } else {
+                            tempHF1 = new Heapfile(tempHF1Name);
+                        }
+                    }
+                    innerCount++;
+                    byte [] innerBytes = innerTuple.returnTupleByteArray();
+                    tempHF1.insertRecord(innerBytes);
+                }
+
+//                System.out.println("innerCount: "+ innerCount);
+
+            }
+            System.out.println("Count after outer pass "+ count + " : " + tempHF1.getRecCnt());
+//            System.out.println(count);
+            count++;
+            SystemDefs.JavabaseBM.flushPages();
+            tempHF.deleteFile();
+            tempHF = tempHF1;
+            tempHF1 = null;
+
+            changeFile = !changeFile;
+        }
+      finalRes = new Scan(tempHF);
+        outer.closescan();
+    }
+
+
+       public Tuple get_next() throws InvalidTupleSizeException, IOException, InvalidTypeException {
+        if (finalRes == null) {
+            return null;
+        } else {
+            RID tempRid = new RID();
+            Tuple res = finalRes.getNext(tempRid);
+            if (res != null) {
+                res.setHdr(in1_len, _in1, _t1_str_sizes);
+                return res;
             }
         }
+        return null;
+       }
 
-        inner = hf.openScan();
-        Tuple tempTpl = new Tuple();
-        RID temId = new RID();
-
-        while((tempTpl=inner.getNext(temId))!=null){
-            tempTpl.setHdr((short)in1_len, _in1,_t1_str_sizes);
-            finalOutput.add(tempTpl);
-        }
-
-    }catch (Exception e) {
-        e.printStackTrace();
-    }
-
-
-
-    }
-      
-    
  
   /**
    * implement the abstract method close() from super class Iterator
@@ -277,13 +219,43 @@ public class NestedLoopsSky  extends Iterator
   public void close() throws JoinsException, IOException,IndexException 
     {
       if (!closeFlag) {
-	
+	    finalRes.closescan();
+          try {
+              SystemDefs.JavabaseBM.flushPages();
+          } catch (PageNotFoundException e) {
+              e.printStackTrace();
+          } catch (BufMgrException e) {
+              e.printStackTrace();
+          } catch (HashOperationException e) {
+              e.printStackTrace();
+          } catch (PagePinnedException e) {
+              e.printStackTrace();
+          }
+          if (tempHF != null) {
+              try {
+                  tempHF.deleteFile();
+              } catch (Exception e) {
+              }
+          }
 	try {
-	  am1_iter.close();
+
 	}catch (Exception e) {
 	  throw new JoinsException(e, "NestedLoopsJoin.java: error in closing iterator.");
 	}
 	closeFlag = true;
       }
+    }
+
+    protected String getRandomName() {
+        String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        StringBuilder salt = new StringBuilder();
+        Random rnd = new Random();
+        while (salt.length() < 18) { // length of the random string.
+            int index = (int) (rnd.nextFloat() * SALTCHARS.length());
+            salt.append(SALTCHARS.charAt(index));
+        }
+        String saltStr = salt.toString();
+        return saltStr;
+
     }
 }

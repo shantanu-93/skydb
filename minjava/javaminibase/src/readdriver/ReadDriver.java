@@ -457,12 +457,6 @@ class Driver  extends TestDriver implements GlobalConst
 
                         System.out.println("\n Number of Skyline candidates: " + nestedSkycount);
 
-                        try {
-                            fscanNested.close();
-                        } catch (Exception e) {
-                            status = FAIL;
-                            e.printStackTrace();
-                        }
 
                         try {
                             nested.close();
