@@ -550,7 +550,6 @@ class Driver  extends TestDriver implements GlobalConst
                         System.out.println("\n -- Skyline candidates -- ");
                         do {
                             try {
-                                System.out.println("Hello1");
                                 if (tuple1 != null) {
                                     for (int i = 1; i <= tuple1.noOfFlds(); i++) {
                                         System.out.print(tuple1.getFloFld(i) + ", ");
