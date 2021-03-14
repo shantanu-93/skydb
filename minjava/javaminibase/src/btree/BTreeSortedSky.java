@@ -22,6 +22,7 @@ import iterator.Iterator;
 import iterator.RelSpec;
 
 import iterator.SortFirstSky;
+import readdriver.ReadDriver;
 
 public class BTreeSortedSky implements GlobalConst {
 	
@@ -73,7 +74,7 @@ public class BTreeSortedSky implements GlobalConst {
 		System.out.println("Size of Buffer Window: " + (MINIBASE_PAGESIZE / t.size()) * n_pages);
 		
 		//Getting the first tuple
-	    	entry = scan.get_next();
+	    entry = scan.get_next();
 		
 		// For counting window size
 		int count = 0;
@@ -87,10 +88,11 @@ public class BTreeSortedSky implements GlobalConst {
 
 			rid = ((LeafData) entry.data).getData();
 			Tuple temp_tuple = hf.getRecord(rid);
-
-			buffer_window[count++] = temp_tuple;
-
+			
 			temp_tuple.setHdr((short) 5, attrType, t1_str_sizes); 
+			buffer_window[count++] = temp_tuple;
+			temp_tuple.print(attrType);
+			
 			temp.insertRecord(temp_tuple.returnTupleByteArray());
 		    entry = scan.get_next();
 		}
@@ -114,7 +116,7 @@ public class BTreeSortedSky implements GlobalConst {
 					// heap_tuple.print(attrType);
 					// System.out.println("Dominated by ");
 					// buffer_window[i].print(attrType);
-					buffer_window[i] = heap_tuple;
+					// buffer_window[i] = heap_tuple;
 					break;
 				} 
 			}
@@ -135,7 +137,8 @@ public class BTreeSortedSky implements GlobalConst {
 			} 
 			entry = scan.get_next();
         }
-        
+		
+		scan.DestroyBTreeFileScan();
 		// System.out.println("Temp File objects ");
 		
 		// RID tempRid = new RID();
@@ -155,69 +158,15 @@ public class BTreeSortedSky implements GlobalConst {
         System.out.println("Buffer Size: " + buffer_window.length);
 		System.out.println("Total data put in temp file: " + temp_file_size);
 
-		
-		// Sort First Sky
-		FldSpec[] projlist = new FldSpec[5];
-		for(int i=0; i<5; i++){
-			projlist[i] = new FldSpec(rel, i+1);;
-		}
-		FileScan fscan = new FileScan(temp_heap_name, attrType, t1_str_sizes, (short) attrType.length, attrType.length, projlist, null);
-		SystemDefs.JavabaseBM.flushPages();
-        SortFirstSky sort = new SortFirstSky(attrType, attrType.length, t1_str_sizes, fscan, temp_heap_name, pref_list, pref_list.length, n_pages);
+		// SystemDefs.JavabaseBM.flushPages();
+		ReadDriver.runSortFirstSky(temp_heap_name);
+		// SystemDefs.JavabaseBM.flushPages();
 
-		int c = -1;
-		Tuple tuple1 = null;
-
-		System.out.println("\n -- Skyline candidates -- ");
-		do {
-			// try {
-			// 	if (tuple1 != null) {
-			// 		// for (int i = 1; i <= tuple1.noOfFlds(); i++) {
-			// 		// 	System.out.print(tuple1.getFloFld(i) + ", ");
-			// 		// }
-			// 		// System.out.println();
-			// 	}
-			// } catch (Exception e) {
-			// 	status = FAIL;
-			// 	e.printStackTrace();
-			// }
-
-			c++;
-
-			try {
-				tuple1 = sort.get_next();
-				if(tuple1 != null)
-					tuple1.print(attrType);
-			} catch (Exception e) {
-				status = FAIL;
-				e.printStackTrace();
-			}
-		} while (tuple1 != null);
-		
-		System.out.println();
-		System.out.println("Read statistics "+PCounter.rcounter);
-		System.out.println("Write statistics "+PCounter.wcounter);
-
-		System.out.println("\n Number of Skyline candidates: " + c);
-
-		try {
-			fscan.close();
-		} catch (Exception e) {
-			status = FAIL;
-			e.printStackTrace();
-		}
-
-		try {
-			sort.close();
-		} catch (Exception e) {
-			status = FAIL;
-			e.printStackTrace();
-		}
-
+		temp.deleteFile();
 		hf.deleteFile();
-
-        return;
-    }
+		// Heapfile heap = new Heapfile(ReadDriver.heapFile);
+		// heap.deleteFile();
+	}
 	
 	private Tuple getTuple() throws InvalidTypeException, InvalidTupleSizeException, IOException {
 		Tuple t = new Tuple();

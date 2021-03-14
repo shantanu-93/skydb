@@ -7,6 +7,7 @@ public class BTreeCombinedIndex{
     BTreeFile file;
     int id=0;
     public int prefix = 0;
+    public static String random_string1, random_string2;
     
     public BTreeCombinedIndex(){
     }
@@ -29,6 +30,7 @@ public class BTreeCombinedIndex{
         // Get data file in heapfile
         Heapfile hf = new Heapfile(filePath);
         int cols = attrTypes.length;
+
         double[][] records = new double[hf.getRecCnt()][cols];    
     
         RID tempRid = new RID();
@@ -50,19 +52,21 @@ public class BTreeCombinedIndex{
 
         int keyType = AttrType.attrReal;
         int keySize = 4;
-
-        Heapfile heapfile = new Heapfile("heap_AAA");
+        
+        random_string1 = Heapfile.getRandomHFName();
+        random_string2 = Heapfile.getRandomHFName();
+        Heapfile heapfile = new Heapfile(random_string1);
         
         // Initialize Index File 
-        file = new BTreeFile("AAA", keyType, keySize, 1);
+        file = new BTreeFile(random_string2, keyType, keySize, 1);
 
         Tuple t = new Tuple();
 
-        t.setHdr((short) records[0].length,attrTypes, t1_str_sizes);
+        t.setHdr((short) attrTypes.length,attrTypes, t1_str_sizes);
         int size = t.size();
         
         t = new Tuple(size);
-        t.setHdr((short) records[0].length, attrTypes, t1_str_sizes);
+        t.setHdr((short) attrTypes.length, attrTypes, t1_str_sizes);
 
         RID rid;
         

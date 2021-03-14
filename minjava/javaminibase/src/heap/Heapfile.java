@@ -1,8 +1,9 @@
 package heap;
 
 import java.io.*;
+import java.util.Random;
+
 import diskmgr.*;
-import bufmgr.*;
 import global.*;
 
 /**  This heapfile implementation is directory-based. We maintain a
@@ -289,7 +290,20 @@ public class Heapfile implements Filetype,  GlobalConst {
       //  - _fileName valid
       //  - no datapage pinned yet    
       
-    } // end of constructor 
+    } // end of constructor
+
+	public static String getRandomHFName() {
+		String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+		StringBuilder salt = new StringBuilder();
+		Random rnd = new Random();
+		while (salt.length() < 18) { // length of the random string.
+			int index = (int) (rnd.nextFloat() * SALTCHARS.length());
+			salt.append(SALTCHARS.charAt(index));
+		}
+		String saltStr = salt.toString();
+		return saltStr;
+
+	}
   
   /** Return number of records in file.
    *
