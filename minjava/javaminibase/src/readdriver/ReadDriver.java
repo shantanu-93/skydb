@@ -114,27 +114,41 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 
         return _pass;
     }
-
-    private void readMenu() {
-        System.out.println("-------------------------- MENU ------------------");
-        System.out.println("[1]   Read input data 2");
-        System.out.println("[2]   Read input data 3");
-        System.out.println("[3]   Set pref = [1]");
-        System.out.println("[4]   Set pref = [1,3]");
-        System.out.println("[5]   Set pref = [1,3,5]");
-        System.out.println("[6]   Set pref = [1,2,3,4,5]");
-        System.out.println("[7]   Set n_page = 5");
-        System.out.println("[8]   Set n_page = 10");
-        System.out.println("[9]   Set n_page = <your_wish>");
-        System.out.println("[10]  Run Nested Loop skyline on data with parameters ");
-        System.out.println("[11]  Run Block Nested Loop on data with parameters ");
-        System.out.println("[12]  Run Sort First Sky on data with parameters ");
-        System.out.println("[13]  Run individual Btree Sky on data with parameters ");
-        System.out.println("[14]  Run combined Btree Sort Sky on data with parameters ");
+	private void dataMenu() {
+		System.out.println("Default has been set to data2.txt. Enter file name without {.txt}.\n");
+		System.out.println("[1]   Read input data2");
+        System.out.println("[2]   Read input data3");
+		System.out.println("[3]	  Read your own input");
+		System.out.println("\n[0]  Quit!");
+        System.out.print("Hi, Enter your choice :");
+	}
+	
+	private void prefMenu() {
+		System.out.println("[1]   Set pref = [1]");
+        System.out.println("[2]   Set pref = [1,3]");
+        System.out.println("[3]   Set pref = [1,3,5]");
+        System.out.println("[4]   Set pref = [1,2,3,4,5]");
+		System.out.println("[5]	  Set your own preference list of attributes");
+		System.out.println("\n[0]  Quit!");
+        System.out.print("Hi, Enter your choice :");
+	}
+    private void pageMenu() {
+		System.out.println("[1]   Set n_page = 5");
+        System.out.println("[2]   Set n_page = 10");
+        System.out.println("[3]   Set n_page = <your_wish>");
+		System.out.println("\n[0]  Quit!");
+        System.out.print("Hi, Enter your choice :");
+	}
+	
+	private void algoMenu() {
+		System.out.println("[1]  Run Nested Loop skyline on data with parameters ");
+        System.out.println("[2]  Run Block Nested Loop on data with parameters ");
+        System.out.println("[3]  Run Sort First Sky on data with parameters ");
+        System.out.println("[4]  Run individual Btree Sky on data with parameters ");
+        System.out.println("[5]  Run combined Btree Sort Sky on data with parameters ");
         System.out.println("\n[0]  Quit!");
         System.out.print("Hi, Enter your choice :");
-    }
-    
+	}
     private void readData(String fileName) throws IOException, InvalidTupleSizeException, InvalidTypeException {
 
         // Create the heap file object
@@ -263,97 +277,147 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         return "Main Driver";
     }
 
-    protected boolean runAllTests (){
-        int choice=1;
-
-        while(choice!=0) {
-            readMenu();
-
-            try{
-                choice= GetStuff.getChoice();
-
-                switch(choice) {
-
-                    case 1:
+	protected boolean runAllTests (){
+		int choice = 1;
+		
+		while(choice != 0) {
+			dataMenu();
+			
+			try{
+				choice = GetStuff.getChoice();
+				switch(choice) {
+					case 1:
                         System.out.println(System.getProperty("user.dir"));
-                        inputFile = "../data/data2";
+                        inputFile = "../../data/data2";
                         readData(inputFile);
                         break;
 
                     case 2:
                         System.out.println(System.getProperty("user.dir"));
-                        inputFile = "../data/data3";
+                        inputFile = "../../data/data3";
                         readData(inputFile);
                         break;
-
-                    case 3:
+					
+					case 3:
+						String dataFile = GetStuff.getReturn();
+						System.out.println(System.getProperty("user.dir"));
+                        inputFile = "../../data/" + dataFile;
+                        readData(inputFile);
+						break;
+					case 0:
+						break;
+				}
+			if (choice == 0)
+				break;
+			
+			prefMenu();
+			
+				choice = GetStuff.getChoice();
+				switch(choice) {
+					case 1:
                         pref_list = new int[]{1};
                         break;
-
-                    case 4:
+					case 2:
                         pref_list = new int[]{1,3};
                         break;
 
-                    case 5:
+                    case 3:
                         pref_list = new int[]{1,3,5};
                         break;
 
-                    case 6:
+                    case 4:
                         pref_list = new int[]{1,2,3,4,5};
                         break;
-
-                    case 7:
+					
+					case 5:
+						System.out.println("Enter number of preferred attributes: ");
+						int prefLen = GetStuff.getChoice();
+						pref_list = new int[prefLen];
+						for (int i = 0; i< prefLen; i++)
+						{	
+							System.out.println("Enter preferred attribute index:");
+						pref_list[i] = GetStuff.getChoice();
+						}
+						System.out.println(Arrays.toString(pref_list));
+						break;	
+					case 0:
+						break;
+				}
+				if (choice == 0)
+				break;
+			
+			pageMenu();
+			
+				choice = GetStuff.getChoice();
+				switch(choice) {
+					case 1:
                         _n_pages = 5;
                         break;
 
-                    case 8:
+                    case 2:
                         _n_pages = 10;
                         break;
 
-                    case 9:
+                    case 3:
                         System.out.println("Enter n_pages of your choice: ");
                         _n_pages = GetStuff.getChoice();
                         if(_n_pages<=0)
                             break;
                         break;
-
-                    case 10:
+					case 0:
+						break;
+				}
+				if (choice == 0)
+				break;
+			
+			//choice = GetStuff.getChoice();
+			while( choice != 0){
+				algoMenu();
+				
+				
+					choice = GetStuff.getChoice();
+					switch(choice){
+					case 1:
                         // call nested loop sky
                         runNestedLoopSky(heapFile);
                         break;
 
-                    case 11:
+                    case 2:
                         // call block nested loop sky
                         runBNLSky(heapFile);
                         break;
 
-                    case 12:
+                    case 3:
                         runSortFirstSky(heapFile);
                         break;
 
-                    case 13:
+                    case 4:
                         runBtreeSky();
                         break;
 
-                    case 14:
+                    case 5:
                         runBTreeSortedSky();
 						break;
 
                     case 0:
                         break;
-                }
-            }
-            catch(Exception e) {
+					}
+				}
+				break;
+			}
+				catch(Exception e) {
                 e.printStackTrace();
                 System.out.println("       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                 System.out.println("       !!         Something is wrong                    !!");
                 System.out.println("       !!     Is your DB full? then exit. rerun it!     !!");
                 System.out.println("       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
-            }
-        }
-        return true;
-    }
+				}
+			}
+			
+		
+		return true;
+	}
 
     public static void runNestedLoopSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscanNested = initialiseFileScan(hf);
@@ -556,16 +620,15 @@ class GetStuff {
         return choice;
     }
 
-    public static void getReturn () {
+    public static String getReturn () {
 
         BufferedReader in = new BufferedReader (new InputStreamReader(System.in));
-
+		String ret = "data2";
         try {
-            String ret = in.readLine();
+            ret = in.readLine();
         }
         catch (IOException e) {}
+		
+		return ret;
     }
-
-
-
 }
