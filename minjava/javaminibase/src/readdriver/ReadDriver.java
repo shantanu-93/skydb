@@ -276,13 +276,13 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 
                     case 1:
                         System.out.println(System.getProperty("user.dir"));
-                        inputFile = "../data/data2";
+                        inputFile = "../../data/data2";
                         readData(inputFile);
                         break;
 
                     case 2:
                         System.out.println(System.getProperty("user.dir"));
-                        inputFile = "../data/data3";
+                        inputFile = "../../data/data3";
                         readData(inputFile);
                         break;
 

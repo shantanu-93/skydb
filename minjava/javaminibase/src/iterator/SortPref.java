@@ -635,7 +635,7 @@ public class SortPref extends Iterator implements GlobalConst {
         o_buf.init(bufs, _n_pages, tuple_size, temp_files[0], false);
         //    output_tuple = null;
 
-        max_elems_in_heap = 200;
+        max_elems_in_heap = 2000;
         sortFldLen = 32;
 
         Q = new pnodeSplayPQ(_sort_fld, in[_sort_fld - 1], order);
