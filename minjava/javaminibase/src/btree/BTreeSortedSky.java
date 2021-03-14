@@ -74,7 +74,7 @@ public class BTreeSortedSky implements GlobalConst {
 		System.out.println("Size of Buffer Window: " + (MINIBASE_PAGESIZE / t.size()) * n_pages);
 		
 		//Getting the first tuple
-	    	entry = scan.get_next();
+	    entry = scan.get_next();
 		
 		// For counting window size
 		int count = 0;
@@ -116,7 +116,7 @@ public class BTreeSortedSky implements GlobalConst {
 					// heap_tuple.print(attrType);
 					// System.out.println("Dominated by ");
 					// buffer_window[i].print(attrType);
-					buffer_window[i] = heap_tuple;
+					// buffer_window[i] = heap_tuple;
 					break;
 				} 
 			}
