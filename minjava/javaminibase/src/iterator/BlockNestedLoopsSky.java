@@ -129,7 +129,6 @@ public class BlockNestedLoopsSky  extends Iterator
 
       // maxRecordSize = sc.getNumberOfRecordsPerOnePage()* n_buff_pgs;
       maxRecordSize = sc.getNumberOfRecordsPerOnePage()* n_buff_pgs;
-
       sc = null;
       hf = null;
 
@@ -235,31 +234,7 @@ public class BlockNestedLoopsSky  extends Iterator
         e.printStackTrace();
       }
     }
-    // if(tempHeap != null){
-    //   try {
-    //     countTempR = tempHeap.getRecCnt();
-    //   } catch (Exception e) {
-    //     //TODO: handle exception
-    //     e.printStackTrace();
-    //   }
-    // }
-    //empty the window block
-    // windowMemory.clear();
-
-    //deal with the temporary files
-    //  if(tempHeap != null && countTempR>0){
-      // if temporary file is not empty 
-      // call the function again
-      // try{
-        // blockSkyline("temporary.in");
-
-        // blockSkyline(tempHf, tempHeap);
-        
-        // windowIterator = windowMemory.iterator();
-
-      // }catch(Exception e) {
-        // e.printStackTrace();
-      // }
+    
       if(tempHeap != null){
         try {
           countTempR = tempHf.getRecCnt();
@@ -273,6 +248,8 @@ public class BlockNestedLoopsSky  extends Iterator
     
       while(countTempR>0){
         // System.out.println(countTempR);
+        // System.out.println(windowMemory.size());
+
 
         // performSkyline();
         try {
@@ -325,6 +302,9 @@ public class BlockNestedLoopsSky  extends Iterator
       spaceInWindow = true;
       // copyScan = null;
       boolean isWindowFull = false;
+      int discarded = 0;
+      ArrayList<Tuple> discard = new ArrayList<Tuple>();
+      
 
 
 
@@ -364,9 +344,11 @@ public class BlockNestedLoopsSky  extends Iterator
         Tuple outerTemp = null;
         
         try{
+          
 
         
         while((outer_tuple=outer.getNext(rid))!=null){
+
           try{
             outer_tuple.setHdr(in1_len, _in1, _t1_str_sizes);
           }catch (Exception e) {
@@ -384,9 +366,12 @@ public class BlockNestedLoopsSky  extends Iterator
                 int sizeResult = windowMemory.size();
                 ArrayList<Tuple> temporaryWindow = new ArrayList<Tuple>();
                 boolean inserted = false;
+                boolean added = false;
                 int i = 0;
+                // System.out.println("________777723456783456785432345678_");
 
                 while(iterWindow.hasNext()){
+                  // System.out.println(windowMemory.size());
 
                   // System.out.println("Memory size: "+sizeResult+" i= "+i);
                   Tuple windowTuple = (Tuple)iterWindow.next();
@@ -407,25 +392,26 @@ public class BlockNestedLoopsSky  extends Iterator
 
                   if(windowDominate){
                     try {
+                      discarded++;
                       break;
                     } catch (Exception e) {
                       e.printStackTrace();
                     }
-                    
+                  
                   }
 
                   if(outerDominate){
+                    discarded++;
 
                     if(windowMemory.size()>=maxRecordSize){
-                      //remove reocrd from window and set spaceWindow to false
+                      
                       iterWindow.remove();
-                      if(temporaryWindow.contains(outer_tuple)){
-                        temporaryWindow.remove(outer_tuple);
-                      }
+                      
 
-                      if(!inserted){
+                      if(!inserted && !windowMemory.contains(outer_tuple)){
                         byte [] outer_bytes=outer_tuple.returnTupleByteArray();
                         try {
+                          discard.add(outer_tuple);
                           windowHeap.insertRecord(outer_bytes);
                           inserted = true;
                         } catch (Exception e) {
@@ -433,20 +419,17 @@ public class BlockNestedLoopsSky  extends Iterator
                           e.printStackTrace();
                         }
                       }
+                      continue;
                      
-                      // isWindowFull = true;
-                      // spaceInWindow = false;
-                      
-              
                     }else if(windowMemory.size()<maxRecordSize){
+                      // System.out.println("Before"+windowMemory.contains(windowTuple));
                       iterWindow.remove();
-                      if(temporaryWindow.contains(outer_tuple)){
-                        temporaryWindow.remove(outer_tuple);
-                      }
-                      if(!windowMemory.contains(outer_tuple) && !temporaryWindow.contains(outer_tuple)){
+                      // System.out.println("After"+windowMemory.contains(windowTuple));                      
+                      if(!windowMemory.contains(outer_tuple)){
                         iterWindow.add(outer_tuple);
-                        iterWindow.previous();
+                        // iterWindow.previous();
                       }
+                      continue;
                     }
                     
                     // if(spaceInWindow && !isWindowFull){//if there is still enough block memory
@@ -470,10 +453,11 @@ public class BlockNestedLoopsSky  extends Iterator
                       if(!windowMemory.contains(outer_tuple) && !temporaryWindow.contains(outer_tuple)){
 
                         iterWindow.add(outer_tuple);
-                        iterWindow.previous();
+                        // iterWindow.previous();
 
                       }
                     }
+                    continue;
                   }
 
                   // if(spaceInWindow && !isWindowFull){//if there is still enough block memory
@@ -482,16 +466,21 @@ public class BlockNestedLoopsSky  extends Iterator
                   // }  
                   else{
                     //Write into the temporary heapfile
-                    if(!inserted){
-                      byte [] outer_bytes=outer_tuple.returnTupleByteArray();
-                      try {
-                        windowHeap.insertRecord(outer_bytes);
-                        inserted=true;
-                      } catch (Exception e) {
-                        //TODO: handle exception
-                        e.printStackTrace();
+                    if(!iterWindow.hasNext() && !windowMemory.contains(outer_tuple)){
+                      
+                      if(!inserted){
+                        byte [] outer_bytes=outer_tuple.returnTupleByteArray();
+                        try {
+                          discard.add(outer_tuple);
+                          windowHeap.insertRecord(outer_bytes);
+                          inserted=true;
+                        } catch (Exception e) {
+                          //TODO: handle exception
+                          e.printStackTrace();
+                        }
                       }
-                    }
+                  }
+                  continue;
                     
                   }
                 }
@@ -503,7 +492,7 @@ public class BlockNestedLoopsSky  extends Iterator
           SystemDefs.JavabaseBM.flushPages();
 
       }
-      windowMemory = removeDuplicateIfAny(windowMemory);
+      // windowMemory = removeDuplicateIfAny(windowMemory);
 
       // if(iterationNumber>1){//Avoiding to delete the actual input heap files
         inputHeap.hasNotBeenDeleted();
@@ -537,11 +526,19 @@ public class BlockNestedLoopsSky  extends Iterator
         }
       // }
 
+      for(Tuple tpl : discard){
+        if(windowMemory.contains(tpl)){ 
+          // System.out.println("it's there");
+          windowMemory.remove(tpl);
+        }
+      }
+
       finalOutput.addAll(windowMemory);
-      System.out.println("window size: "+ windowMemory.size());
+      // System.out.println("window size: "+ windowMemory.size());
       try {
-        System.out.println("size of window heap: "+ windowHeap.getRecCnt());
-        System.out.println("size of input heap: "+ inputHeap.getRecCnt());
+        // System.out.println("size of window heap: "+ windowHeap.getRecCnt());
+        // System.out.println("size of input heap: "+ inputHeap.getRecCnt());
+        // System.out.println("discarded: "+ discarded);
       } catch (Exception e) {
         //TODO: handle exception
       }
@@ -554,15 +551,13 @@ public class BlockNestedLoopsSky  extends Iterator
     public void skylineIfFull(Heapfile inputHeap, Heapfile windowHeap)throws IOException,NestedLoopException{
       iterationNumber++;
       done = false;
-      boolean inserted = false;
       RID rid = new RID();
-      
-
-      
+      int windowSize = 0;
+      ArrayList<Tuple> discard = new ArrayList<Tuple>();
 
       try{
         
-        outer = inputHeap.openScan();
+        
         windowHeap.hasNotBeenDeleted();
         windowHeap.deleteFile();
         windowHeap =new Heapfile("temporary.in");
@@ -579,23 +574,24 @@ public class BlockNestedLoopsSky  extends Iterator
 
         Tuple outer_tuple = new Tuple();
         try{
-          
-        
-        
+          outer = inputHeap.openScan();
           // copyScan = copyHp.openScan();
 
           
           windowMemory = new ArrayList<Tuple>();
           
+          int index = 0;
           while((outer_tuple= outer.getNext(rid)) != null){
+            boolean inserted = false;
+            boolean added = false;
+
             int count =0;
             java.util.ListIterator iterFinalOutput = finalOutput.listIterator();
-            java.util.ListIterator iterWindow = windowMemory.listIterator();
+            // java.util.ListIterator iterWindow = windowMemory.listIterator();
 
-            // for(int x=0; x<finalOutput.size(); x++){
+            
+
             while(iterFinalOutput.hasNext()){
-
-
               Tuple windowTuple = (Tuple)iterFinalOutput.next();
               boolean windowDominate=false;
               boolean outerDominate = false;
@@ -603,35 +599,29 @@ public class BlockNestedLoopsSky  extends Iterator
             
               windowDominate = TupleUtils.Dominates(windowTuple,_in1,outer_tuple, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);// window dominate outer
               outerDominate = TupleUtils.Dominates(outer_tuple,_in1,windowTuple, _in1, in1_len, _t1_str_sizes, _pref_list, _pref_list_length);//outer dominate window
-
+              
               if(windowDominate){
-                // System.out.println("window dominates");
                 break;
               }
-
               if(outerDominate){
 
                 // finalOutput.remove(outer_tuple);
 
-                if(windowMemory.size()<maxRecordSize){
+                if(windowSize<maxRecordSize){
                   iterFinalOutput.remove();
-                  if(windowMemory.contains(windowTuple)){
-                    iterWindow.remove();
-                  }
-                  
-                  if(!finalOutput.contains(outer_tuple)){
+                  windowSize--;
+
+                  if(!added){
                     iterFinalOutput.add(outer_tuple);
-                    iterFinalOutput.previous();
-                    
+                    windowSize++;
+                    added = true;                    
                   }
-                  if(!windowMemory.contains(outer_tuple)){
-                    iterWindow.add(outer_tuple);
-                    iterWindow.previous();
-                  }
+                  continue;
                 }else{
                   if(!inserted){
                     byte [] outer_bytes=outer_tuple.returnTupleByteArray();
                     try {
+                      discard.add(outer_tuple);
                       windowHeap.insertRecord(outer_bytes);
                       inserted = true;
                     } catch (Exception e) {
@@ -639,48 +629,54 @@ public class BlockNestedLoopsSky  extends Iterator
                       e.printStackTrace();
                     }
                   }
+                  continue;
                 }
               }
 
               if(!outerDominate && !windowDominate){
+                // System.out.println("Hello");
                 
-
-                  
-                
-                if(windowMemory.size()<maxRecordSize){
+                if(windowSize<maxRecordSize){
                   if(!iterFinalOutput.hasNext()){
                     
 
-                    if(!finalOutput.contains(outer_tuple)){ 
+                    if(!added){ 
                       iterFinalOutput.add(outer_tuple);
-                      iterFinalOutput.previous();
+                      windowSize++;
+
+                      added = true;
+                      // iterFinalOutput.previous();
                     }
-                    if(!windowMemory.contains(outer_tuple)){
-                      iterWindow.add(outer_tuple);
-                      iterWindow.previous();
-                    }
+                    
                   }
+                  continue;
                 }else{
-                  if(!inserted){
-                    byte [] outer_bytes=outer_tuple.returnTupleByteArray();
-                    try {
-                      windowHeap.insertRecord(outer_bytes);
-                      inserted = true;
-                    } catch (Exception e) {
-                      //TODO: handle exception
-                      e.printStackTrace();
+                  if(!iterFinalOutput.hasNext()){
+                    if(!inserted){
+                      byte [] outer_bytes=outer_tuple.returnTupleByteArray();
+                      try {
+                        discard.add(outer_tuple);
+                        windowHeap.insertRecord(outer_bytes);
+                        inserted = true;
+                      } catch (Exception e) {
+                        //TODO: handle exception
+                        e.printStackTrace();
+                      }
                     }
                   }
                 }
               }
               count++;
             }
-            
+            SystemDefs.JavabaseBM.flushPages();
+            index++; 
           }
+          outer=null;
           done = true;
 
 
             //delete the temp Heapfile
+
             inputHeap.hasNotBeenDeleted();
             inputHeap.deleteFile();
             inputHeap = new Heapfile("temporaryInput.in");
@@ -698,6 +694,7 @@ public class BlockNestedLoopsSky  extends Iterator
                 inputHeap.insertRecord(bytes);
               }
 
+
               
               
             } catch (Exception e) {
@@ -707,25 +704,36 @@ public class BlockNestedLoopsSky  extends Iterator
 
             
 
-
           
 
         }catch(Exception e){
           throw new NestedLoopException(e, "openScan failed");
         }
 
+        
+
+        
 
         done = true;
       }while(true);
+
+      for(Tuple tpl : discard){
+        if(windowMemory.contains(tpl)){ 
+          // System.out.println("it's there");
+          windowMemory.remove(tpl);
+        }
+      }
+
       try{
-        System.out.println("----------------------------");
-        System.out.println("size of window size: "+ windowMemory.size());
-        System.out.println("size of window heap: "+ windowHeap.getRecCnt());
-        System.out.println("size of input heap: "+ inputHeap.getRecCnt());
+        // System.out.println("----------------------------");
+        // System.out.println("size of window size: "+ windowSize);
+        // System.out.println("size of window heap: "+ windowHeap.getRecCnt());
+        // System.out.println("size of input heap: "+ inputHeap.getRecCnt());
+        
       }catch (Exception e) {
         e.printStackTrace();
       }
-      windowMemory.clear();
+      windowSize = 0;
       return;
 
 
