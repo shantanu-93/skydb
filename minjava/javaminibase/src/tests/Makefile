@@ -48,11 +48,11 @@ indextest: IndexTest
 
 # test join
 
-JoinTest:JoinTest.java
-	$(JAVAC) TestDriver.java JoinTest.java
-
-jointest: JoinTest
-	$(JAVA) tests.JoinTest
+# JoinTest:JoinTest.java
+# 	$(JAVAC) TestDriver.java JoinTest.java
+#
+# jointest: JoinTest
+# 	$(JAVA) tests.JoinTest
 
 
 # Blocknestedloopssky join

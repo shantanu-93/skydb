@@ -105,9 +105,8 @@ public class NestedLoopsSky  extends Iterator
       relationName = (String)relName;
       am1_iter = am1;
       inputList = new ArrayList<Tuple>();
-      tempHFName = getRandomName();
+      tempHFName = Heapfile.getRandomHFName();
 
-      
     //   AttrType[] Jtypes = new AttrType[n_out_flds];
     //   short[]    t_size;
       
@@ -297,18 +296,5 @@ public class NestedLoopsSky  extends Iterator
 	}
 	closeFlag = true;
       }
-    }
-
-    public static String getRandomName() {
-        String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-        StringBuilder salt = new StringBuilder();
-        Random rnd = new Random();
-        while (salt.length() < 18) { // length of the random string.
-            int index = (int) (rnd.nextFloat() * SALTCHARS.length());
-            salt.append(SALTCHARS.charAt(index));
-        }
-        String saltStr = salt.toString();
-        return saltStr;
-
     }
 }

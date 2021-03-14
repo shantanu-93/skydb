@@ -22,6 +22,7 @@ import iterator.Iterator;
 import iterator.RelSpec;
 
 import iterator.SortFirstSky;
+import readdriver.ReadDriver;
 
 public class BTreeSortedSky implements GlobalConst {
 	
@@ -157,72 +158,15 @@ public class BTreeSortedSky implements GlobalConst {
         System.out.println("Buffer Size: " + buffer_window.length);
 		System.out.println("Total data put in temp file: " + temp_file_size);
 
-		
-		// Sort First Sky
-		FldSpec[] projlist = new FldSpec[5];
-		for(int i=0; i<5; i++){
-			projlist[i] = new FldSpec(rel, i+1);;
-		}
-		FileScan fscan = new FileScan(temp_heap_name, attrType, t1_str_sizes, (short) attrType.length, attrType.length, projlist, null);
-		SystemDefs.JavabaseBM.flushPages();
-        SortFirstSky sort = new SortFirstSky(attrType, attrType.length, t1_str_sizes, fscan, temp_heap_name, pref_list, pref_list.length, n_pages);
+		// SystemDefs.JavabaseBM.flushPages();
+		ReadDriver.runSortFirstSky(temp_heap_name);
+		// SystemDefs.JavabaseBM.flushPages();
 
-		int c = -1;
-		Tuple tuple1 = null;
-		int j = 1;
-		System.out.println("\n -- Skyline candidates -- ");
-		do {
-			// try {
-			// 	if (tuple1 != null) {
-			// 		// for (int i = 1; i <= tuple1.noOfFlds(); i++) {
-			// 		// 	System.out.print(tuple1.getFloFld(i) + ", ");
-			// 		// }
-			// 		// System.out.println();
-			// 	}
-			// } catch (Exception e) {
-			// 	status = FAIL;
-			// 	e.printStackTrace();
-			// }
-
-			c++;
-			
-			try {
-				tuple1 = sort.get_next();
-				if(tuple1 != null){
-					System.out.print(j+" ");
-					j++;
-					tuple1.print(attrType);
-				}
-			} catch (Exception e) {
-				status = FAIL;
-				e.printStackTrace();
-			}
-		} while (tuple1 != null);
-		
-		System.out.println();
-		System.out.println("Read statistics "+PCounter.rcounter);
-		System.out.println("Write statistics "+PCounter.wcounter);
-
-		System.out.println("\nNumber of Skyline candidates: " + c);
-
-		try {
-			fscan.close();
-		} catch (Exception e) {
-			status = FAIL;
-			e.printStackTrace();
-		}
-
-		try {
-			sort.close();
-		} catch (Exception e) {
-			status = FAIL;
-			e.printStackTrace();
-		}
-		hf.deleteFile();
 		temp.deleteFile();
-
-        return;
-    }
+		hf.deleteFile();
+		// Heapfile heap = new Heapfile(ReadDriver.heapFile);
+		// heap.deleteFile();
+	}
 	
 	private Tuple getTuple() throws InvalidTypeException, InvalidTupleSizeException, IOException {
 		Tuple t = new Tuple();
