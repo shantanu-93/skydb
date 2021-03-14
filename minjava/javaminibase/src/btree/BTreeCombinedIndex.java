@@ -1,7 +1,6 @@
 package btree;
 
 import heap.*;
-import iterator.NestedLoopsSky;
 import global.*;
 
 public class BTreeCombinedIndex{
@@ -31,6 +30,7 @@ public class BTreeCombinedIndex{
         // Get data file in heapfile
         Heapfile hf = new Heapfile(filePath);
         int cols = attrTypes.length;
+
         double[][] records = new double[hf.getRecCnt()][cols];    
     
         RID tempRid = new RID();
@@ -53,8 +53,8 @@ public class BTreeCombinedIndex{
         int keyType = AttrType.attrReal;
         int keySize = 4;
         
-        random_string1 = NestedLoopsSky.getRandomName();
-        random_string2 = NestedLoopsSky.getRandomName();
+        random_string1 = Heapfile.getRandomHFName();
+        random_string2 = Heapfile.getRandomHFName();
         Heapfile heapfile = new Heapfile(random_string1);
         
         // Initialize Index File 
@@ -62,11 +62,11 @@ public class BTreeCombinedIndex{
 
         Tuple t = new Tuple();
 
-        t.setHdr((short) records[0].length,attrTypes, t1_str_sizes);
+        t.setHdr((short) attrTypes.length,attrTypes, t1_str_sizes);
         int size = t.size();
         
         t = new Tuple(size);
-        t.setHdr((short) records[0].length, attrTypes, t1_str_sizes);
+        t.setHdr((short) attrTypes.length, attrTypes, t1_str_sizes);
 
         RID rid;
         
