@@ -117,17 +117,19 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 	private void dataMenu() {
 		System.out.println("Default has been set to data2.txt. Enter file name without {.txt}.\n");
 		System.out.println("[1]   Read input data2");
-        System.out.println("[2]   Read input data3");
-		System.out.println("[3]	  Read your own input");
+    System.out.println("[2]   Read input data3");
+    System.out.println("[3]   Read input data_large_skyline");
+		System.out.println("[4]	  Read your own input");
 		System.out.println("\n[0]  Quit!");
         System.out.print("Hi, Enter your choice :");
 	}
 	
 	private void prefMenu() {
 		System.out.println("[1]   Set pref = [1]");
-        System.out.println("[2]   Set pref = [1,3]");
-        System.out.println("[3]   Set pref = [1,3,5]");
-        System.out.println("[4]   Set pref = [1,2,3,4,5]");
+    System.out.println("[2]   Set pref = [1,2]");
+    System.out.println("[2]   Set pref = [1,3]");
+    System.out.println("[3]   Set pref = [1,3,5]");
+    System.out.println("[4]   Set pref = [1,2,3,4,5]");
 		System.out.println("[5]	  Set your own preference list of attributes");
 		System.out.println("\n[0]  Quit!");
         System.out.print("Hi, Enter your choice :");
@@ -292,13 +294,18 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
                         readData(inputFile);
                         break;
 
-                    case 2:
-                        System.out.println(System.getProperty("user.dir"));
-                        inputFile = "../../data/data3";
-                        readData(inputFile);
-                        break;
-					
-					case 3:
+          case 2:
+            System.out.println(System.getProperty("user.dir"));
+            inputFile = "../../data/data3";
+            readData(inputFile);
+            break;
+          case 3:
+            System.out.println(System.getProperty("user.dir"));
+            inputFile = "../../data/data_large_skyline";
+            readData(inputFile);
+            break;
+
+					case 4:
 						String dataFile = GetStuff.getReturn();
 						System.out.println(System.getProperty("user.dir"));
                         inputFile = "../../data/" + dataFile;
@@ -315,21 +322,22 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 				choice = GetStuff.getChoice();
 				switch(choice) {
 					case 1:
-                        pref_list = new int[]{1};
-                        break;
+              pref_list = new int[]{1};
+              break;
 					case 2:
-                        pref_list = new int[]{1,3};
-                        break;
+              pref_list = new int[]{1,2};
+              break;
+          case 3:
+            pref_list = new int[]{1,3};
+              break;
+          case 4:
+            pref_list = new int[]{1,3,5};
+            break;
+          case 5:
+            pref_list = new int[]{1,2,3,4,5};
+            break;
 
-                    case 3:
-                        pref_list = new int[]{1,3,5};
-                        break;
-
-                    case 4:
-                        pref_list = new int[]{1,2,3,4,5};
-                        break;
-					
-					case 5:
+					case 6:
 						System.out.println("Enter number of preferred attributes: ");
 						int prefLen = GetStuff.getChoice();
 						pref_list = new int[prefLen];
