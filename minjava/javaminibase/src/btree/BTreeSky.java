@@ -2,6 +2,7 @@ package btree;
 
 
 import bufmgr.PageNotReadException;
+import diskmgr.PCounter;
 import global.*;
 import heap.*;
 import index.IndexException;
@@ -26,7 +27,7 @@ public class BTreeSky extends Iterator implements GlobalConst {
   public boolean verbose = false;
 
 
-  private String smallHeapFile = "btreeskyheapfile.in";
+  private String smallHeapFileName = Heapfile.getRandomHFName();
 
   public BTreeSky(AttrType[] in1, int len_in1, short[] t1_str_sizes, Iterator am1,
                   String relationName, int[] pref_list, int pref_length_list, IndexFile[] index_file_list,
@@ -104,8 +105,11 @@ public class BTreeSky extends Iterator implements GlobalConst {
     Heapfile parentHeapFile = new Heapfile(relationName);
     firstSkyTuple.tupleCopy(parentHeapFile.getRecord(firstSkyTupleRid));
 
-    Heapfile smallHeapDataFile = new Heapfile(smallHeapFile);
-    smallHeapDataFile.insertRecord(firstSkyTuple.returnTupleByteArray());
+    System.out.println("\n -- First Skyline Object -- ");
+    firstSkyTuple.print(attrType);
+
+    Heapfile smallHeapFile = new Heapfile(smallHeapFileName);
+    smallHeapFile.insertRecord(firstSkyTuple.returnTupleByteArray());
     BTreeCustomScan uniqArray = new BTreeCustomScan("uniq");
 
     for (int i = 0; i < prefListLen; i++) {
@@ -128,7 +132,7 @@ public class BTreeSky extends Iterator implements GlobalConst {
 
         if (uniqArray.getIndexForRid(candidateRid) < 0) {
           Tuple parentHeapFileRecord = parentHeapFile.getRecord(candidateRid);
-          smallHeapDataFile.insertRecord(parentHeapFileRecord.getTupleByteArray());
+          smallHeapFile.insertRecord(parentHeapFileRecord.getTupleByteArray());
           uniqArray.addRecord(candidateRid);
         }
 
@@ -142,24 +146,18 @@ public class BTreeSky extends Iterator implements GlobalConst {
 
     }
     if (true) {
-      System.out.println("Pruned Heap File Records Count : " + smallHeapDataFile.getRecCnt());
-    }
-    //run block nested loop skyline on the pruned data now
-
-    FileScan fileScan = null;
-    FldSpec[] fldSpecArray;
-    fldSpecArray = new FldSpec[attrType.length];
-    RelSpec relSpec = new RelSpec(RelSpec.outer);
-
-    for (int i = 0; i < attrType.length; i++) {
-      fldSpecArray[i] = new FldSpec(relSpec, i + 1);
+      System.out.println("\nPruned Heap File Records Count : " + smallHeapFile.getRecCnt());
     }
 
-    try {
-      fileScan =
-              new FileScan(smallHeapFile, attrType, attrSizes, (short) attrType.length, attrType.length, fldSpecArray, null);
-    } catch (Exception e) {
-      e.printStackTrace();
+    if(prefListLen == 1){
+      System.out.println("\n -- Skyline Objects -- ");
+      firstSkyTuple.print(attrType);
+      System.out.println("Read statistics "+ PCounter.rcounter);
+      System.out.println("Write statistics "+PCounter.wcounter);
+
+      System.out.println("\nNumber of Skyline candidates: " + 1 +"\n");
+
+      return;
     }
 //    SystemDefs.JavabaseBM.flushAllPages();
 
@@ -169,13 +167,22 @@ public class BTreeSky extends Iterator implements GlobalConst {
 //    firstSkyLineElement.print(attrType);
 
 //    System.out.println("runNestedLoopSky");
-//    ReadDriver.runNestedLoopSky(prunedHeapFileName);
+//    ReadDriver.runNestedLoopSky(smallHeapFileName);
 
-    System.out.println("runBNLSky");
-    ReadDriver.runSortFirstSky(smallHeapFile);
+//    System.out.println("runBNLSky");
+//    ReadDriver.runBNLSky(smallHeapFileName);
 
-//    System.out.println("runSortFirstSky");
-//    ReadDriver.runSortFirstSky(prunedHeapFileName);
+    System.out.println("\nrunSortFirstSky");
+    ReadDriver.runSortFirstSky(smallHeapFileName);
+
+    // remove temp data structures
+    for(int i=0;i<prefListLen; i++){
+//      btFileScanArray[i].DestroyBTreeFileScan();
+//      tempScanArray[i].destroy();
+//      bTreeIndexArray[i].destroyFile();
+    }
+    uniqArray.destroy();
+    smallHeapFile.deleteFile();
 
   }
 

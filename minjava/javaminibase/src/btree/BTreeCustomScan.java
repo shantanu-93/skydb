@@ -5,15 +5,7 @@ import java.io.IOException;
 import global.Convert;
 import global.PageId;
 import global.RID;
-import heap.HFBufMgrException;
-import heap.HFDiskMgrException;
-import heap.HFException;
-import heap.Heapfile;
-import heap.InvalidSlotNumberException;
-import heap.InvalidTupleSizeException;
-import heap.Scan;
-import heap.SpaceNotAvailableException;
-import heap.Tuple;
+import heap.*;
 
 public class BTreeCustomScan {
 
@@ -65,5 +57,13 @@ public class BTreeCustomScan {
     byte[] byteArray = new byte[8];
     rid.writeToByteArray(byteArray, 0);
     return heapFile.insertRecord(byteArray);
+  }
+
+  public void destroy() {
+    try {
+      this.heapFile.deleteFile();
+    } catch (Exception e) {
+      System.err.println("Exception while deleting heapfile \n" + e.getMessage());
+    }
   }
 }

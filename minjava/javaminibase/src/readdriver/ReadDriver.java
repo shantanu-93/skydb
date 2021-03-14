@@ -311,7 +311,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 				break;
 			
 			prefMenu();
-			
+        indexesCreated = false;
 				choice = GetStuff.getChoice();
 				switch(choice) {
 					case 1:
@@ -379,25 +379,30 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 					switch(choice){
 					case 1:
                         // call nested loop sky
+                        PCounter.initialize();
                         runNestedLoopSky(heapFile);
                         break;
 
                     case 2:
                         // call block nested loop sky
+                        PCounter.initialize();
                         runBNLSky(heapFile);
                         break;
 
                     case 3:
+                        PCounter.initialize();
                         runSortFirstSky(heapFile);
                         break;
 
                     case 4:
+                        PCounter.initialize();
                         runBtreeSky();
                         break;
 
                     case 5:
+                        PCounter.initialize();
                         runBTreeSortedSky();
-						break;
+						            break;
 
                     case 0:
                         break;
@@ -494,21 +499,22 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         System.out.println("Preference list: " + Arrays.toString(pref_list));
         System.out.println("Number of pages: " + _n_pages);
         System.out.println("Pref list length: " + pref_list.length);
-
+        SystemDefs.JavabaseBM.flushPages();
         if (!indexesCreated) {
             BTreeUtil.createBtreesForPrefList(heapFile, f, attrType, attrSizes, pref_list);
             indexesCreated = true;
         }
 
-        String relationName = heapFile;
         // autobox to IndexFile type
         IndexFile[] index_file_list = BTreeUtil.getBTrees(pref_list);
 
-        BTreeSky btreesky = new BTreeSky(attrType, nColumns, attrSizes, null, relationName, pref_list,
+        BTreeSky btreesky = new BTreeSky(attrType, nColumns, attrSizes, null, heapFile, pref_list,
                 pref_list.length, index_file_list, _n_pages);
+
+        PCounter.initialize();
         btreesky.findBTreeSky();
 
-        System.out.println("End of runBtreeSky");
+        System.out.println("End of runBtreeSky\n");
     }
 
     public void runBTreeSortedSky() {
@@ -521,7 +527,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             String fileName = BTreeCombinedIndex.random_string1;
 
             BTreeSortedSky btree = new BTreeSortedSky(attrType, pref_list.length, attrSizes, null, fileName, pref_list, pref_list.length, indexFile, _n_pages);
-
+            PCounter.initialize();
             btree.computeSkyline();
 
             System.out.println("BTreeSortSky Complete");
@@ -532,13 +538,13 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     }
 
     public static void getNextAndPrintAllSkyLine(Iterator iter) {
-
-        PCounter.initialize();
+// this needs to be before the fn call since call to any algo 1,2,3 from 4,5 reinitializes counter
+//        PCounter.initialize();
 
         int count = -1;
         Tuple tuple1 = null;
 
-        System.out.println("\n -- Skyline candidates -- ");
+        System.out.println("\n -- Skyline Objects -- ");
         do {
             try {
                 if (tuple1 != null) {
@@ -559,10 +565,10 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             }
         } while (tuple1 != null);
 
-        System.out.println("Read statistics "+PCounter.rcounter);
+        System.out.println("\nRead statistics "+PCounter.rcounter);
         System.out.println("Write statistics "+PCounter.wcounter);
 
-        System.out.println("\n Number of Skyline candidates: " + count);
+        System.out.println("\nNumber of Skyline objects: " + count+"\n");
     }
 
     public static FileScan initialiseFileScan(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
