@@ -387,17 +387,20 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 					switch(choice){
 					case 1:
                         // call nested loop sky
+                        SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
                         runNestedLoopSky(heapFile);
                         break;
 
                     case 2:
                         // call block nested loop sky
+                        SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
                         runBNLSky(heapFile);
                         break;
 
                     case 3:
+                        SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
                         runSortFirstSky(heapFile);
                         break;
@@ -435,8 +438,6 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     public static void runNestedLoopSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscanNested = initialiseFileScan(hf);
 
-        SystemDefs.JavabaseBM.flushPages();
-
         NestedLoopsSky nested = null;
         try {
             nested = new NestedLoopsSky(attrType, attrType.length, attrSizes, fscanNested, hf, pref_list, pref_list.length, _n_pages);
@@ -458,8 +459,6 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     public static void runBNLSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscanBlock = initialiseFileScan(hf);
 
-        SystemDefs.JavabaseBM.flushPages();
-
         Iterator block = null;
         try {
             block = new BlockNestedLoopsSky(attrType, attrType.length, attrSizes, fscanBlock, hf, pref_list, pref_list.length, _n_pages);
@@ -480,8 +479,6 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 
     public static void runSortFirstSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscan = initialiseFileScan(hf);
-
-        SystemDefs.JavabaseBM.flushPages();
 
         Iterator sort = null;
         try {
@@ -507,7 +504,6 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         System.out.println("Preference list: " + Arrays.toString(pref_list));
         System.out.println("Number of pages: " + _n_pages);
         System.out.println("Pref list length: " + pref_list.length);
-        SystemDefs.JavabaseBM.flushPages();
         if (!indexesCreated) {
             BTreeUtil.createBtreesForPrefList(heapFile, f, attrType, attrSizes, pref_list);
             indexesCreated = true;
@@ -515,6 +511,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 
         // autobox to IndexFile type
         IndexFile[] index_file_list = BTreeUtil.getBTrees(pref_list);
+        SystemDefs.JavabaseBM.flushPages();
 
         BTreeSky btreesky = new BTreeSky(attrType, nColumns, attrSizes, null, heapFile, pref_list,
                 pref_list.length, index_file_list, _n_pages);
@@ -530,6 +527,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             BTreeCombinedIndex obj = new BTreeCombinedIndex();
             IndexFile indexFile = obj.combinedIndex(heapFile, attrType, attrSizes, pref_list, pref_list.length);
             System.out.println("Index created!");
+            SystemDefs.JavabaseBM.flushPages();
 
             System.out.println("CombinedBTreeIndex scanning");
             String fileName = BTreeCombinedIndex.random_string1;
