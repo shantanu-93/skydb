@@ -301,7 +301,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             break;
           case 3:
             System.out.println(System.getProperty("user.dir"));
-            inputFile = "../../data/data_large_skyline";
+            inputFile = "../data/data_large_skyline";
             readData(inputFile);
             break;
 
@@ -532,7 +532,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             System.out.println("CombinedBTreeIndex scanning");
             String fileName = BTreeCombinedIndex.random_string1;
 
-            BTreeSortedSky btree = new BTreeSortedSky(attrType, pref_list.length, attrSizes, null, fileName, pref_list, pref_list.length, indexFile, _n_pages);
+            BTreeSortedSky btree = new BTreeSortedSky(attrType, attrType.length, attrSizes, null, fileName, pref_list, pref_list.length, indexFile, _n_pages);
             PCounter.initialize();
             btree.computeSkyline();
 

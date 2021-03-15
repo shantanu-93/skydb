@@ -86,29 +86,6 @@ public class BTreeCombinedIndex{
             file.insert(ffkey, rid);
         }
         
-        // Print index file and tuples associated with its rid
-
-        // BTFileScan scan = ((BTreeFile) file).new_scan(null, null);
-        // KeyDataEntry entry = scan.get_next();
-            
-        // t = new Tuple();
-        
-        // t.setHdr((short)records[0].length, attrTypes, t1_str_sizes);            
-        
-        // t = new Tuple(size);
-        // t.setHdr((short)records[0].length, attrTypes, t1_str_sizes);  
-        
-        // while (entry != null) {
-        //     rid = ((LeafData) entry.data).getData();
-            
-        //     t.tupleCopy(heapfile.getRecord(rid));
-        //     t.print(attrTypes); 
-            
-        //     System.out.println("SCAN RESULT: " + entry.key + " > " + entry.data);
-        //     entry = scan.get_next();
-
-        // }
-
         return file;
     }
 
