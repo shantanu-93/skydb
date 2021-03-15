@@ -6,7 +6,7 @@ Setup and Execution instructions:
 
     export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/
 
-3. cd <current directory>/cse510dbmsi/minjava/javaminibase/src/
+3. cd $current_directory/cse510dbmsi/minjava/javaminibase/src/
 
 4. make db
 
