@@ -127,10 +127,10 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 	private void prefMenu() {
 		System.out.println("[1]   Set pref = [1]");
     System.out.println("[2]   Set pref = [1,2]");
-    System.out.println("[2]   Set pref = [1,3]");
-    System.out.println("[3]   Set pref = [1,3,5]");
-    System.out.println("[4]   Set pref = [1,2,3,4,5]");
-		System.out.println("[5]	  Set your own preference list of attributes");
+    System.out.println("[3]   Set pref = [1,3]");
+    System.out.println("[4]   Set pref = [1,3,5]");
+    System.out.println("[5]   Set pref = [1,2,3,4,5]");
+		System.out.println("[6]	  Set your own preference list of attributes");
 		System.out.println("\n[0]  Quit!");
         System.out.print("Hi, Enter your choice :");
 	}
@@ -328,14 +328,14 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
               pref_list = new int[]{1,2};
               break;
           case 3:
-            pref_list = new int[]{1,3};
+              pref_list = new int[]{1,3};
               break;
           case 4:
-            pref_list = new int[]{1,3,5};
-            break;
+              pref_list = new int[]{1,3,5};
+              break;
           case 5:
-            pref_list = new int[]{1,2,3,4,5};
-            break;
+              pref_list = new int[]{1,2,3,4,5};
+              break;
 
 					case 6:
 						System.out.println("Enter number of preferred attributes: ");
@@ -522,7 +522,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         PCounter.initialize();
         btreesky.findBTreeSky();
 
-        System.out.println("End of runBtreeSky\n");
+        System.out.println("BTreeSky Complete\n");
     }
 
     public void runBTreeSortedSky() {
