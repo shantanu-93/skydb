@@ -75,7 +75,7 @@ public class SortFirstSky extends Iterator {
                 }catch(Exception e){
                         throw new SortException(e, "Could not get number of records on page 1");
                 }
-                System.out.println(sc.getNumberOfRecordsPerOnePage());
+//                System.out.println(sc.getNumberOfRecordsPerOnePage());
 
                 n_buf_pgs = Math.max((n_pages * 8/ 10), 3);
                 n_buf_pgs_for_window = n_pages - n_buf_pgs;
@@ -111,7 +111,7 @@ public class SortFirstSky extends Iterator {
                 Tuple currentOuter = null;
 
                 while (true) {
-                        SystemDefs.JavabaseBM.flushPages();
+//                        SystemDefs.JavabaseBM.flushPages();
 
                         currentOuter = sort.get_next();
 

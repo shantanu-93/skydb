@@ -149,7 +149,7 @@ public class BTreeSky extends Iterator implements GlobalConst {
       System.out.println("\nPruned Heap File Records Count : " + smallHeapFile.getRecCnt());
     }
 
-    if(prefListLen == 1){
+    if(prefListLen == 1 || smallHeapFile.getRecCnt() == 1){
       System.out.println("\n -- Skyline Objects -- ");
       firstSkyTuple.print(attrType);
       System.out.println("Read statistics "+ PCounter.rcounter);
@@ -158,6 +158,9 @@ public class BTreeSky extends Iterator implements GlobalConst {
       System.out.println("\nNumber of Skyline candidates: " + 1 +"\n");
 
       return;
+    } else{
+      System.out.println("\nrunSortFirstSky");
+      ReadDriver.runSortFirstSky(smallHeapFileName);
     }
 //    SystemDefs.JavabaseBM.flushAllPages();
 
@@ -172,17 +175,15 @@ public class BTreeSky extends Iterator implements GlobalConst {
 //    System.out.println("runBNLSky");
 //    ReadDriver.runBNLSky(smallHeapFileName);
 
-    System.out.println("\nrunSortFirstSky");
-    ReadDriver.runSortFirstSky(smallHeapFileName);
 
     // remove temp data structures
-    for(int i=0;i<prefListLen; i++){
+//    for(int i=0;i<prefListLen; i++){
 //      btFileScanArray[i].DestroyBTreeFileScan();
 //      tempScanArray[i].destroy();
 //      bTreeIndexArray[i].destroyFile();
-    }
-    uniqArray.destroy();
-    smallHeapFile.deleteFile();
+//    }
+//    uniqArray.destroy();
+//    smallHeapFile.deleteFile();
 
   }
 

@@ -406,11 +406,13 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
                         break;
 
                     case 4:
+                        SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
                         runBtreeSky();
                         break;
 
                     case 5:
+                        SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
                         runBTreeSortedSky();
 						            break;
