@@ -6,6 +6,8 @@ import static tests.TestDriver.OK;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import diskmgr.PCounter;
 import global.AttrType;
 import global.GlobalConst;
 import global.RID;
@@ -54,7 +56,7 @@ public class BTreeSortedSky implements GlobalConst {
 	public void computeSkyline() throws InvalidSlotNumberException, InvalidTupleSizeException, Exception {
 		
 		Heapfile hf = new Heapfile(relationName);
-		String temp_heap_name = "tempheap.in";
+		String temp_heap_name = Heapfile.getRandomHFName();
 		temp = new Heapfile(temp_heap_name);
 		
 		BTFileScan scan = ((BTreeFile) index_file).new_scan(null, null);
@@ -66,18 +68,12 @@ public class BTreeSortedSky implements GlobalConst {
 		buffer_window = new ArrayList<>();
 		
 		int size = (MINIBASE_PAGESIZE / t.size()) * n_pages;
-
-		System.out.println("Size of Buffer Window: " + size);
 		
 		//Getting the first tuple
 	    entry = scan.get_next();
 		
-		// For counting window size
-		int count = 0;
-		
 		// Total read tuples
 		int total = 0;
-		int temp_file_size = 0;
 		
 		// Enter the tuples in temp heap and buffer window
 		rid = ((LeafData) entry.data).getData();
@@ -85,8 +81,7 @@ public class BTreeSortedSky implements GlobalConst {
 		
 		temp_tuple.setHdr((short) attr_len, attrType, t1_str_sizes); 
 		buffer_window.add(temp_tuple);
-		count++;
-		temp_file_size++;
+
 		// temp_tuple.print(attrType);
 		
 		rid = temp.insertRecord(temp_tuple.returnTupleByteArray());
@@ -112,11 +107,12 @@ public class BTreeSortedSky implements GlobalConst {
 			// Add the heap file tuple in temp heap file as it is not dominated by any tuple in the window
 			if(!check){
 
-				temp_file_size++;
-
 				try {
 					heap_tuple.setHdr((short) attr_len, attrType, t1_str_sizes); 
 					rid = temp.insertRecord(heap_tuple.returnTupleByteArray());
+					if(buffer_window.size() < size){
+						buffer_window.add(heap_tuple);
+					}
 				}
 				catch (Exception e) {
 					status = FAIL;
@@ -136,7 +132,6 @@ public class BTreeSortedSky implements GlobalConst {
 		ReadDriver.runSortFirstSky(temp_heap_name);
 
 		hf.deleteFile();
-
 	}
 	
 	private Tuple getTuple() throws InvalidTypeException, InvalidTupleSizeException, IOException {
