@@ -40,7 +40,27 @@ public class Tuple implements GlobalConst{
    * Array of offsets of the fields
    */
  
-  private short [] fldOffset; 
+  private short [] fldOffset;
+
+    public AttrType[] getTypes() {
+        return types;
+    }
+
+    public void setTypes(AttrType[] types) {
+        this.types = types;
+    }
+
+    private AttrType[] types;
+
+    public short[] getStrSizes() {
+        return strSizes;
+    }
+
+    public void setStrSizes(short[] strSizes) {
+        this.strSizes = strSizes;
+    }
+
+    private short[] strSizes;
 
    /**
     * Class constructor
@@ -164,7 +184,7 @@ public class Tuple implements GlobalConst{
     *		the length of byte[] = length of the tuple
     */
     
-   public byte [] getTupleByteArray() 
+   public byte [] getTupleByteArray()
    {
        byte [] tuplecopy = new byte [tuple_length];
        System.arraycopy(data, tuple_offset, tuplecopy, 0, tuple_length);
@@ -358,6 +378,9 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
 {
   if((numFlds +2)*2 > max_size)
     throw new InvalidTupleSizeException (null, "TUPLE: TUPLE_TOOBIG_ERROR");
+
+  this.setTypes(types);
+  this.setStrSizes(strSizes);
   
   fldCnt = numFlds;
   Convert.setShortValue(numFlds, tuple_offset, data);
