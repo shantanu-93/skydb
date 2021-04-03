@@ -18,14 +18,13 @@ class HashHeaderPage extends HFPage {
     private int numOfRecords;
     private int pageCapacity;
 
-    private HashMap<Integer, Integer> buckets;
-
     private final int nValueSlot = 0;
     private final int nextValueSlot = 1;
     private final int bucketCountSlot = 2;
     private final int targetUtilizationSlot = 3;
     private final int numOfRecordsSlot = 4;
     private final int pageCapacitySlot = 5;
+    private final int bucketSlotsStart = 6;
 
     public HashHeaderPage(PageId pageno)
     {
@@ -52,7 +51,6 @@ class HashHeaderPage extends HFPage {
     }
 
     void initialiseFirstTime() throws IOException, ConstructPageException, InvalidSlotNumberException {
-        buckets = new HashMap<>();
         byte[] tempData = new byte[4];
 
         n = 4;
@@ -82,7 +80,7 @@ class HashHeaderPage extends HFPage {
     }
 
     void initialiseAlreadyExisting() throws IOException {
-        buckets = new HashMap<>();
+
         n = Convert.getIntValue(getSlotOffset(nValueSlot), data);
         next = Convert.getIntValue(getSlotOffset(nextValueSlot), data);
         bucketCount = Convert.getIntValue(getSlotOffset(bucketCountSlot), data);
@@ -99,42 +97,22 @@ class HashHeaderPage extends HFPage {
         System.out.println(Convert.getIntValue(getSlotOffset(numOfRecordsSlot), data));
     }
 
-    public void insertNewBucket() throws IOException, ConstructPageException {
-        setBucketCount(bucketCount+1);
-        UnclusteredHashPage page = new UnclusteredHashPage(PageType.HASH_BUCKET);
-
-        byte[] tempData = new byte[8];
-        Convert.setIntValue(bucketCount, 0, tempData);
-        Convert.setIntValue(page.getPageId().pid, 4, tempData);
-        this.insertRecord(tempData);
-        buckets.put(bucketCount, page.getPageId().pid);
-    }
-
-    public HashMap<Integer, Integer> getAllBuckets() throws IOException {
-        int bucketSlotsStart = pageCapacitySlot + 1;
-        RID tempRid = new RID(getPageId(), bucketSlotsStart);
-        do {
-            int key = Convert.getIntValue(getSlotOffset(tempRid.slotNo), data);
-            int pageId = Convert.getIntValue(getSlotOffset(tempRid.slotNo) + 4, data);
-//            System.out.println(key + " " + pageId);
-            buckets.put(key, pageId);
-            tempRid = nextRecord(tempRid);
-        } while (tempRid != null);
-        return buckets;
-    }
-
-    public void updateAllBuckets() throws IOException {
-        int bucketSlot = numOfRecordsSlot + 1;
-        for (int i=0; i < buckets.size(); i++) {
-            Convert.setIntValue(i, getSlotOffset(bucketSlot), data);
-            Convert.setIntValue(buckets.get(i), getSlotOffset(bucketSlot) + 4, data);
-            bucketSlot++;
-        }
-    }
+//    public void updateAllBuckets() throws IOException {
+//        int bucketSlot = numOfRecordsSlot + 1;
+//        for (int i=0; i < buckets.size(); i++) {
+//            Convert.setIntValue(i, getSlotOffset(bucketSlot), data);
+//            Convert.setIntValue(buckets.get(i), getSlotOffset(bucketSlot) + 4, data);
+//            bucketSlot++;
+//        }
+//    }
 
     public float getCurrentUtilization() {
         System.out.println(pageCapacity);
         return ((float) numOfRecords/((float)pageCapacity*((float)bucketCount+1))) * 100;
+    }
+
+    public int getBucketSlotsStart() {
+        return bucketSlotsStart;
     }
 
     public int getNValue() {
