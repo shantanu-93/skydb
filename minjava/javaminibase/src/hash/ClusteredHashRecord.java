@@ -1,5 +1,6 @@
 package hash;
 
+import global.AttrType;
 import global.Convert;
 import global.PageId;
 import global.RID;
@@ -9,9 +10,9 @@ import java.io.IOException;
 
 public class ClusteredHashRecord implements HashRecord {
 
-    public static final int RECORD_SIZE = 8;
+    public static final int RECORD_SIZE_WITHOUT_KEY = 4;
 
-    private int key;
+    private KeyClass key;
     private Tuple data;
 
     public void setPageId(PageId pageId) {
@@ -24,15 +25,27 @@ public class ClusteredHashRecord implements HashRecord {
 
     private PageId pageId;
 
-    public ClusteredHashRecord(int key, Tuple data) throws ConstructPageException, IOException {
+    public ClusteredHashRecord(KeyClass key, Tuple data) throws ConstructPageException, IOException {
         this.key = key;
         this.data = data;
         this.pageId = new PageId();
     }
 
-    public ClusteredHashRecord(byte[] recordBytes) throws IOException {
-        this.key = Convert.getIntValue(0, recordBytes);
-        int pid = Convert.getIntValue(4, recordBytes);
+    public ClusteredHashRecord(byte[] recordBytes, int keyType, int keySize) throws IOException {
+        if (keyType == AttrType.attrInteger) {
+            int val = Convert.getIntValue(0, recordBytes);
+            this.key = new IntegerKey(val);
+        } else if (keyType == AttrType.attrReal) {
+            float val = Convert.getFloValue(0, recordBytes);
+            this.key = new FloatKey(val);
+        } else {
+            String val = Convert.getStrValue(0, recordBytes, keySize);
+            this.key = new StringKey(val);
+        }
+        this.key.setKeyType(keyType);
+        this.key.setKeySize(keySize);
+
+        int pid = Convert.getIntValue(keySize, recordBytes);
         this.pageId = new PageId(pid);
     }
 
@@ -41,18 +54,25 @@ public class ClusteredHashRecord implements HashRecord {
     }
 
     public byte[] getBytesFromRecord() throws IOException {
-        byte[] data = new byte[RECORD_SIZE];
-        Convert.setIntValue(key, 0, data);
-        Convert.setIntValue(pageId.pid, 4, data);
+        byte[] data = new byte[RECORD_SIZE_WITHOUT_KEY + key.getKeySize()];
+        if (key.getKeyType() == AttrType.attrInteger) {
+            Convert.setIntValue(((IntegerKey)key).getKey(), 0, data);
+        } else if (key.getKeyType() == AttrType.attrReal) {
+            Convert.setFloValue(((FloatKey)key).getKey(), 0, data);
+        } else {
+            Convert.setStrValue(((StringKey)key).getKey(), 0, data);
+        }
+
+        Convert.setIntValue(pageId.pid, key.getKeySize(), data);
         return data;
     }
 
-    public int getKey() {
+    public KeyClass getKey() {
         return key;
     }
 
     public boolean equals(HashRecord record) {
-        return record.getKey() == key && ((ClusteredHashRecord)record).getPageId().pid == pageId.pid;
+        return ((ClusteredHashRecord) record).getKey().equals(key)  && ((ClusteredHashRecord)record).getPageId().pid == pageId.pid;
     }
 
     public Tuple getData() {

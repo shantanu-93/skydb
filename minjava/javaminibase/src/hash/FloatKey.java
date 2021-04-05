@@ -1,38 +1,54 @@
 package hash;
-// [SG]: add attrReal support
 
-/** Class RealKey contains the definition of support
- * for Float type keys in minibasedb
- */
 public class FloatKey implements KeyClass {
 
     private Float key;
+    private int keySize;
+    private int keyType;
 
     public String toString(){
         return key.toString();
     }
 
-    /** Class constructor
-     *  @param     value   the value of the real key to be set
-     */
     public FloatKey(Float value)
     {
-        key=new Float(value.floatValue());
+        key= value;
     }
 
-    /** Class constructor
-     *  @param     value   the value of the primitive type real key to be set
-     */
     public FloatKey(float value)
     {
-        key=new Float(value);
+        key= value;
     }
 
-    public int getKey() {
-        return new Integer(key.intValue());
+    public int getHash() {
+        return key.intValue();
+    }
+
+    public float getKey() {
+        return key;
     }
 
     public void setKey(Float key) {
-        key = new Float(key.floatValue());
+        key = key;
+    }
+
+    public int getKeySize() {
+        return keySize;
+    }
+
+    public void setKeySize(int keySize) {
+        this.keySize = keySize;
+    }
+
+    public int getKeyType() {
+        return keyType;
+    }
+
+    public void setKeyType(int keyType) {
+        this.keyType = keyType;
+    }
+
+    public boolean equals(KeyClass key) {
+        return this.key.equals(((FloatKey) key).getKey());
     }
 }

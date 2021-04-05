@@ -18,7 +18,6 @@ public interface HashPage {
     RID insertRecord(byte[] bytesRecord) throws IOException;
     RID nextRecord(RID tempRid) throws IOException;
     void setPrevPage(PageId curPage) throws IOException;
-
     boolean empty() throws IOException;
-    int getPageCapacity() throws IOException, InvalidSlotNumberException, ConstructPageException;
+    int getPageCapacity(int keyType, int keySize) throws IOException, InvalidSlotNumberException, ConstructPageException;
 }

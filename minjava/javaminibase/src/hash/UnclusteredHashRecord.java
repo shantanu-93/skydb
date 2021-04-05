@@ -1,5 +1,6 @@
 package hash;
 
+import global.AttrType;
 import global.Convert;
 import global.PageId;
 import global.RID;
@@ -7,40 +8,59 @@ import global.RID;
 import java.io.IOException;
 
 public class UnclusteredHashRecord implements HashRecord {
-    public static final int RECORD_SIZE = 12;
+    public static final int RECORD_SIZE_WITHOUT_KEY = 8;
 
-    private int key;
+    private KeyClass key;
     private RID rid;
 
-    public UnclusteredHashRecord(int key, RID rid) {
+    public UnclusteredHashRecord(KeyClass key, RID rid) {
         this.key = key;
         this.rid = rid;
     }
 
-    public UnclusteredHashRecord(byte[] data) throws IOException {
-        this.key = Convert.getIntValue(0, data);
-        int pageId = Convert.getIntValue(4, data);
-        int slotNo = Convert.getIntValue(8, data);
+    public UnclusteredHashRecord(byte[] data, int keyType, int keySize) throws IOException {
+        if (keyType == AttrType.attrInteger) {
+            int val = Convert.getIntValue(0, data);
+            this.key = new IntegerKey(val);
+        } else if (keyType == AttrType.attrReal) {
+            float val = Convert.getFloValue(0, data);
+            this.key = new FloatKey(val);
+        } else {
+            String val = Convert.getStrValue(0, data, keySize);
+            this.key = new StringKey(val);
+        }
+        this.key.setKeyType(keyType);
+        this.key.setKeySize(keySize);
+
+        int pageId = Convert.getIntValue(keySize, data);
+        int slotNo = Convert.getIntValue(keySize+4, data);
         this.rid = new RID(new PageId(pageId), slotNo);
     }
 
     public byte[] getBytesFromRecord() throws IOException {
-        byte[] data = new byte[RECORD_SIZE];
-        Convert.setIntValue(key, 0, data);
-        Convert.setIntValue(rid.pageNo.pid, 4, data);
-        Convert.setIntValue(rid.slotNo, 8, data);
+        byte[] data = new byte[RECORD_SIZE_WITHOUT_KEY + key.getKeySize()];
+        if (key.getKeyType() == AttrType.attrInteger) {
+            Convert.setIntValue(((IntegerKey)key).getKey(), 0, data);
+        } else if (key.getKeyType() == AttrType.attrReal) {
+            Convert.setFloValue(((FloatKey)key).getKey(), 0, data);
+        } else {
+            Convert.setStrValue(((StringKey)key).getKey(), 0, data);
+        }
+
+        Convert.setIntValue(rid.pageNo.pid, key.getKeySize(), data);
+        Convert.setIntValue(rid.slotNo, key.getKeySize() + 4, data);
         return data;
     }
 
     public boolean equals(HashRecord record) {
-        return record.getKey() == key && ((UnclusteredHashRecord) record).getRid().equals(rid);
+        return ((UnclusteredHashRecord) record).getKey().equals(key) && ((UnclusteredHashRecord) record).getRid().equals(rid);
     }
 
-    public int getKey() {
+    public KeyClass getKey() {
         return key;
     }
 
-    public void setKey(int key) {
+    public void setKey(KeyClass key) {
         this.key = key;
     }
 

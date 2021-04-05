@@ -28,7 +28,22 @@ public class HashFile extends IndexFile {
     protected final HashMap<Integer, Integer> buckets;
     protected boolean isClustered;
 
-    public HashFile(String filename, int targetUtilization, boolean isClustered)
+    public HashFile(String filename, boolean isClustered)
+            throws GetFileEntryException, IOException, AddFileEntryException, ConstructPageException, InvalidSlotNumberException {
+        this.headerPageId = get_file_entry(filename);
+        this.buckets = new HashMap<>();
+        this.isClustered = isClustered;
+
+        headerPage = new HashHeaderPage(headerPageId);
+        System.out.println("opening existing");
+        headerPage.initialiseAlreadyExisting();
+        getAllBuckets();
+
+        dbname = new String(filename);
+
+    }
+
+    public HashFile(String filename, int keyType, int keySize, int targetUtilization, boolean isClustered)
             throws GetFileEntryException, IOException, AddFileEntryException, ConstructPageException, InvalidSlotNumberException {
         this.headerPageId = get_file_entry(filename);
         this.buckets = new HashMap<>();
@@ -38,22 +53,15 @@ public class HashFile extends IndexFile {
             headerPage = new HashHeaderPage();
             headerPageId = headerPage.getPageId();
             add_file_entry(filename, headerPageId);
-            headerPage.initialiseFirstTime(targetUtilization, isClustered);
+            headerPage.initialiseFirstTime(keyType, keySize, targetUtilization, isClustered);
             initialiseFile();
             getAllBuckets();
-//            headerPage.printAllSlotValues();
-
         } else {
             headerPage = new HashHeaderPage(headerPageId);
             System.out.println("opening existing");
             headerPage.initialiseAlreadyExisting();
             getAllBuckets();
-//            headerPage.printAllSlotValues();
-//            System.out.println(headerPage.getCurrentUtilization());
         }
-//        printIndex();
-//        headerPage.printAllSlotValues();
-
         dbname = new String(filename);
 
     }
@@ -82,16 +90,19 @@ public class HashFile extends IndexFile {
 
     public HashRecord getHashRecord(byte[] recordBytes) throws IOException {
         if (isClustered) {
-            return new ClusteredHashRecord(recordBytes);
+            return new ClusteredHashRecord(recordBytes, headerPage.getKeyType(), headerPage.getKeySize());
         } else {
-            return new UnclusteredHashRecord(recordBytes);
+            return new UnclusteredHashRecord(recordBytes, headerPage.getKeyType(), headerPage.getKeySize());
         }
     }
 
     public void insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException {
-        int bucketKey = key.getKey() % headerPage.getNValue();
+        key.setKeyType(headerPage.getKeyType());
+        key.setKeySize(headerPage.getKeySize());
+
+        int bucketKey = key.getHash() % headerPage.getNValue();
         if (bucketKey < headerPage.getNextValue()) {
-            bucketKey = key.getKey() % (2 * headerPage.getNValue());
+            bucketKey = key.getHash() % (2 * headerPage.getNValue());
         }
         float util = headerPage.getCurrentUtilization();
 
@@ -114,7 +125,7 @@ public class HashFile extends IndexFile {
                 while (tempRid != null) {
                     byte[] bytesRecord = bucketPage.getBytesFromSlot(tempRid.slotNo);
                     HashRecord newRecord = getHashRecord(bytesRecord);
-                    int currVal = newRecord.getKey();
+                    int currVal = newRecord.getKey().getHash();
                     int newKey = currVal % (2 * headerPage.getNValue());
                     if (newKey != headerPage.getNextValue()) {
 //                        System.out.println("moving record: " + newRecord.getKey());
@@ -167,8 +178,8 @@ public class HashFile extends IndexFile {
 
         byte[] tempData = new byte[8];
         Convert.setIntValue(headerPage.getBucketCount(), 0, tempData);
-        int blah = page1.getCurPage().pid;
-        Convert.setIntValue(blah, 4, tempData);
+        int bucketPageId = page1.getCurPage().pid;
+        Convert.setIntValue(bucketPageId, 4, tempData);
 
         RID recordRid = headerPage.insertRecord(tempData);
         boolean recordInserted = recordRid != null;
@@ -273,9 +284,12 @@ public class HashFile extends IndexFile {
     }
 
     public void deleteRecord(KeyClass key, HashRecord data) throws IOException, InvalidSlotNumberException, InvalidTupleSizeException, InvalidTypeException, UnknowAttrType, TupleUtilsException {
-        int bucketKey = key.getKey() % headerPage.getNValue();
+        key.setKeyType(headerPage.getKeyType());
+        key.setKeySize(headerPage.getKeySize());
+
+        int bucketKey = key.getHash() % headerPage.getNValue();
         if (bucketKey < headerPage.getNextValue()) {
-            bucketKey = key.getKey() % (2 * headerPage.getNValue());
+            bucketKey = key.getHash() % (2 * headerPage.getNValue());
         }
 //        System.out.println("Key to delete: " + key + " Going to delete from bucket: " + bucketKey);
         PageId bucketPageId = new PageId(buckets.get(bucketKey));

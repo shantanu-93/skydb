@@ -4,6 +4,6 @@ import java.io.IOException;
 
 public interface HashRecord {
     byte[] getBytesFromRecord() throws IOException;
-    int getKey();
+    KeyClass getKey();
     boolean equals(HashRecord record);
 }

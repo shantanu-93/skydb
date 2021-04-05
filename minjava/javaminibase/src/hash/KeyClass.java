@@ -1,7 +1,10 @@
 package hash;
-/** KeyClass: An abstarct class. It will be extended 
- *  to be integer key and string key.
- */    
+
 public interface KeyClass {
-    int getKey();
+    int getHash();
+    int getKeySize();
+    void setKeySize(int keySize);
+    int getKeyType();
+    void setKeyType(int keyType);
+    boolean equals(KeyClass key);
 }

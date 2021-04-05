@@ -2,7 +2,6 @@ package hash;
 
 import btree.AddFileEntryException;
 import btree.GetFileEntryException;
-import btree.PinPageException;
 import global.AttrType;
 import global.PageId;
 import global.RID;
@@ -20,25 +19,35 @@ public class ClusteredHashFile extends HashFile {
 
     public ClusteredHashFile(String filename, short tupleFldCnt,
                               AttrType[] tupleAttrType, short[] tupleStrSizes) throws ConstructPageException, AddFileEntryException, GetFileEntryException, InvalidSlotNumberException, IOException {
-        super(filename, 0,true);
+        super(filename,true);
         this.tupleFldCnt = tupleFldCnt;
         this.tupleAttrType = tupleAttrType;
         this.tupleStrSizes = tupleStrSizes;
     }
 
-    public ClusteredHashFile(String filename, int targetUtilization, int keytype,
-                             int keysize, short tupleFldCnt,
+    public ClusteredHashFile(String filename, int targetUtilization, int keyType, int keySize, short tupleFldCnt,
                              AttrType[] tupleAttrType, short[] tupleStrSizes) throws GetFileEntryException, IOException, AddFileEntryException, ConstructPageException, InvalidSlotNumberException {
-        super(filename, targetUtilization, true);
+        super(filename, keyType, keySize, targetUtilization, true);
         this.tupleFldCnt = tupleFldCnt;
         this.tupleAttrType = tupleAttrType;
         this.tupleStrSizes = tupleStrSizes;
+    }
+
+    public void insertRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException {
+        insertRecord(key, new ClusteredHashRecord(key, data));
+    }
+
+    public void deleteRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException {
+        deleteRecord(key, new ClusteredHashRecord(key, data));
     }
 
     public void insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException {
-        int bucketKey = key.getKey() % headerPage.getNValue();
+        key.setKeyType(headerPage.getKeyType());
+        key.setKeySize(headerPage.getKeySize());
+
+        int bucketKey = key.getHash() % headerPage.getNValue();
         if (bucketKey < headerPage.getNextValue()) {
-            bucketKey = key.getKey() % (2 * headerPage.getNValue());
+            bucketKey = key.getHash() % (2 * headerPage.getNValue());
         }
         boolean dataPageFound = false;
         PageId dataPageId = null;
@@ -48,8 +57,8 @@ public class ClusteredHashFile extends HashFile {
         while (true) {
             while (tempRid != null) {
                 byte[] bytesRecord = bucketPage.getBytesFromSlot(tempRid.slotNo);
-                ClusteredHashRecord record = new ClusteredHashRecord(bytesRecord);
-                dataPageFound = record.getKey() == key.getKey();
+                ClusteredHashRecord record = new ClusteredHashRecord(bytesRecord, headerPage.getKeyType(), headerPage.getKeySize());
+                dataPageFound = record.getKey().equals(key);
                 if (dataPageFound) {
                     dataPageId = record.getPageId();
                     break;
@@ -74,6 +83,7 @@ public class ClusteredHashFile extends HashFile {
             ClusteredDataPage dataPage = new ClusteredDataPage(HashPageType.CLUSTERED_DATA);
             insertRecordToDataPage(dataPage, ((ClusteredHashRecord)data).getTupleBytes());
             ((ClusteredHashRecord)data).setPageId(dataPage.getCurPage());
+//            System.out.println("Adding page");
             super.insertRecord(key, data);
         }
     }
@@ -118,9 +128,9 @@ public class ClusteredHashFile extends HashFile {
     }
 
     public void deleteRecord(KeyClass key, HashRecord data) throws IOException, InvalidSlotNumberException, InvalidTupleSizeException, InvalidTypeException, UnknowAttrType, TupleUtilsException {
-        int bucketKey = key.getKey() % headerPage.getNValue();
+        int bucketKey = key.getHash() % headerPage.getNValue();
         if (bucketKey < headerPage.getNextValue()) {
-            bucketKey = key.getKey() % (2 * headerPage.getNValue());
+            bucketKey = key.getHash() % (2 * headerPage.getNValue());
         }
 //        System.out.println("Key to delete: " + key + " Going to delete from bucket: " + bucketKey);
         boolean dataPageFound = false;
@@ -131,8 +141,8 @@ public class ClusteredHashFile extends HashFile {
         while (true) {
             while (tempRid != null) {
                 byte[] bytesRecord = bucketPage.getBytesFromSlot(tempRid.slotNo);
-                ClusteredHashRecord record = new ClusteredHashRecord(bytesRecord);
-                dataPageFound = record.getKey() == key.getKey();
+                ClusteredHashRecord record = new ClusteredHashRecord(bytesRecord, headerPage.getKeyType(), headerPage.getKeySize());
+                dataPageFound = record.getKey().equals(key);
                 if (dataPageFound) {
                     dataPageId = record.getPageId();
                     break;
@@ -210,7 +220,7 @@ public class ClusteredHashFile extends HashFile {
                 while (tempRid != null) {
                     byte[] bytesRecord = bucketPage.getBytesFromSlot(tempRid.slotNo);
                     HashRecord record = getHashRecord(bytesRecord);
-                    System.out.println(record.toString() + ", ");
+                    System.out.print(record.toString() + ", ");
 
                     ClusteredDataPage dataPage = new ClusteredDataPage(((ClusteredHashRecord)record).getPageId());
                     RID tempDataRid  = dataPage.firstRecord();
@@ -218,7 +228,7 @@ public class ClusteredHashFile extends HashFile {
                         while (tempDataRid != null) {
                             Tuple tup = dataPage.getTupleFromSlot(tempDataRid.slotNo);
                             tup.setHdr(tupleFldCnt, tupleAttrType, tupleStrSizes);
-                            tup.print(tupleAttrType);
+//                            tup.print(tupleAttrType);
                             tempDataRid = dataPage.nextRecord(tempDataRid);
                         }
                         if (dataPage.getNextPage().pid != HFPage.INVALID_PAGE) {

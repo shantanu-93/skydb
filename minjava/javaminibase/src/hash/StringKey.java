@@ -1,27 +1,42 @@
 package hash;
 
-/**  StringKey: It extends the KeyClass.
- *   It defines the string Key.
- */ 
 public class StringKey implements KeyClass {
 
   private String key;
+  private int keySize;
+  private int keyType;
 
   public String toString(){
      return key;
   }
 
-  /** Class constructor
-   *  @param     s   the value of the string key to be set 
-   */
   public StringKey(String s) { key = new String(s); }
 
-  /** get a copy of the istring key
-  *  @return the reference of the copy 
-  */ 
-  public int getKey() {return 0;}
+  public int getHash() {return Math.abs(key.hashCode());}
 
-  /** set the string key value
-   */ 
+  public String getKey() {
+    return key;
+  }
+
   public void setKey(String s) { key=new String(s);}
+
+  public int getKeySize() {
+    return keySize;
+  }
+
+  public void setKeySize(int keySize) {
+    this.keySize = keySize;
+  }
+
+  public int getKeyType() {
+    return keyType;
+  }
+
+  public void setKeyType(int keyType) {
+    this.keyType = keyType;
+  }
+
+  public boolean equals(KeyClass key) {
+    return this.key.equals(((StringKey) key).getKey());
+  }
 }

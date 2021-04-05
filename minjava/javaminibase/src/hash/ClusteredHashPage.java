@@ -1,6 +1,7 @@
 package hash;
 
 import diskmgr.Page;
+import global.AttrType;
 import global.PageId;
 import global.RID;
 import global.SystemDefs;
@@ -39,15 +40,24 @@ public class ClusteredHashPage extends HFPage implements HashPage {
         }
     }
 
-    public int getPageCapacity() throws IOException, InvalidSlotNumberException, ConstructPageException {
+    public int getPageCapacity(int keyType, int keySize) throws IOException, InvalidSlotNumberException, ConstructPageException {
         int capacity = 0;
-        IntegerKey tempKey = new IntegerKey(0);
+        KeyClass tempKey;
+        if (keyType == AttrType.attrInteger) {
+            tempKey = new IntegerKey(0);
+        } else if (keyType == AttrType.attrReal) {
+            tempKey = new FloatKey(0);
+        } else {
+            tempKey = new StringKey("");
+        }
+        tempKey.setKeyType(keyType);
+        tempKey.setKeySize(keySize);
 //        System.out.println("blah: " + this.getSlotCnt());
-        RID tempRid = insertRecord(tempKey, new ClusteredHashRecord(tempKey.getKey(), new Tuple()));
+        RID tempRid = insertRecord(tempKey, new ClusteredHashRecord(tempKey, new Tuple()));
 
         capacity++;
         while (tempRid != null) {
-            tempRid = insertRecord(tempKey, new ClusteredHashRecord(tempKey.getKey(), new Tuple()));
+            tempRid = insertRecord(tempKey, new ClusteredHashRecord(tempKey, new Tuple()));
             capacity++;
         }
 //        System.out.println("blah: " + this.available_space());

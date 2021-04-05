@@ -13,6 +13,8 @@ class HashHeaderPage extends HFPage {
     private int targetUtilization;
     private int numOfRecords;
     private int pageCapacity;
+    private int keyType;
+    private int keySize;
 
     private final int nValueSlot = 0;
     private final int nextValueSlot = 1;
@@ -20,7 +22,9 @@ class HashHeaderPage extends HFPage {
     private final int targetUtilizationSlot = 3;
     private final int numOfRecordsSlot = 4;
     private final int pageCapacitySlot = 5;
-    private final int bucketSlotsStart = 6;
+    private final int keyTypeSlot = 6;
+    private final int keySizeSlot = 7;
+    private final int bucketSlotsStart = 8;
 
     public HashHeaderPage(PageId pageno)
     {
@@ -46,7 +50,7 @@ class HashHeaderPage extends HFPage {
         }
     }
 
-    void initialiseFirstTime(int targetUtilization, boolean isClustered) throws IOException, ConstructPageException, InvalidSlotNumberException {
+    void initialiseFirstTime(int keyType, int keySize, int targetUtilization, boolean isClustered) throws IOException, ConstructPageException, InvalidSlotNumberException {
         byte[] tempData = new byte[4];
 
         n = 4;
@@ -69,8 +73,14 @@ class HashHeaderPage extends HFPage {
         this.insertRecord(tempData);
 
         HashPage tempPage = getNewHashPage(isClustered, HashPageType.HASH_BUCKET);
-        pageCapacity = tempPage.getPageCapacity();
+        pageCapacity = tempPage.getPageCapacity(keyType, keySize);
         Convert.setIntValue(pageCapacity, 0, tempData);
+        this.insertRecord(tempData);
+
+        Convert.setIntValue(keyType, 0, tempData);
+        this.insertRecord(tempData);
+
+        Convert.setIntValue(keySize, 0, tempData);
         this.insertRecord(tempData);
     }
 
@@ -90,6 +100,8 @@ class HashHeaderPage extends HFPage {
         targetUtilization = Convert.getIntValue(getSlotOffset(targetUtilizationSlot), data);
         numOfRecords = Convert.getIntValue(getSlotOffset(numOfRecordsSlot), data);
         pageCapacity = Convert.getIntValue(getSlotOffset(pageCapacitySlot), data);
+        keyType = Convert.getIntValue(getSlotOffset(keyTypeSlot), data);
+        keySize = Convert.getIntValue(getSlotOffset(keySizeSlot), data);
     }
 
     void printAllSlotValues() throws IOException {
@@ -171,6 +183,25 @@ class HashHeaderPage extends HFPage {
         Convert.setIntValue(pageCapacity, getSlotOffset(pageCapacitySlot), data);
         this.pageCapacity = pageCapacity;
     }
+
+    public int getKeyType() {
+        return keyType;
+    }
+
+    public void setKeyType(int keyType) throws IOException {
+        Convert.setIntValue(keyType, getSlotOffset(keyTypeSlot), data);
+        this.keyType = keyType;
+    }
+
+    public int getKeySize() {
+        return keySize;
+    }
+
+    public void setKeySize(int keySize) throws IOException {
+        Convert.setIntValue(keySize, getSlotOffset(keySizeSlot), data);
+        this.keySize = keySize;
+    }
+
 
     void setPageId(PageId pageno)
             throws IOException

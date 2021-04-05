@@ -1,46 +1,54 @@
 package hash;
 
-/**  IntegerKey: It extends the KeyClass.
- *   It defines the integer Key.
- */ 
 public class IntegerKey implements KeyClass {
 
   private Integer key;
+  private int keySize;
+  private int keyType;
 
   public String toString(){
      return key.toString();
   }
 
-  /** Class constructor
-   *  @param     value   the value of the integer key to be set 
-   */
-  public IntegerKey(Integer value) 
-  { 
-    key=new Integer(value.intValue());
+  public IntegerKey(Integer value) {
+    key= value;
   }
 
-  /** Class constructor
-   *  @param     value   the value of the integer key to be set 
-   */
-  public IntegerKey(int value) 
-  { 
-    key=new Integer(value);
+  public IntegerKey(int value) {
+    key= value;
   }
 
-
-
-  /** get a copy of the integer key
-   *  @return the reference of the copy 
-   */
-  public int getKey()
+  public int getHash()
   {
-    return new Integer(key.intValue());
+    return key;
   }
 
-  /** set the integer key value
-   */  
+  public int getKey() {
+    return key;
+  }
+
   public void setKey(Integer value) 
   { 
-    key=new Integer(value.intValue());
+    key= value;
+  }
+
+  public int getKeySize() {
+    return keySize;
+  }
+
+  public void setKeySize(int keySize) {
+    this.keySize = keySize;
+  }
+
+  public int getKeyType() {
+    return keyType;
+  }
+
+  public void setKeyType(int keyType) {
+    this.keyType = keyType;
+  }
+
+  public boolean equals(KeyClass key) {
+    return this.key == ((IntegerKey) key).getKey();
   }
 }
