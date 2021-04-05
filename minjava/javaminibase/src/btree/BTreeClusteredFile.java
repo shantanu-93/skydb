@@ -168,14 +168,17 @@ public class BTreeClusteredFile extends IndexFile
      * @throws PinPageException       failed when pin a page
      * @throws ConstructPageException BT page constructor failed
      */
-    public BTreeClusteredFile(String filename)
+    public BTreeClusteredFile(String filename, short tupleFldCnt,
+                              AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws GetFileEntryException,
             PinPageException,
             ConstructPageException {
 
 
         headerPageId = get_file_entry(filename);
-
+        this.tupleFldCnt = tupleFldCnt;
+        this.tupleAttrType = tupleAttrType;
+        this.tupleStrSizes = tupleStrSizes;
         headerPage = new BTreeHeaderPage(headerPageId);
         dbname = new String(filename);
         /*
