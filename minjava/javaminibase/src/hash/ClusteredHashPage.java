@@ -6,12 +6,13 @@ import global.RID;
 import global.SystemDefs;
 import heap.HFPage;
 import heap.InvalidSlotNumberException;
+import heap.Tuple;
 
 import java.io.IOException;
 
-public class UnclusteredHashPage extends HFPage implements HashPage {
+public class ClusteredHashPage extends HFPage implements HashPage {
 
-    public UnclusteredHashPage(PageId pageno)
+    public ClusteredHashPage(PageId pageno)
     {
         super();
         try {
@@ -21,7 +22,7 @@ public class UnclusteredHashPage extends HFPage implements HashPage {
         }
     }
 
-    public UnclusteredHashPage(short pageType) throws ConstructPageException {
+    public ClusteredHashPage(short pageType) throws ConstructPageException {
         super();
         try{
             Page apage=new Page();
@@ -38,37 +39,54 @@ public class UnclusteredHashPage extends HFPage implements HashPage {
         }
     }
 
+    public int getPageCapacity() throws IOException, InvalidSlotNumberException, ConstructPageException {
+        int capacity = 0;
+        IntegerKey tempKey = new IntegerKey(0);
+//        System.out.println("blah: " + this.getSlotCnt());
+        RID tempRid = insertRecord(tempKey, new ClusteredHashRecord(tempKey.getKey(), new Tuple()));
+
+        capacity++;
+        while (tempRid != null) {
+            tempRid = insertRecord(tempKey, new ClusteredHashRecord(tempKey.getKey(), new Tuple()));
+            capacity++;
+        }
+//        System.out.println("blah: " + this.available_space());
+        return --capacity;
+    }
+
     public void deleteRecord ( RID rid ) throws IOException, InvalidSlotNumberException {
         super.deleteRecord(rid);
         // if overflow page gets empty, delete the page
         if (this.getType() == HashPageType.HASH_OVERFLOW) {
             if (this.empty()) {
                 if (this.getNextPage().pid != HFPage.INVALID_PAGE) {
-                    UnclusteredHashPage nextPage = new UnclusteredHashPage(this.getNextPage());
+                    ClusteredHashPage nextPage = new ClusteredHashPage(this.getNextPage());
                     nextPage.setPrevPage(this.getPrevPage());
-                    UnclusteredHashPage prevPage = new UnclusteredHashPage(this.getPrevPage());
+                    ClusteredHashPage prevPage = new ClusteredHashPage(this.getPrevPage());
                     prevPage.setNextPage(this.getNextPage());
                 } else {
-                    UnclusteredHashPage prevPage = new UnclusteredHashPage(this.getPrevPage());
+                    ClusteredHashPage prevPage = new ClusteredHashPage(this.getPrevPage());
                     prevPage.setNextPage(new PageId(HFPage.INVALID_PAGE));
                 }
             }
         }
     }
 
-    public int getPageCapacity() throws IOException, InvalidSlotNumberException {
-        int capacity = 0;
-        IntegerKey tempKey = new IntegerKey(0);
-        System.out.println("blah: " + this.getSlotCnt());
-        RID tempRid = insertRecord(tempKey, new UnclusteredHashRecord(tempKey.getKey(), new RID(new PageId(1), 1 )));
+    public RID insertRecord(KeyClass key, HashRecord data) throws IOException {
+        byte[] tempData = data.getBytesFromRecord();
+        return super.insertRecord(tempData);
+    }
 
-        capacity++;
-        while (tempRid != null) {
-            tempRid = insertRecord(tempKey, new UnclusteredHashRecord(tempKey.getKey(), new RID(new PageId(1), 1 )));
-            capacity++;
-        }
-        System.out.println("blah: " + this.available_space());
-        return --capacity;
+    public PageId getNextPage() throws IOException {
+        return super.getNextPage();
+    }
+
+    public PageId getCurPage() throws IOException {
+        return super.getCurPage();
+    }
+
+    public void setNextPage(PageId pageId) throws IOException {
+        super.setNextPage(pageId);
     }
 
     public byte[] getBytesFromSlot(int slotNo) throws IOException {
@@ -77,14 +95,5 @@ public class UnclusteredHashPage extends HFPage implements HashPage {
         byte[] tempData = new byte[slotLength];
         System.arraycopy(data, slotOffset, tempData, 0, slotLength);
         return tempData;
-    }
-
-    public RID insertRecord(KeyClass key, HashRecord data) throws IOException {
-        byte[] tempData = data.getBytesFromRecord();
-        return super.insertRecord(tempData);
-    }
-
-    public void setNextPage(PageId pageId) throws IOException {
-        super.setNextPage(pageId);
     }
 }

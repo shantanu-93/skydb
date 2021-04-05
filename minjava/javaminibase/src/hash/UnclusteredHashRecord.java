@@ -6,7 +6,7 @@ import global.RID;
 
 import java.io.IOException;
 
-public class UnclusteredHashRecord {
+public class UnclusteredHashRecord implements HashRecord {
     public static final int RECORD_SIZE = 12;
 
     private int key;
@@ -30,6 +30,10 @@ public class UnclusteredHashRecord {
         Convert.setIntValue(rid.pageNo.pid, 4, data);
         Convert.setIntValue(rid.slotNo, 8, data);
         return data;
+    }
+
+    public boolean equals(HashRecord record) {
+        return record.getKey() == key && ((UnclusteredHashRecord) record).getRid().equals(rid);
     }
 
     public int getKey() {

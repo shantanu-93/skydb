@@ -1,14 +1,10 @@
 package hash;
 
 import java.io.*;
-import java.util.HashMap;
 
-import btree.NodeType;
 import diskmgr.*;
 import global.*;
 import heap.*;
-
-import javax.xml.soap.Node;
 
 class HashHeaderPage extends HFPage {
     private int n;
@@ -50,7 +46,7 @@ class HashHeaderPage extends HFPage {
         }
     }
 
-    void initialiseFirstTime() throws IOException, ConstructPageException, InvalidSlotNumberException {
+    void initialiseFirstTime(int targetUtilization, boolean isClustered) throws IOException, ConstructPageException, InvalidSlotNumberException {
         byte[] tempData = new byte[4];
 
         n = 4;
@@ -65,7 +61,6 @@ class HashHeaderPage extends HFPage {
         Convert.setIntValue(bucketCount, 0, tempData);
         this.insertRecord(tempData);
 
-        targetUtilization = 75; // pass
         Convert.setIntValue(targetUtilization, 0, tempData);
         this.insertRecord(tempData);
 
@@ -73,10 +68,18 @@ class HashHeaderPage extends HFPage {
         Convert.setIntValue(numOfRecords, 0, tempData);
         this.insertRecord(tempData);
 
-        UnclusteredHashPage tempPage = new UnclusteredHashPage(PageType.HASH_BUCKET);
+        HashPage tempPage = getNewHashPage(isClustered, HashPageType.HASH_BUCKET);
         pageCapacity = tempPage.getPageCapacity();
         Convert.setIntValue(pageCapacity, 0, tempData);
         this.insertRecord(tempData);
+    }
+
+    public HashPage getNewHashPage(boolean isClustered, short pageType) throws ConstructPageException {
+        if (isClustered) {
+            return new ClusteredHashPage(pageType);
+        } else {
+            return new UnclusteredHashPage(pageType);
+        }
     }
 
     void initialiseAlreadyExisting() throws IOException {
@@ -107,7 +110,7 @@ class HashHeaderPage extends HFPage {
 //    }
 
     public float getCurrentUtilization() {
-        System.out.println(pageCapacity);
+//        System.out.println(pageCapacity);
         return ((float) numOfRecords/((float)pageCapacity*((float)bucketCount+1))) * 100;
     }
 
