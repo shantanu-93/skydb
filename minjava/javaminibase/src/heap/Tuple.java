@@ -2,8 +2,11 @@
 
 package heap;
 
-import java.io.*;
-import global.*;
+import global.AttrType;
+import global.Convert;
+import global.GlobalConst;
+
+import java.io.IOException;
 
 
 public class Tuple implements GlobalConst{
@@ -243,7 +246,7 @@ public class Tuple implements GlobalConst{
          String val;
     if ( (fldNo > 0) && (fldNo <= fldCnt))      
      {
-        val = Convert.getStrValue(fldOffset[fldNo -1], data, 
+         val = Convert.getStrValue(fldOffset[fldNo -1], data,
 		fldOffset[fldNo] - fldOffset[fldNo -1]); //strlen+2
         return val;
      }
