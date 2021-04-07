@@ -45,7 +45,7 @@ public class BTreeUtil {
       bTreeFiles[i].close();
       i++;
     }
-    SystemDefs.JavabaseBM.flushAllPages();
+    SystemDefs.JavabaseBM.flushPages();
   }
 
   private static BTreeFile createIndex(String btname, Scan scan, AttrType[] attrType, short[] attrSizes, int colNum) throws Exception {

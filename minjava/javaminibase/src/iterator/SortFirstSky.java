@@ -14,7 +14,7 @@ public class SortFirstSky extends Iterator {
         private   short        in1_len;
         private   Iterator  outer;
         private   int n_buf_pgs_for_window;        // # of buffer pages available.
-        private int n_buf_pgs_for_sort;
+        private int n_buf_pgs;
         private int[] pref_list_cls;
         private int pref_list_length_cls;
         private   Iterator  sort;
@@ -75,15 +75,15 @@ public class SortFirstSky extends Iterator {
                 }catch(Exception e){
                         throw new SortException(e, "Could not get number of records on page 1");
                 }
-                System.out.println(sc.getNumberOfRecordsPerOnePage());
+//                System.out.println(sc.getNumberOfRecordsPerOnePage());
 
-                n_buf_pgs_for_sort = Math.max((n_pages * 9/ 10), 3);
-                n_buf_pgs_for_window = n_pages - n_buf_pgs_for_sort;
+                n_buf_pgs = Math.max((n_pages * 8/ 10), 3);
+                n_buf_pgs_for_window = n_pages - n_buf_pgs;
 
                 maxWindowSize = sc.getNumberOfRecordsPerOnePage()* n_buf_pgs_for_window;
 
                 try {
-                        sort = new SortPref(_in1, in1_len, t1_str_sizes, outer, new TupleOrder(TupleOrder.Descending) , pref_list_cls, pref_list_length_cls, n_buf_pgs_for_sort);
+                        sort = new SortPref(_in1, in1_len, t1_str_sizes, outer, new TupleOrder(TupleOrder.Descending) , pref_list_cls, pref_list_length_cls, n_buf_pgs);
                 } catch (Exception e) {
                         e.printStackTrace();
                 }
@@ -111,7 +111,7 @@ public class SortFirstSky extends Iterator {
                 Tuple currentOuter = null;
 
                 while (true) {
-                        SystemDefs.JavabaseBM.flushPages();
+//                        SystemDefs.JavabaseBM.flushPages();
 
                         currentOuter = sort.get_next();
 
@@ -148,6 +148,9 @@ public class SortFirstSky extends Iterator {
                                 scanTempHF.closescan();
                         }
 
+                        if (SystemDefs.JavabaseBM.getNumBuffers() - SystemDefs.JavabaseBM.getNumUnpinnedBuffers() >= n_buf_pgs) {
+                                SystemDefs.JavabaseBM.flushPages();
+                        }
 
                         if (!dominated) {
                                 Tuple temp = new Tuple(currentOuter);

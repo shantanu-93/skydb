@@ -14,6 +14,7 @@ import global.*;
 import btree.*;
 import iterator.FileScan;
 import iterator.FldSpec;
+import iterator.Iterator;
 import iterator.RelSpec;
 import iterator.SortFirstSky;
 import iterator.BlockNestedLoopsSky;
@@ -38,7 +39,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     private static int[] pref_list;
     private static int _n_pages;
     private static int nColumns;
-    private static String heapFile = "hFile.in";
+    public static String heapFile = "hFile.in";
     private static AttrType[] attrType;
     private static IndexFile indexFile;
     private static short[] attrSizes;
@@ -113,31 +114,48 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
 
         return _pass;
     }
-
-    private void readMenu() {
-        System.out.println("-------------------------- MENU ------------------");
-        System.out.println("[1]   Read input data 2");
-        System.out.println("[2]   Read input data 3");
-        System.out.println("[3]   Set pref = [1]");
-        System.out.println("[4]   Set pref = [1,3]");
-        System.out.println("[5]   Set pref = [1,3,5]");
-        System.out.println("[6]   Set pref = [1,2,3,4,5]");
-        System.out.println("[7]   Set n_page = 5");
-        System.out.println("[8]   Set n_page = 10");
-        System.out.println("[9]   Set n_page = <your_wish>");
-        System.out.println("[10]  Run Nested Loop skyline on data with parameters ");
-        System.out.println("[11]  Run Block Nested Loop on data with parameters ");
-        System.out.println("[12]  Run Sort First Sky on data with parameters ");
-        System.out.println("[13]  Run Btree Sky on data with parameters ");
-        System.out.println("[14]  Run Btree Sort Sky on data with parameters ");
+	private void dataMenu() {
+		System.out.println("Default has been set to data2.txt. Enter file name without {.txt}.\n");
+		System.out.println("[1]   Read input data2");
+    System.out.println("[2]   Read input data3");
+    System.out.println("[3]   Read input data_large_skyline");
+		System.out.println("[4]	  Read your own input");
+		System.out.println("\n[0]  Quit!");
+        System.out.print("Hi, Enter your choice :");
+	}
+	
+	private void prefMenu() {
+		System.out.println("[1]   Set pref = [1]");
+    System.out.println("[2]   Set pref = [1,2]");
+    System.out.println("[3]   Set pref = [1,3]");
+    System.out.println("[4]   Set pref = [1,3,5]");
+    System.out.println("[5]   Set pref = [1,2,3,4,5]");
+		System.out.println("[6]	  Set your own preference list of attributes");
+		System.out.println("\n[0]  Quit!");
+        System.out.print("Hi, Enter your choice :");
+	}
+    private void pageMenu() {
+		System.out.println("[1]   Set n_page = 5");
+        System.out.println("[2]   Set n_page = 10");
+        System.out.println("[3]   Set n_page = <your_wish>");
+		System.out.println("\n[0]  Quit!");
+        System.out.print("Hi, Enter your choice :");
+	}
+	
+	private void algoMenu() {
+		System.out.println("[1]  Run Nested Loop skyline on data with parameters ");
+        System.out.println("[2]  Run Block Nested Loop on data with parameters ");
+        System.out.println("[3]  Run Sort First Sky on data with parameters ");
+        System.out.println("[4]  Run individual Btree Sky on data with parameters ");
+        System.out.println("[5]  Run combined Btree Sort Sky on data with parameters ");
         System.out.println("\n[0]  Quit!");
         System.out.print("Hi, Enter your choice :");
-    }
-    
+	}
     private void readData(String fileName) throws IOException, InvalidTupleSizeException, InvalidTypeException {
 
         // Create the heap file object
         try {
+            heapFile = Heapfile.getRandomHFName();
             f = new Heapfile(heapFile);
         }
         catch (Exception e) {
@@ -219,15 +237,6 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
                     }
                 }
 
-//                for (int i = 1; i <= tuple1.noOfFlds(); i++) {
-//                    try {
-//                        System.out.print(tuple1.getFloFld(i) + ", ");
-//                    } catch (FieldNumberOutOfBoundException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//                System.out.println();
-
                 try {
                     rid = f.insertRecord(tuple1.returnTupleByteArray());
                 }
@@ -236,7 +245,6 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
                     e.printStackTrace();
                 }
 
-                //System.out.println("RID: "+rid);
             }
             try {
                 System.out.println("record count "+f.getRecCnt());
@@ -271,130 +279,166 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         return "Main Driver";
     }
 
-    protected boolean runAllTests (){
-        int choice=1;
-
-        while(choice!=0) {
-            readMenu();
-
-            try{
-                choice= GetStuff.getChoice();
-
-                switch(choice) {
-
-                    case 1:
+	protected boolean runAllTests (){
+		int choice = 1;
+		
+		while(choice != 0) {
+			dataMenu();
+			
+			try{
+				choice = GetStuff.getChoice();
+				switch(choice) {
+					case 1:
                         System.out.println(System.getProperty("user.dir"));
                         inputFile = "../../data/data2";
                         readData(inputFile);
                         break;
 
-                    case 2:
-                        System.out.println(System.getProperty("user.dir"));
-                        inputFile = "../../data/data3";
+          case 2:
+            System.out.println(System.getProperty("user.dir"));
+            inputFile = "../../data/data3";
+            readData(inputFile);
+            break;
+          case 3:
+            System.out.println(System.getProperty("user.dir"));
+            inputFile = "../../data/data_large_skyline";
+            readData(inputFile);
+            break;
+
+					case 4:
+						String dataFile = GetStuff.getReturn();
+						System.out.println(System.getProperty("user.dir"));
+                        inputFile = "../../data/" + dataFile;
                         readData(inputFile);
-                        break;
+						break;
+					case 0:
+						break;
+				}
+			if (choice == 0)
+				break;
+			
+			prefMenu();
+        indexesCreated = false;
+				choice = GetStuff.getChoice();
+				switch(choice) {
+					case 1:
+              pref_list = new int[]{1};
+              break;
+					case 2:
+              pref_list = new int[]{1,2};
+              break;
+          case 3:
+              pref_list = new int[]{1,3};
+              break;
+          case 4:
+              pref_list = new int[]{1,3,5};
+              break;
+          case 5:
+              pref_list = new int[]{1,2,3,4,5};
+              break;
 
-                    case 3:
-                        pref_list = new int[]{1};
-                        break;
-
-                    case 4:
-                        pref_list = new int[]{1,3};
-                        break;
-
-                    case 5:
-                        pref_list = new int[]{1,3,5};
-                        break;
-
-                    case 6:
-                        pref_list = new int[]{1,2,3,4,5};
-                        break;
-
-                    case 7:
+					case 6:
+						System.out.println("Enter number of preferred attributes: ");
+						int prefLen = GetStuff.getChoice();
+						pref_list = new int[prefLen];
+						for (int i = 0; i< prefLen; i++)
+						{	
+							System.out.println("Enter preferred attribute index:");
+						pref_list[i] = GetStuff.getChoice();
+						}
+						System.out.println(Arrays.toString(pref_list));
+						break;	
+					case 0:
+						break;
+				}
+				if (choice == 0)
+				break;
+			
+			pageMenu();
+			
+				choice = GetStuff.getChoice();
+				switch(choice) {
+					case 1:
                         _n_pages = 5;
                         break;
 
-                    case 8:
+                    case 2:
                         _n_pages = 10;
                         break;
 
-                    case 9:
+                    case 3:
                         System.out.println("Enter n_pages of your choice: ");
                         _n_pages = GetStuff.getChoice();
-                        if(_n_pages<0)
+                        if(_n_pages<=0)
                             break;
                         break;
-                    case 10:
+					case 0:
+						break;
+				}
+				if (choice == 0)
+				break;
+			
+			//choice = GetStuff.getChoice();
+			while( choice != 0){
+				algoMenu();
+				
+				
+					choice = GetStuff.getChoice();
+					switch(choice){
+					case 1:
                         // call nested loop sky
+                        SystemDefs.JavabaseBM.flushPages();
+                        PCounter.initialize();
                         runNestedLoopSky(heapFile);
                         break;
 
-                    case 11:
+                    case 2:
                         // call block nested loop sky
+                        SystemDefs.JavabaseBM.flushPages();
+                        PCounter.initialize();
                         runBNLSky(heapFile);
                         break;
 
-                    case 12:
+                    case 3:
+                        SystemDefs.JavabaseBM.flushPages();
+                        PCounter.initialize();
                         runSortFirstSky(heapFile);
-
                         break;
 
-                    case 13:
+                    case 4:
+                        SystemDefs.JavabaseBM.flushPages();
+                        PCounter.initialize();
                         runBtreeSky();
                         break;
 
-                    case 14:
-                        // call btree sort sky
-
-                        try {
-                            BTreeCombinedIndex obj = new BTreeCombinedIndex();
-                            IndexFile indexFile = obj.combinedIndex(heapFile, attrType, attrSizes, pref_list, pref_list.length);
-                            System.out.println("Index created!");
-
-                            System.out.println("CombinedBTreeIndex scanning"); 
-                            String fileName = "heap_AAA";
-
-                            BTreeSortedSky btree = new BTreeSortedSky(attrType, pref_list.length, attrSizes, null, fileName, pref_list, pref_list.length, indexFile, _n_pages);
-                            
-                            btree.computeSkyline();
-                        
-                            System.out.println("BTreeSortSky Complete");
-                    
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        
+                    case 5:
+                        SystemDefs.JavabaseBM.flushPages();
+                        PCounter.initialize();
+                        runBTreeSortedSky();
 						            break;
 
                     case 0:
                         break;
-                }
-            }
-            catch(Exception e) {
+					}
+				}
+				break;
+			}
+				catch(Exception e) {
                 e.printStackTrace();
                 System.out.println("       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                 System.out.println("       !!         Something is wrong                    !!");
                 System.out.println("       !!     Is your DB full? then exit. rerun it!     !!");
                 System.out.println("       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
-            }
-        }
-        return true;
-    }
+				}
+			}
+			
+		
+		return true;
+	}
 
     public static void runNestedLoopSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
-        FileScan fscanNested = null;
-
-        try {
-            fscanNested = new FileScan(hf, attrType, attrSizes, (short) attrType.length, attrType.length, projlist, null);
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
-
-        SystemDefs.JavabaseBM.flushPages();
-
-        PCounter.initialize();
+        FileScan fscanNested = initialiseFileScan(hf);
 
         NestedLoopsSky nested = null;
         try {
@@ -404,37 +448,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             e.printStackTrace();
         }
 
-        int nestedSkycount = -1;
-        Tuple nestedSkyTuple = null;
-
-        System.out.println("\n -- Skyline candidates -- ");
-        do {
-            try {
-                if (nestedSkyTuple != null) {
-                    for (int i = 1; i <= nestedSkyTuple.noOfFlds(); i++) {
-                        System.out.print(nestedSkyTuple.getFloFld(i) + ", ");
-                    }
-                    System.out.println();
-                }
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            nestedSkycount++;
-
-            try {
-                nestedSkyTuple = nested.get_next();
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-        } while (nestedSkyTuple != null);
-
-        System.out.println("Read statistics "+PCounter.rcounter);
-        System.out.println("Write statistics "+PCounter.wcounter);
-
-        System.out.println("\n Number of Skyline candidates: " + nestedSkycount);
+        getNextAndPrintAllSkyLine(nested);
 
         try {
             nested.close();
@@ -445,20 +459,9 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     }
 
     public static void runBNLSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
-        FileScan fscanBlock = null;
+        FileScan fscanBlock = initialiseFileScan(hf);
 
-        try {
-            fscanBlock = new FileScan(hf, attrType, attrSizes, (short) attrType.length, attrType.length, projlist, null);
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
-
-        SystemDefs.JavabaseBM.flushPages();
-
-        PCounter.initialize();
-
-        BlockNestedLoopsSky block = null;
+        Iterator block = null;
         try {
             block = new BlockNestedLoopsSky(attrType, attrType.length, attrSizes, fscanBlock, hf, pref_list, pref_list.length, _n_pages);
         } catch (Exception e) {
@@ -466,37 +469,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             e.printStackTrace();
         }
 
-        int blockSkycount = -1;
-        Tuple blockSkyTuple = null;
-
-        System.out.println("\n -- Skyline candidates -- ");
-        do {
-            try {
-                if (blockSkyTuple != null) {
-                    for (int i = 1; i <= blockSkyTuple.noOfFlds(); i++) {
-                        System.out.print(blockSkyTuple.getFloFld(i) + ", ");
-                    }
-                    System.out.println();
-                }
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            blockSkycount++;
-
-            try {
-                blockSkyTuple = block.get_next();
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-        } while (blockSkyTuple != null);
-
-        System.out.println("Read statistics "+PCounter.rcounter);
-        System.out.println("Write statistics "+PCounter.wcounter);
-
-        System.out.println("\n Number of Skyline candidates: " + blockSkycount);
+        getNextAndPrintAllSkyLine(block);
 
         try {
             block.close();
@@ -507,20 +480,9 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
     }
 
     public static void runSortFirstSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
-        FileScan fscan = null;
+        FileScan fscan = initialiseFileScan(hf);
 
-        try {
-            fscan = new FileScan(hf, attrType, attrSizes, (short) attrType.length, attrType.length, projlist, null);
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
-
-        SystemDefs.JavabaseBM.flushPages();
-
-        PCounter.initialize();
-
-        SortFirstSky sort = null;
+        Iterator sort = null;
         try {
             sort = new SortFirstSky(attrType, attrType.length, attrSizes, fscan, hf, pref_list, pref_list.length, _n_pages);
         } catch (Exception e) {
@@ -528,44 +490,7 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
             e.printStackTrace();
         }
 
-        int count = -1;
-        Tuple tuple1 = null;
-
-        System.out.println("\n -- Skyline candidates -- ");
-        do {
-            try {
-                if (tuple1 != null) {
-                    for (int i = 1; i <= tuple1.noOfFlds(); i++) {
-                        System.out.print(tuple1.getFloFld(i) + ", ");
-                    }
-                    System.out.println();
-                }
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            count++;
-
-            try {
-                tuple1 = sort.get_next();
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-        } while (tuple1 != null);
-
-        System.out.println("Read statistics "+PCounter.rcounter);
-        System.out.println("Write statistics "+PCounter.wcounter);
-
-        System.out.println("\n Number of Skyline candidates: " + count);
-
-        try {
-            fscan.close();
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
+        getNextAndPrintAllSkyLine(sort);
 
         try {
             sort.close();
@@ -581,23 +506,91 @@ public class ReadDriver  extends TestDriver implements  GlobalConst{
         System.out.println("Preference list: " + Arrays.toString(pref_list));
         System.out.println("Number of pages: " + _n_pages);
         System.out.println("Pref list length: " + pref_list.length);
-
-        if (indexesCreated == false) {
+        if (!indexesCreated) {
             BTreeUtil.createBtreesForPrefList(heapFile, f, attrType, attrSizes, pref_list);
             indexesCreated = true;
         }
 
-        String relationName = heapFile;
         // autobox to IndexFile type
         IndexFile[] index_file_list = BTreeUtil.getBTrees(pref_list);
+        SystemDefs.JavabaseBM.flushPages();
 
-        BTreeSky btreesky = new BTreeSky(attrType, nColumns, attrSizes, null, relationName, pref_list,
+        BTreeSky btreesky = new BTreeSky(attrType, nColumns, attrSizes, null, heapFile, pref_list,
                 pref_list.length, index_file_list, _n_pages);
+
+        PCounter.initialize();
         btreesky.findBTreeSky();
 
-        System.out.println("End of runBtreeSky");
+        System.out.println("BTreeSky Complete\n");
     }
 
+    public void runBTreeSortedSky() {
+        try {
+            BTreeCombinedIndex obj = new BTreeCombinedIndex();
+            IndexFile indexFile = obj.combinedIndex(heapFile, attrType, attrSizes, pref_list, pref_list.length);
+            System.out.println("Index created!");
+            SystemDefs.JavabaseBM.flushPages();
+
+            System.out.println("CombinedBTreeIndex scanning");
+            String fileName = BTreeCombinedIndex.random_string1;
+
+            BTreeSortedSky btree = new BTreeSortedSky(attrType, attrType.length, attrSizes, null, fileName, pref_list, pref_list.length, indexFile, _n_pages);
+            PCounter.initialize();
+            btree.computeSkyline();
+
+            System.out.println("BTreeSortSky Complete");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void getNextAndPrintAllSkyLine(Iterator iter) {
+// this needs to be before the fn call since call to any algo 1,2,3 from 4,5 reinitializes counter
+//        PCounter.initialize();
+
+        int count = -1;
+        Tuple tuple1 = null;
+
+        System.out.println("\n -- Skyline Objects -- ");
+        do {
+            try {
+                if (tuple1 != null) {
+                    tuple1.print(attrType);
+                }
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+
+            count++;
+
+            try {
+                tuple1 = iter.get_next();
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+        } while (tuple1 != null);
+
+        System.out.println("\nRead statistics "+PCounter.rcounter);
+        System.out.println("Write statistics "+PCounter.wcounter);
+
+        System.out.println("\nNumber of Skyline objects: " + count+"\n");
+    }
+
+    public static FileScan initialiseFileScan(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
+        FileScan fscan = null;
+
+        try {
+            fscan = new FileScan(hf, attrType, attrSizes, (short) attrType.length, attrType.length, projlist, null);
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        return fscan;
+    }
 
     public static void main(String [] args) {
 
@@ -641,16 +634,15 @@ class GetStuff {
         return choice;
     }
 
-    public static void getReturn () {
+    public static String getReturn () {
 
         BufferedReader in = new BufferedReader (new InputStreamReader(System.in));
-
+		String ret = "data2";
         try {
-            String ret = in.readLine();
+            ret = in.readLine();
         }
         catch (IOException e) {}
+		
+		return ret;
     }
-
-
-
 }

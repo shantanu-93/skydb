@@ -1,24 +1,15 @@
 # cse510dbmsi
 
-Setup instructions:
+Setup and Execution instructions:
 
-1. Set ${JAVA_HOME} to your jdk path in .bashrc file. e.g.,
+1. Set ${JAVA_HOME} to your jdk path in terminal
 
     export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/
 
+3. cd $current_directory/cse510dbmsi/minjava/javaminibase/src/
 
-2. Clone the repository at your home directory (important)
+4. make db
 
-    cd ~
-    
-    git clone git@github.com:shantanu-93/cse510dbmsi.git
-    
-    or 
-    
-    git clone https://github.com/shantanu-93/cse510dbmsi.git
+5. cd readdriver
 
-3. cd ~/cse510dbmsi/minjava/javaminibase/src/
-
-4. script
-
-5. make test
+6. make readdriver
