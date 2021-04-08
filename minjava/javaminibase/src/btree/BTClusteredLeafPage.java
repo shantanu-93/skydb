@@ -21,6 +21,7 @@ public class BTClusteredLeafPage extends BTSortedPage {
     private short tupleFldCnt;
     private AttrType[] tupleAttrType;
     private short[] tupleStrSizes;
+    private int keyIndex;
 
     /**
      * pin the page with pageno, and get the corresponding BTLeafPage,
@@ -33,14 +34,15 @@ public class BTClusteredLeafPage extends BTSortedPage {
      * @throws IOException            error from the lower layer
      * @throws ConstructPageException BTLeafPage constructor error
      */
-    public BTClusteredLeafPage(PageId pageno, int keyType, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
+    public BTClusteredLeafPage(PageId pageno, int keyType, int keyIndex, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws IOException,
             ConstructPageException {
-        super(pageno, keyType);
+        super(pageno, keyType, keyIndex);
         setType(NodeType.LEAF_CLUSTERED);
         this.tupleFldCnt = tupleFldCnt;
         this.tupleAttrType = tupleAttrType;
         this.tupleStrSizes = tupleStrSizes;
+        this.keyIndex = keyIndex;
     }
 
     /**
@@ -54,14 +56,15 @@ public class BTClusteredLeafPage extends BTSortedPage {
      * @throws IOException            error from the lower layer
      * @throws ConstructPageException BTLeafPage constructor error
      */
-    public BTClusteredLeafPage(Page page, int keyType, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
+    public BTClusteredLeafPage(Page page, int keyType, int keyIndex, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws IOException,
             ConstructPageException {
-        super(page, keyType);
+        super(page, keyType, keyIndex);
         setType(NodeType.LEAF_CLUSTERED);
         this.tupleFldCnt = tupleFldCnt;
         this.tupleAttrType = tupleAttrType;
         this.tupleStrSizes = tupleStrSizes;
+        this.keyIndex = keyIndex;
     }
 
     /**
@@ -73,14 +76,15 @@ public class BTClusteredLeafPage extends BTSortedPage {
      * @throws IOException            error from the lower layer
      * @throws ConstructPageException BTLeafPage constructor error
      */
-    public BTClusteredLeafPage(int keyType, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
+    public BTClusteredLeafPage(int keyType, int keyIndex, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws IOException,
             ConstructPageException {
-        super(keyType);
+        super(keyType, keyIndex);
         setType(NodeType.LEAF_CLUSTERED);
         this.tupleFldCnt = tupleFldCnt;
         this.tupleAttrType = tupleAttrType;
         this.tupleStrSizes = tupleStrSizes;
+        this.keyIndex = keyIndex;
     }
 
 
@@ -139,7 +143,7 @@ public class BTClusteredLeafPage extends BTSortedPage {
             }
 
             entry = BT.getEntryFromBytes(getpage(), getSlotOffset(0), getSlotLength(0),
-                    keyType, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+                    keyType, keyIndex, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
 
             return entry;
         } catch (Exception e) {
@@ -173,7 +177,7 @@ public class BTClusteredLeafPage extends BTSortedPage {
             }
 
             entry = BT.getEntryFromBytes(getpage(), getSlotOffset(i), getSlotLength(i),
-                    keyType, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+                    keyType, keyIndex, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
 
             return entry;
         } catch (Exception e) {
@@ -253,7 +257,7 @@ public class BTClusteredLeafPage extends BTSortedPage {
                     // get the last record
                     KeyDataEntry lastEntry;
                     lastEntry = BT.getEntryFromBytes(getpage(), getSlotOffset(getSlotCnt() - 1)
-                            , getSlotLength(getSlotCnt() - 1), keyType, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+                            , getSlotLength(getSlotCnt() - 1), keyType, keyIndex, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
 
 
                     //get its sibling's first record's key for adjusting parent pointer
@@ -292,7 +296,7 @@ public class BTClusteredLeafPage extends BTSortedPage {
                     // get the first record
                     KeyDataEntry firstEntry;
                     firstEntry = BT.getEntryFromBytes(getpage(), getSlotOffset(0),
-                            getSlotLength(0), keyType,
+                            getSlotLength(0), keyType, keyIndex,
                             NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
 
                     // insert it into its sibling

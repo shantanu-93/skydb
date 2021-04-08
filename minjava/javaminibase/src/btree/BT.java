@@ -12,6 +12,7 @@ import java.lang.*;
 import global.*;
 import diskmgr.*;
 import bufmgr.*;
+import heap.FieldNumberOutOfBoundException;
 import heap.InvalidTupleSizeException;
 import heap.InvalidTypeException;
 import heap.Tuple;
@@ -174,11 +175,11 @@ public class BT implements GlobalConst {
     protected final static KeyDataEntry getEntryFromBytes(byte[] from, int offset,
                                                           int length, int keyType, short nodeType)
             throws KeyNotMatchException, NodeNotMatchException, ConvertException {
-        return getEntryFromBytes(from, offset, length, keyType, nodeType, (short) 0, new AttrType[0], new short[0]);
+        return getEntryFromBytes(from, offset, length, keyType, 0, nodeType, (short) 0, new AttrType[0], new short[0]);
     }
 
     protected final static KeyDataEntry getEntryFromBytes(byte[] from, int offset,
-                                                          int length, int keyType, short nodeType, short tupleFldCnt,
+                                                          int length, int keyType, int keyIndex, short nodeType, short tupleFldCnt,
                                                           AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws KeyNotMatchException,
             NodeNotMatchException,
@@ -213,21 +214,43 @@ public class BT implements GlobalConst {
                 data = new ClusteredLeafData(tuple);
             } else throw new NodeNotMatchException(null, "node types do not match");
 
-            if (keyType == AttrType.attrInteger) {
-                key = new IntegerKey(new Integer
-                        (Convert.getIntValue(offset, from)));
-            } else if (keyType == AttrType.attrString) {
-                //System.out.println(" offset  "+ offset + "  " + length + "  "+n);
-                key = new StringKey(Convert.getStrValue(offset, from, length - n));
-            } else if (keyType == AttrType.attrReal) {
-                // [SG]: add attrReal support
-                key = new FloatKey(new Float(Convert.getFloValue(offset, from)));
-            } else
-                throw new KeyNotMatchException(null, "key types do not match");
+            if (nodeType == NodeType.LEAF_CLUSTERED) {
+                Tuple tempTuple = new Tuple();
+                tempTuple.setHdr(tupleFldCnt, tupleAttrType, tupleStrSizes);
+                int tupleLength = tempTuple.getLength();
+                n = tupleLength;
+
+                byte[] record = new byte[tupleLength];
+                System.arraycopy(from, offset + length - tupleLength, record, 0, tupleLength);
+
+                Tuple tuple = new Tuple(record, 0, tupleLength);
+                tuple.setHdr(tupleFldCnt, tupleAttrType, tupleStrSizes);
+
+                if (keyType == AttrType.attrInteger) {
+                    key = new IntegerKey(tuple.getIntFld(keyIndex));
+                } else if (keyType == AttrType.attrString) {
+                    key = new StringKey(tuple.getStrFld(keyIndex));
+                } else if (keyType == AttrType.attrReal) {
+                    key = new FloatKey(tuple.getFloFld(keyIndex));
+                } else
+                    throw new KeyNotMatchException(null, "key types do not match");
+            } else {
+                if (keyType == AttrType.attrInteger) {
+                    key = new IntegerKey(new Integer
+                            (Convert.getIntValue(offset, from)));
+                } else if (keyType == AttrType.attrString) {
+                    //System.out.println(" offset  "+ offset + "  " + length + "  "+n);
+                    key = new StringKey(Convert.getStrValue(offset, from, length - n));
+                } else if (keyType == AttrType.attrReal) {
+                    // [SG]: add attrReal support
+                    key = new FloatKey(new Float(Convert.getFloValue(offset, from)));
+                } else
+                    throw new KeyNotMatchException(null, "key types do not match");
+            }
 
             return new KeyDataEntry(key, data);
 
-        } catch (IOException | InvalidTypeException | InvalidTupleSizeException e) {
+        } catch (IOException | InvalidTypeException | InvalidTupleSizeException | FieldNumberOutOfBoundException e) {
             throw new ConvertException(e, "convert faile");
         }
     }
@@ -281,14 +304,7 @@ public class BT implements GlobalConst {
 
             } else if (entry.data instanceof ClusteredLeafData) {
                 Tuple t1 = ((ClusteredLeafData) entry.data).getData();
-                byte[] val = t1.getTupleByteArray();
-                byte[] val1 = new byte[m + t1.getLength()];
-//            System.out.println(m+t1.getLength());
-
-                System.arraycopy(data, 0, val1, 0, m);
-                System.arraycopy(val, 0, val1, m, t1.getLength());
-                data = new byte[m + t1.getLength()];
-                System.arraycopy(val1, 0, data, 0, m + t1.getLength());
+                data = t1.getTupleByteArray();
             } else throw new NodeNotMatchException(null, "node types do not match");
             return data;
         } catch (IOException e) {
@@ -321,7 +337,7 @@ public class BT implements GlobalConst {
             ReplacerException,
             PageUnpinnedException,
             InvalidFrameNumberException {
-        BTSortedPage sortedPage = new BTSortedPage(pageno, keyType);
+        BTSortedPage sortedPage = new BTSortedPage(pageno, keyType, 0);
         int i;
         i = 0;
         if (sortedPage.getType() == NodeType.INDEX) {
@@ -437,7 +453,7 @@ public class BT implements GlobalConst {
             PageUnpinnedException,
             ReplacerException {
 
-        BTSortedPage sortedPage = new BTSortedPage(currentPageId, keyType);
+        BTSortedPage sortedPage = new BTSortedPage(currentPageId, keyType, 0);
         prefix = prefix + "       ";
         i++;
         if (sortedPage.getType() == NodeType.INDEX) {
@@ -506,7 +522,7 @@ public class BT implements GlobalConst {
             PageUnpinnedException,
             ReplacerException {
 
-        BTSortedPage sortedPage = new BTSortedPage(currentPageId, keyType);
+        BTSortedPage sortedPage = new BTSortedPage(currentPageId, keyType, 0);
 
         if (sortedPage.getType() == NodeType.INDEX) {
             BTIndexPage indexPage = new BTIndexPage((Page) sortedPage, keyType);
