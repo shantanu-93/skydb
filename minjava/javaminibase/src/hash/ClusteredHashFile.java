@@ -210,6 +210,17 @@ public class ClusteredHashFile extends HashFile {
 
     }
 
+    public ClusteredHashFileScan newScan(KeyClass lowKey, KeyClass highKey) {
+        ClusteredHashFileScan scan = new ClusteredHashFileScan();
+        scan.hashFile = this;
+        scan.lowKey = lowKey;
+        scan.highKey = highKey;
+        scan.tupleFldCnt = tupleFldCnt;
+        scan.tupleAttrType = tupleAttrType;
+        scan.tupleStrSizes = tupleStrSizes;
+        return scan;
+    }
+
     public void printIndex() throws IOException, InvalidTupleSizeException, InvalidTypeException {
         for (int i = 0; i <= headerPage.getBucketCount(); i++) {
             PageId bucketPageId = new PageId(buckets.get(i));
