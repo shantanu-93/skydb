@@ -1,9 +1,3 @@
-/*
- * @(#) BTIndexPage.java   98/05/14
- * Copyright (c) 1998 UW.  All Rights Reserved.
- *         Author: Xiaohu Li (xioahu@cs.wisc.edu)
- *
- */
 package btree;
 
 import global.*;
@@ -14,11 +8,6 @@ import heap.Tuple;
 
 import java.io.IOException;
 
-/**
- * BTFileScan implements a search/iterate interface to B+ tree
- * index files (class BTreeFile).  It derives from abstract base
- * class IndexFileScan.
- */
 public class BTClusteredFileScan extends IndexFileScan
         implements GlobalConst {
 

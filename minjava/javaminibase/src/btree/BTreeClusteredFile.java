@@ -1,10 +1,3 @@
-/*
- * @(#) bt.java   98/03/24
- * Copyright (c) 1998 UW.  All Rights Reserved.
- *         Author: Xiaohu Li (xioahu@cs.wisc.edu).
- *
- */
-
 package btree;
 
 import bufmgr.HashEntryNotFoundException;
@@ -20,12 +13,6 @@ import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-/**
- * btfile.java
- * This is the main definition of class BTreeFile, which derives from
- * abstract base class IndexFile.
- * It provides an insert/delete interface.
- */
 public class BTreeClusteredFile extends IndexFile
         implements GlobalConst {
 
@@ -36,15 +23,6 @@ public class BTreeClusteredFile extends IndexFile
     private static FileOutputStream fos;
     private static DataOutputStream trace;
 
-    /**
-     * It causes a structured trace to be written to a
-     * file.  This output is
-     * used to drive a visualization tool that shows the inner workings of the
-     * b-tree during its operations.
-     *
-     * @param filename input parameter. The trace file name
-     * @throws IOException error from the lower layer
-     */
     public static void traceFilename(String filename)
             throws IOException {
 
@@ -52,11 +30,6 @@ public class BTreeClusteredFile extends IndexFile
         trace = new DataOutputStream(fos);
     }
 
-    /**
-     * Stop tracing. And close trace file.
-     *
-     * @throws IOException error from the lower layer
-     */
     public static void destroyTrace()
             throws IOException {
         if (trace != null) trace.close();
@@ -73,12 +46,6 @@ public class BTreeClusteredFile extends IndexFile
     private AttrType[] tupleAttrType;
     private short[] tupleStrSizes;
 
-    /**
-     * Access method to data member.
-     *
-     * @return Return a BTreeHeaderPage object that is the header page
-     * of this btree file.
-     */
     public BTreeHeaderPage getHeaderPage() {
         return headerPage;
     }
@@ -157,16 +124,6 @@ public class BTreeClusteredFile extends IndexFile
         }
     }
 
-
-    /**
-     * BTreeFile class
-     * an index file with given filename should already exist; this opens it.
-     *
-     * @param filename the B+ tree file name. Input parameter.
-     * @throws GetFileEntryException  can not ger the file from DB
-     * @throws PinPageException       failed when pin a page
-     * @throws ConstructPageException BT page constructor failed
-     */
     public BTreeClusteredFile(String filename, short tupleFldCnt,
                               AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws GetFileEntryException,
@@ -188,22 +145,6 @@ public class BTreeClusteredFile extends IndexFile
          */
         System.out.println("lol" + headerPage.get_keyIndex());
     }
-
-
-    /**
-     * if index file exists, open it; else create it.
-     *
-     * @param filename       file name. Input parameter.
-     * @param keytype        the type of key. Input parameter.
-     * @param keysize        the maximum size of a key. Input parameter.
-     * @param delete_fashion full delete or naive delete. Input parameter.
-     *                       It is either DeleteFashion.NAIVE_DELETE or
-     *                       DeleteFashion.FULL_DELETE.
-     * @throws GetFileEntryException  can not get file
-     * @throws ConstructPageException page constructor failed
-     * @throws IOException            error from lower layer
-     * @throws AddFileEntryException  can not add file into DB
-     */
 
     public BTreeClusteredFile(String filename, int keytype,
                               int keysize, int keyindex, int delete_fashion, short tupleFldCnt,
@@ -237,14 +178,6 @@ public class BTreeClusteredFile extends IndexFile
         this.tupleStrSizes = tupleStrSizes;
     }
 
-    /**
-     * Close the B+ tree file.  Unpin header page.
-     *
-     * @throws PageUnpinnedException       error from the lower layer
-     * @throws InvalidFrameNumberException error from the lower layer
-     * @throws HashEntryNotFoundException  error from the lower layer
-     * @throws ReplacerException           error from the lower layer
-     */
     public void close()
             throws PageUnpinnedException,
             InvalidFrameNumberException,
@@ -256,17 +189,6 @@ public class BTreeClusteredFile extends IndexFile
         }
     }
 
-    /**
-     * Destroy entire B+ tree file.
-     *
-     * @throws IOException              error from the lower layer
-     * @throws IteratorException        iterator error
-     * @throws UnpinPageException       error  when unpin a page
-     * @throws FreePageException        error when free a page
-     * @throws DeleteFileEntryException failed when delete a file from DM
-     * @throws ConstructPageException   error in BT page constructor
-     * @throws PinPageException         failed when pin a page
-     */
     public void destroyFile()
             throws IOException,
             IteratorException,
@@ -340,29 +262,6 @@ public class BTreeClusteredFile extends IndexFile
 
     }
 
-
-    /**
-     * insert record with the given key and rid
-     *
-     * @param key the key of the record. Input parameter.
-     * @param rid the rid of the record. Input parameter.
-     * @throws KeyTooLongException     key size exceeds the max keysize.
-     * @throws KeyNotMatchException    key is not integer key nor string key
-     * @throws IOException             error from the lower layer
-     * @throws LeafInsertRecException  insert error in leaf page
-     * @throws IndexInsertRecException insert error in index page
-     * @throws ConstructPageException  error in BT page constructor
-     * @throws UnpinPageException      error when unpin a page
-     * @throws PinPageException        error when pin a page
-     * @throws NodeNotMatchException   node not match index page nor leaf page
-     * @throws ConvertException        error when convert between revord and byte
-     *                                 array
-     * @throws DeleteRecException      error when delete in index page
-     * @throws IndexSearchException    error when search
-     * @throws IteratorException       iterator error
-     * @throws LeafDeleteException     error when delete in leaf page
-     * @throws InsertException         error when insert in index page
-     */
     public void insert(KeyClass key, Tuple data)
             throws KeyTooLongException,
             KeyNotMatchException,
@@ -914,32 +813,6 @@ public class BTreeClusteredFile extends IndexFile
         }
     }
 
-
-    /**
-     * delete leaf entry  given its <key, rid> pair.
-     * `rid' is IN the data entry; it is not the id of the data entry)
-     *
-     * @param key the key in pair <key, rid>. Input Parameter.
-     * @param rid the rid in pair <key, rid>. Input Parameter.
-     * @return true if deleted. false if no such record.
-     * @throws DeleteFashionException    neither full delete nor naive delete
-     * @throws LeafRedistributeException redistribution error in leaf pages
-     * @throws RedistributeException     redistribution error in index pages
-     * @throws InsertRecException        error when insert in index page
-     * @throws KeyNotMatchException      key is neither integer key nor string key
-     * @throws UnpinPageException        error when unpin a page
-     * @throws IndexInsertRecException   error when insert in index page
-     * @throws FreePageException         error in BT page constructor
-     * @throws RecordNotFoundException   error delete a record in a BT page
-     * @throws PinPageException          error when pin a page
-     * @throws IndexFullDeleteException  fill delete error
-     * @throws LeafDeleteException       delete error in leaf page
-     * @throws IteratorException         iterator error
-     * @throws ConstructPageException    error in BT page constructor
-     * @throws DeleteRecException        error when delete in index page
-     * @throws IndexSearchException      error in search in index pages
-     * @throws IOException               error from the lower layer
-     */
     public boolean Delete(KeyClass key, Tuple data)
             throws DeleteFashionException,
             LeafRedistributeException,
