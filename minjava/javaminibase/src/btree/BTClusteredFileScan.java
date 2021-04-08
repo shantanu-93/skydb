@@ -7,6 +7,10 @@
 package btree;
 
 import global.*;
+import heap.InvalidSlotNumberException;
+import heap.InvalidTupleSizeException;
+import heap.InvalidTypeException;
+import heap.Tuple;
 
 import java.io.IOException;
 
@@ -93,6 +97,19 @@ public class BTClusteredFileScan extends IndexFileScan
             e.printStackTrace();
             throw new ScanIteratorException();
         }
+    }
+
+    public RID get_next_rid()
+            throws ScanIteratorException, IOException, InvalidSlotNumberException, InvalidTupleSizeException, InvalidTypeException {
+        RID tempRid = null;
+        if (leafPage != null) {
+//            Tuple record = leafPage.getRecord(curRid);
+//            record.setHdr(tupleFldCnt, tupleAttrType, tupleStrSizes);
+//            record.print(tupleAttrType);
+            tempRid = curRid;
+            get_next();
+        }
+        return tempRid;
     }
 
 
