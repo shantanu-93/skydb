@@ -1,5 +1,6 @@
 package hash;
 
+import btree.KeyNotMatchException;
 import global.AttrType;
 import global.PageId;
 import global.RID;
@@ -19,22 +20,23 @@ public class ClusteredHashFileScan {
     short[] tupleStrSizes;
 
     int bucketCount;
-    int noOfBuckets;
     RID currRid;
     RID currDataRid;
     ClusteredHashPage bucketPage;
 
     boolean didFirst;
-    boolean didFirstPage;
 
     ClusteredDataPage currPage;
     ClusteredHashRecord currRecord;
+
+    boolean equalityAnswerReturned;
 
 
 
     ClusteredHashFileScan() {
         bucketCount = 0;
         didFirst = false;
+        equalityAnswerReturned = false;
     }
 
     public Tuple getNextTuple() throws IOException, InvalidTupleSizeException, InvalidTypeException {
@@ -79,10 +81,16 @@ public class ClusteredHashFileScan {
     }
 
     public ClusteredHashRecord getNextRecord() throws IOException {
-        while (bucketCount <= hashFile.headerPage.getBucketCount()) {
-//            System.out.println("Bucket: " + bucketCount);
+        if (lowKey != null && highKey != null && lowKey.equals(highKey)) {
+            if (equalityAnswerReturned) {
+                return null;
+            }
+            int bucketKey = lowKey.getHash() % hashFile.headerPage.getNValue();
+            if (bucketKey < hashFile.headerPage.getNextValue()) {
+                bucketKey = lowKey.getHash() % (2 * hashFile.headerPage.getNValue());
+            }
             if (!didFirst) {
-                PageId bucketPageId = new PageId(hashFile.buckets.get(bucketCount));
+                PageId bucketPageId = new PageId(hashFile.buckets.get(bucketKey));
                 bucketPage = new ClusteredHashPage(bucketPageId);
                 currRid = bucketPage.firstRecord();
                 didFirst = true;
@@ -93,20 +101,64 @@ public class ClusteredHashFileScan {
                     byte[] bytesRecord = bucketPage.getBytesFromSlot(currRid.slotNo);
                     ClusteredHashRecord record = new ClusteredHashRecord(bytesRecord, hashFile.headerPage.getKeyType(), hashFile.headerPage.getKeySize());
                     currRid = bucketPage.nextRecord(currRid);
+                    if (!record.getKey().equals(lowKey)) {
+                        continue;
+                    }
+                    equalityAnswerReturned = true;
                     return record;
                 }
                 if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
 //                    System.out.println("lol");
-                    bucketPage = new ClusteredHashPage(bucketPage.getNextPage());;
+                    bucketPage = new ClusteredHashPage(bucketPage.getNextPage());
+                    ;
 //                    System.out.println(bucketPage.empty());
                     currRid = bucketPage.firstRecord();
                 } else {
                     break;
                 }
             }
+
+        } else {
+            while (bucketCount <= hashFile.headerPage.getBucketCount()) {
+//            System.out.println("Bucket: " + bucketCount);
+                if (!didFirst) {
+                    PageId bucketPageId = new PageId(hashFile.buckets.get(bucketCount));
+                    bucketPage = new ClusteredHashPage(bucketPageId);
+                    currRid = bucketPage.firstRecord();
+                    didFirst = true;
+                }
+
+                while (true) {
+                    if (currRid != null) {
+                        byte[] bytesRecord = bucketPage.getBytesFromSlot(currRid.slotNo);
+                        ClusteredHashRecord record = new ClusteredHashRecord(bytesRecord, hashFile.headerPage.getKeyType(), hashFile.headerPage.getKeySize());
+                        currRid = bucketPage.nextRecord(currRid);
+                        if (lowKey != null) {
+                            if (HashFile.keyCompare(lowKey, record.getKey()) > 0) {
+                                continue;
+                            }
+                        }
+                        if (highKey != null) {
+                            if (HashFile.keyCompare(highKey, record.getKey()) < 0) {
+                                continue;
+                            }
+                        }
+                        return record;
+                    }
+                    if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
+//                    System.out.println("lol");
+                        bucketPage = new ClusteredHashPage(bucketPage.getNextPage());
+                        ;
+//                    System.out.println(bucketPage.empty());
+                        currRid = bucketPage.firstRecord();
+                    } else {
+                        break;
+                    }
+                }
 //            System.out.println();
-            didFirst = false;
-            bucketCount++;
+                didFirst = false;
+                bucketCount++;
+            }
         }
 
         return null;

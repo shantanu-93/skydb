@@ -1,6 +1,11 @@
 package hash;
 
-import btree.*;
+import btree.GetFileEntryException;
+import btree.AddFileEntryException;
+import btree.PinPageException;
+import btree.UnpinPageException;
+import btree.FreePageException;
+import btree.DeleteFileEntryException;
 import bufmgr.HashEntryNotFoundException;
 import bufmgr.InvalidFrameNumberException;
 import bufmgr.PageUnpinnedException;
@@ -20,7 +25,7 @@ import iterator.UnknowAttrType;
 import java.io.IOException;
 import java.util.HashMap;
 
-public class HashFile extends IndexFile {
+public class HashFile {
 
     protected HashHeaderPage headerPage;
     protected PageId headerPageId;
@@ -435,4 +440,19 @@ public class HashFile extends IndexFile {
             throw new UnpinPageException(e, "");
         }
     }
+
+    public final static int keyCompare(KeyClass key1, KeyClass key2) {
+        if ((key1 instanceof IntegerKey) && (key2 instanceof IntegerKey)) {
+            return (((IntegerKey) key1).getKey()) - (((IntegerKey) key2).getKey());
+        } else if ((key1 instanceof FloatKey) && (key2 instanceof FloatKey)) {
+            // [SG]: add attrReal support
+//            return -1;
+            return Float.compare(((FloatKey) key1).getKey() ,((FloatKey) key2).getKey());
+        } else if ((key1 instanceof StringKey) && (key2 instanceof StringKey)) {
+            return ((StringKey) key1).getKey().compareTo(((StringKey) key2).getKey());
+        } else {
+            return -1;
+        }
+    }
+
 }
