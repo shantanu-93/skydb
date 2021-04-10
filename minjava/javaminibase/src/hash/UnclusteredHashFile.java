@@ -30,4 +30,12 @@ public class UnclusteredHashFile extends HashFile {
     public void deleteRecord(KeyClass key, RID rid) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException {
         super.deleteRecord(key, new UnclusteredHashRecord(key, rid));
     }
+
+    public UnclusteredHashFileScan newScan(KeyClass lowKey, KeyClass highKey) {
+        UnclusteredHashFileScan scan = new UnclusteredHashFileScan();
+        scan.hashFile = this;
+        scan.lowKey = lowKey;
+        scan.highKey = highKey;
+        return scan;
+    }
 }
