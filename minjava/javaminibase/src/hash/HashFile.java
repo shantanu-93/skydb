@@ -6,10 +6,7 @@ import btree.PinPageException;
 import btree.UnpinPageException;
 import btree.FreePageException;
 import btree.DeleteFileEntryException;
-import bufmgr.HashEntryNotFoundException;
-import bufmgr.InvalidFrameNumberException;
-import bufmgr.PageUnpinnedException;
-import bufmgr.ReplacerException;
+import bufmgr.*;
 import diskmgr.Page;
 import global.Convert;
 import global.PageId;
@@ -49,7 +46,7 @@ public class HashFile {
     }
 
     public HashFile(String filename, int keyType, int keySize, int targetUtilization, boolean isClustered)
-            throws GetFileEntryException, IOException, AddFileEntryException, ConstructPageException, InvalidSlotNumberException {
+            throws GetFileEntryException, IOException, AddFileEntryException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         this.headerPageId = get_file_entry(filename);
         this.buckets = new HashMap<>();
         this.isClustered = isClustered;
@@ -71,7 +68,7 @@ public class HashFile {
 
     }
 
-    public void initialiseFile() throws ConstructPageException, IOException {
+    public void initialiseFile() throws ConstructPageException, IOException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         for (int i = 0; i < headerPage.getNValue(); i++) {
             insertNewBucket();
         }
@@ -101,7 +98,7 @@ public class HashFile {
         }
     }
 
-    public void insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException {
+    public void insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
         key.setKeyType(headerPage.getKeyType());
         key.setKeySize(headerPage.getKeySize());
 
@@ -141,6 +138,7 @@ public class HashFile {
                 }
 
                 if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
+                    SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
                     bucketPage = getHashPage(bucketPage.getNextPage());
                     tempRid = bucketPage.firstRecord();
                 } else {
@@ -152,6 +150,8 @@ public class HashFile {
                 headerPage.setNValue(headerPage.getNValue() * 2);
                 headerPage.setNextValue(0);
             }
+            SystemDefs.JavabaseBM.unpinPage(newBucketPage.getCurPage(), true);
+            SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
         }
         headerPage.setNumOfRecords(headerPage.getNumOfRecords() + 1);
 //        printIndex();
@@ -177,13 +177,13 @@ public class HashFile {
 //        return null;
 //    }
 
-    public void insertNewBucket() throws IOException, ConstructPageException {
+    public void insertNewBucket() throws IOException, ConstructPageException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         headerPage.setBucketCount(headerPage.getBucketCount()+1);
-        HashPage page1 = getNewHashPage(HashPageType.HASH_BUCKET);
+        HashPage newBucketPage = getNewHashPage(HashPageType.HASH_BUCKET);
 
         byte[] tempData = new byte[8];
         Convert.setIntValue(headerPage.getBucketCount(), 0, tempData);
-        int bucketPageId = page1.getCurPage().pid;
+        int bucketPageId = newBucketPage.getCurPage().pid;
         Convert.setIntValue(bucketPageId, 4, tempData);
 
         RID recordRid = headerPage.insertRecord(tempData);
@@ -196,10 +196,12 @@ public class HashFile {
             PageId nextPageId = prevPage.getNextPage();
             nextPage = null;
             if (nextPageId.pid != HFPage.INVALID_PAGE) {
+                SystemDefs.JavabaseBM.unpinPage(prevPage.getCurPage(), true);
                 nextPage = new HashHeaderPage(nextPageId);
                 recordRid = nextPage.insertRecord(tempData);
                 recordInserted = recordRid != null;
                 if (recordInserted) {
+                    SystemDefs.JavabaseBM.unpinPage(nextPage.getCurPage(), true);
                     break;
                 }
             } else {
@@ -220,12 +222,15 @@ public class HashFile {
             prevPage.setNextPage(overflowPage.getCurPage());
             overflowPage.setPrevPage(prevPage.getCurPage());
             overflowPage.insertRecord(tempData);
+            SystemDefs.JavabaseBM.unpinPage(overflowPage.getCurPage(), true);
         }
 
-        buckets.put(headerPage.getBucketCount(), page1.getCurPage().pid);
+        SystemDefs.JavabaseBM.unpinPage(newBucketPage.getCurPage(), true);
+
+        buckets.put(headerPage.getBucketCount(), newBucketPage.getCurPage().pid);
     }
 
-    public void insertRecordToHashPage(PageId pageId, KeyClass key, HashRecord data) throws IOException, ConstructPageException {
+    public void insertRecordToHashPage(PageId pageId, KeyClass key, HashRecord data) throws IOException, ConstructPageException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         HashPage page = getHashPage(pageId);
         RID recordRid = page.insertRecord(key, data);
         // record id is null if insufficient space
@@ -239,10 +244,12 @@ public class HashFile {
             PageId nextPageId = prevPage.getNextPage();
             nextPage = null;
             if (nextPageId.pid != HFPage.INVALID_PAGE) {
+                SystemDefs.JavabaseBM.unpinPage(prevPage.getCurPage(), true);
                 nextPage = getHashPage(nextPageId);
                 recordRid = nextPage.insertRecord(key, data);
                 recordInserted = recordRid != null;
                 if (recordInserted) {
+                    SystemDefs.JavabaseBM.unpinPage(nextPage.getCurPage(), true);
                     break;
                 }
             } else {
@@ -262,6 +269,7 @@ public class HashFile {
             prevPage.setNextPage(overflowPage.getCurPage());
             overflowPage.setPrevPage(prevPage.getCurPage());
             overflowPage.insertRecord(key, data);
+            SystemDefs.JavabaseBM.unpinPage(overflowPage.getCurPage(), true);
         }
     }
 

@@ -1,9 +1,11 @@
 package hash;
 
 import btree.KeyNotMatchException;
+import bufmgr.*;
 import global.AttrType;
 import global.PageId;
 import global.RID;
+import global.SystemDefs;
 import heap.HFPage;
 import heap.InvalidTupleSizeException;
 import heap.InvalidTypeException;
@@ -39,8 +41,9 @@ public class ClusteredHashFileScan {
         equalityAnswerReturned = false;
     }
 
-    public Tuple getNextTuple() throws IOException, InvalidTupleSizeException, InvalidTypeException {
+    public Tuple getNextTuple() throws IOException, InvalidTupleSizeException, InvalidTypeException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
         getNext();
+//        SystemDefs.JavabaseBM.flushPages();
         if (currDataRid == null) {
             return null;
         }
@@ -49,7 +52,7 @@ public class ClusteredHashFileScan {
         return tup;
     }
 
-    public RID getNext() throws IOException, InvalidTupleSizeException, InvalidTypeException {
+    public RID getNext() throws IOException, InvalidTupleSizeException, InvalidTypeException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         if (currDataRid == null) {
             currRecord = getNextRecord();
             System.out.println(currRecord);
@@ -63,6 +66,7 @@ public class ClusteredHashFileScan {
             return currDataRid;
         } else if (currPage.getNextPage().pid != HFPage.INVALID_PAGE) {
 //            System.out.println("lol1");
+//            SystemDefs.JavabaseBM.unpinPage(currPage.getCurPage(), true);
             currPage = new ClusteredDataPage(currPage.getNextPage());
             currDataRid = currPage.firstRecord();
             return currDataRid;
@@ -71,6 +75,7 @@ public class ClusteredHashFileScan {
             currRecord = getNextRecord();
             if (currRecord != null) {
                 System.out.println(currRecord);
+//                SystemDefs.JavabaseBM.unpinPage(currPage.getCurPage(), true);
                 currPage = new ClusteredDataPage(currRecord.getPageId());
                 currDataRid = currPage.firstRecord();
                 return currDataRid;
@@ -80,7 +85,7 @@ public class ClusteredHashFileScan {
         }
     }
 
-    public ClusteredHashRecord getNextRecord() throws IOException {
+    public ClusteredHashRecord getNextRecord() throws IOException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         if (lowKey != null && highKey != null && lowKey.equals(highKey)) {
             if (equalityAnswerReturned) {
                 return null;
@@ -108,7 +113,8 @@ public class ClusteredHashFileScan {
                     return record;
                 }
                 if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
-//                    System.out.println("lol");
+                    System.out.println("lol");
+//                    SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
                     bucketPage = new ClusteredHashPage(bucketPage.getNextPage());
                     ;
 //                    System.out.println(bucketPage.empty());
@@ -147,6 +153,7 @@ public class ClusteredHashFileScan {
                     }
                     if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
 //                    System.out.println("lol");
+//                        SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
                         bucketPage = new ClusteredHashPage(bucketPage.getNextPage());
                         ;
 //                    System.out.println(bucketPage.empty());

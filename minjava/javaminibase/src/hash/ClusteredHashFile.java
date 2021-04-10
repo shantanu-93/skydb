@@ -2,9 +2,11 @@ package hash;
 
 import btree.AddFileEntryException;
 import btree.GetFileEntryException;
+import bufmgr.*;
 import global.AttrType;
 import global.PageId;
 import global.RID;
+import global.SystemDefs;
 import heap.*;
 import iterator.TupleUtils;
 import iterator.TupleUtilsException;
@@ -26,14 +28,14 @@ public class ClusteredHashFile extends HashFile {
     }
 
     public ClusteredHashFile(String filename, int targetUtilization, int keyType, int keySize, short tupleFldCnt,
-                             AttrType[] tupleAttrType, short[] tupleStrSizes) throws GetFileEntryException, IOException, AddFileEntryException, ConstructPageException, InvalidSlotNumberException {
+                             AttrType[] tupleAttrType, short[] tupleStrSizes) throws GetFileEntryException, IOException, AddFileEntryException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         super(filename, keyType, keySize, targetUtilization, true);
         this.tupleFldCnt = tupleFldCnt;
         this.tupleAttrType = tupleAttrType;
         this.tupleStrSizes = tupleStrSizes;
     }
 
-    public void insertRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException {
+    public void insertRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
         insertRecord(key, new ClusteredHashRecord(key, data));
     }
 
@@ -41,9 +43,10 @@ public class ClusteredHashFile extends HashFile {
         deleteRecord(key, new ClusteredHashRecord(key, data));
     }
 
-    public void insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException {
+    public void insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
         key.setKeyType(headerPage.getKeyType());
         key.setKeySize(headerPage.getKeySize());
+//        SystemDefs.JavabaseBM.flushPages();
 
         int bucketKey = key.getHash() % headerPage.getNValue();
         if (bucketKey < headerPage.getNextValue()) {
@@ -66,6 +69,7 @@ public class ClusteredHashFile extends HashFile {
                 tempRid = bucketPage.nextRecord(tempRid);
             }
             if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
+                SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
                 bucketPage = new ClusteredHashPage(bucketPage.getNextPage());
                 tempRid = bucketPage.firstRecord();
             } else {
@@ -79,6 +83,7 @@ public class ClusteredHashFile extends HashFile {
         if (dataPageFound) {
             ClusteredDataPage dataPage = new ClusteredDataPage(dataPageId);
             insertRecordToDataPage(dataPage, ((ClusteredHashRecord)data).getTupleBytes());
+//            SystemDefs.JavabaseBM.unpinPage(dataPage.getCurPage(), true);
         } else {
             ClusteredDataPage dataPage = new ClusteredDataPage(HashPageType.CLUSTERED_DATA);
             insertRecordToDataPage(dataPage, ((ClusteredHashRecord)data).getTupleBytes());
@@ -86,9 +91,10 @@ public class ClusteredHashFile extends HashFile {
 //            System.out.println("Adding page");
             super.insertRecord(key, data);
         }
+        SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
     }
 
-    public void insertRecordToDataPage(ClusteredDataPage page, byte[] data) throws IOException, ConstructPageException {
+    public void insertRecordToDataPage(ClusteredDataPage page, byte[] data) throws IOException, ConstructPageException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         RID recordRid = page.insertRecord(data);
         // record id is null if insufficient space
         boolean recordInserted = recordRid != null;
@@ -101,10 +107,12 @@ public class ClusteredHashFile extends HashFile {
             PageId nextPageId = prevPage.getNextPage();
             nextPage = null;
             if (nextPageId.pid != HFPage.INVALID_PAGE) {
+                SystemDefs.JavabaseBM.unpinPage(prevPage.getCurPage(), true);
                 nextPage = new ClusteredDataPage(nextPageId);
                 recordRid = nextPage.insertRecord(data);
                 recordInserted = recordRid != null;
                 if (recordInserted) {
+                    SystemDefs.JavabaseBM.unpinPage(nextPage.getCurPage(), true);
                     break;
                 }
             } else {
@@ -114,6 +122,7 @@ public class ClusteredHashFile extends HashFile {
             if (nextPage != null) {
                 prevPage = nextPage;
             } else {
+                SystemDefs.JavabaseBM.unpinPage(nextPage.getCurPage(), true);
                 break;
             }
         }
@@ -124,6 +133,7 @@ public class ClusteredHashFile extends HashFile {
             prevPage.setNextPage(overflowPage.getCurPage());
             overflowPage.setPrevPage(prevPage.getCurPage());
             overflowPage.insertRecord(data);
+            SystemDefs.JavabaseBM.unpinPage(overflowPage.getCurPage(), true);
         }
     }
 
