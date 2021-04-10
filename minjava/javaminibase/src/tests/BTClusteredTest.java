@@ -1,6 +1,10 @@
 package tests;
 
 import btree.*;
+import bufmgr.HashEntryNotFoundException;
+import bufmgr.InvalidFrameNumberException;
+import bufmgr.PageUnpinnedException;
+import bufmgr.ReplacerException;
 import global.*;
 import heap.Tuple;
 
@@ -116,140 +120,140 @@ class BTClusteredDriver extends TestDriver
     }
 
     protected boolean test1() {
-        System.out.println("------------------------ TEST 1 --------------------------");
-
-        System.out.println("\n -- Testing BTClustered with Float key and data  -- ");
-        boolean status = OK;
-
-        AttrType[] attrType = new AttrType[2];
-        attrType[0] = new AttrType(AttrType.attrReal);
-        attrType[1] = new AttrType(AttrType.attrReal);
-        short[] attrSize = new short[0];
-
-        Tuple t = new Tuple();
-
-        try {
-            t.setHdr((short) 2, attrType, attrSize);
-        } catch (Exception e) {
-            System.err.println("*** error in Tuple.setHdr() ***");
-            status = FAIL;
-            e.printStackTrace();
-        }
-
-        int size = t.size();
-
-        t = new Tuple(size);
-        try {
-            t.setHdr((short) 2, attrType, attrSize);
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
-        float inum1 = 0;
-        float inum2 = 0;
-
-        BTreeClusteredFile file = null;
-        try {
-            file = new BTreeClusteredFile("test1.in", AttrType.attrReal, 4, 1, (short) 2, attrType, attrSize);
-        } catch (GetFileEntryException e) {
-            e.printStackTrace();
-        } catch (ConstructPageException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (AddFileEntryException e) {
-            e.printStackTrace();
-        }
-
-        ArrayList<ArrayList<Float>> list = new ArrayList<>();
-
-        System.out.println("\n -- Inserting shuffled tuples -- ");
-        int num_elements = 1000;
-        for (int i = 0; i < num_elements; i++) {
-            // setting fields
-            inum1 = i + 1;
-            inum2 = num_elements - i;
-
-            ArrayList<Float> elem = new ArrayList<>();
-            elem.add(inum1);
-            elem.add(inum2);
-
-            list.add(elem);
-        }
-
-        Collections.shuffle(list);
-
-        for (int i = 0; i < num_elements; i++) {
-
-            try {
-                t.setFloFld(1, list.get(i).get(0));
-                t.setFloFld(2, list.get(i).get(1));
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            try {
-                file.insert(new FloatKey(list.get(i).get(0)), t);
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            System.out.println("fld1 = " + list.get(i).get(0) + " fld2 = " + list.get(i).get(1));
-        }
-        System.out.println("\n -- Scanning from 22.0 to 998.0, results should be sorted ");
-        FloatKey key1 = new FloatKey(22.0F);
-        FloatKey key2 = new FloatKey(998.0F);
-        BTClusteredFileScan scan = null;
-        try {
-
-            scan = file.new_scan(key1, key2);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (KeyNotMatchException e) {
-            e.printStackTrace();
-        } catch (IteratorException e) {
-            e.printStackTrace();
-        } catch (ConstructPageException e) {
-            e.printStackTrace();
-        } catch (PinPageException e) {
-            e.printStackTrace();
-        } catch (UnpinPageException e) {
-            e.printStackTrace();
-        }
-        KeyDataEntry data = null;
-        try {
-            data = scan.get_next();
-            if (data != null) {
-                try {
-                    ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        } catch (ScanIteratorException e) {
-            e.printStackTrace();
-        }
-
-        while (data != null) {
-            try {
-                data = scan.get_next();
-                if (data != null) {
-                    try {
-                        ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-            } catch (ScanIteratorException e) {
-                e.printStackTrace();
-            }
-
-        }
-
-        System.out.println("------------------- TEST 1 completed ---------------------\n");
+//        System.out.println("------------------------ TEST 1 --------------------------");
+//
+//        System.out.println("\n -- Testing BTClustered with Float key and data  -- ");
+//        boolean status = OK;
+//
+//        AttrType[] attrType = new AttrType[2];
+//        attrType[0] = new AttrType(AttrType.attrReal);
+//        attrType[1] = new AttrType(AttrType.attrReal);
+//        short[] attrSize = new short[0];
+//
+//        Tuple t = new Tuple();
+//
+//        try {
+//            t.setHdr((short) 2, attrType, attrSize);
+//        } catch (Exception e) {
+//            System.err.println("*** error in Tuple.setHdr() ***");
+//            status = FAIL;
+//            e.printStackTrace();
+//        }
+//
+//        int size = t.size();
+//
+//        t = new Tuple(size);
+//        try {
+//            t.setHdr((short) 2, attrType, attrSize);
+//        } catch (Exception e) {
+//            status = FAIL;
+//            e.printStackTrace();
+//        }
+//        float inum1 = 0;
+//        float inum2 = 0;
+//
+//        BTreeClusteredFile file = null;
+//        try {
+//            file = new BTreeClusteredFile("test1.in", AttrType.attrReal, 4, 1, (short) 2, attrType, attrSize);
+//        } catch (GetFileEntryException e) {
+//            e.printStackTrace();
+//        } catch (ConstructPageException e) {
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (AddFileEntryException e) {
+//            e.printStackTrace();
+//        }
+//
+//        ArrayList<ArrayList<Float>> list = new ArrayList<>();
+//
+//        System.out.println("\n -- Inserting shuffled tuples -- ");
+//        int num_elements = 1000;
+//        for (int i = 0; i < num_elements; i++) {
+//            // setting fields
+//            inum1 = i + 1;
+//            inum2 = num_elements - i;
+//
+//            ArrayList<Float> elem = new ArrayList<>();
+//            elem.add(inum1);
+//            elem.add(inum2);
+//
+//            list.add(elem);
+//        }
+//
+//        Collections.shuffle(list);
+//
+//        for (int i = 0; i < num_elements; i++) {
+//
+//            try {
+//                t.setFloFld(1, list.get(i).get(0));
+//                t.setFloFld(2, list.get(i).get(1));
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//
+//            try {
+//                file.insert(new FloatKey(list.get(i).get(0)), t);
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//
+//            System.out.println("fld1 = " + list.get(i).get(0) + " fld2 = " + list.get(i).get(1));
+//        }
+//        System.out.println("\n -- Scanning from 22.0 to 998.0, results should be sorted ");
+//        FloatKey key1 = new FloatKey(22.0F);
+//        FloatKey key2 = new FloatKey(998.0F);
+//        BTClusteredFileScan scan = null;
+//        try {
+//
+//            scan = file.new_scan(key1, key2);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (KeyNotMatchException e) {
+//            e.printStackTrace();
+//        } catch (IteratorException e) {
+//            e.printStackTrace();
+//        } catch (ConstructPageException e) {
+//            e.printStackTrace();
+//        } catch (PinPageException e) {
+//            e.printStackTrace();
+//        } catch (UnpinPageException e) {
+//            e.printStackTrace();
+//        }
+//        KeyDataEntry data = null;
+//        try {
+//            data = scan.get_next();
+//            if (data != null) {
+//                try {
+//                    ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        } catch (ScanIteratorException e) {
+//            e.printStackTrace();
+//        }
+//
+//        while (data != null) {
+//            try {
+//                data = scan.get_next();
+//                if (data != null) {
+//                    try {
+//                        ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//
+//            } catch (ScanIteratorException e) {
+//                e.printStackTrace();
+//            }
+//
+//        }
+//
+//        System.out.println("------------------- TEST 1 completed ---------------------\n");
 
         return false;
     }
@@ -298,12 +302,14 @@ class BTClusteredDriver extends TestDriver
             status = FAIL;
             e.printStackTrace();
         }
-        float inum1 = 0;
-        float inum2 = 0;
+        int inum1 = 0;
+        int inum2 = 0;
 
         BTreeClusteredFile file = null;
         try {
-            file = new BTreeClusteredFile("test2.in", AttrType.attrString, 32, 1, (short) 2, attrType, attrSize);
+            file = new BTreeClusteredFile("test2.in", AttrType.attrString, 32, 1, 1, (short) 2, attrType, attrSize);
+            file.close();
+            file = new BTreeClusteredFile("test2.in", (short) 2, attrType, attrSize);
         } catch (GetFileEntryException e) {
             e.printStackTrace();
         } catch (ConstructPageException e) {
@@ -312,9 +318,19 @@ class BTClusteredDriver extends TestDriver
             e.printStackTrace();
         } catch (AddFileEntryException e) {
             e.printStackTrace();
+        } catch (PageUnpinnedException e) {
+            e.printStackTrace();
+        } catch (InvalidFrameNumberException e) {
+            e.printStackTrace();
+        } catch (HashEntryNotFoundException e) {
+            e.printStackTrace();
+        } catch (ReplacerException e) {
+            e.printStackTrace();
+        } catch (PinPageException e) {
+            e.printStackTrace();
         }
 
-        ArrayList<ArrayList<Float>> list = new ArrayList<>();
+        ArrayList<ArrayList<Integer>> list = new ArrayList<>();
 
         System.out.println("\n -- Generating random tuples -- ");
         int num_elements = 1000;
@@ -323,7 +339,7 @@ class BTClusteredDriver extends TestDriver
             inum1 = i + 1;
             inum2 = num_elements - i;
 
-            ArrayList<Float> elem = new ArrayList<>();
+            ArrayList<Integer> elem = new ArrayList<>();
             elem.add(inum1);
             elem.add(inum2);
 
@@ -343,7 +359,7 @@ class BTClusteredDriver extends TestDriver
             }
 
             try {
-                file.insert(new StringKey(randStr), t);
+                file.insert(new StringKey(t.getStrFld(1)), t);
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -404,212 +420,212 @@ class BTClusteredDriver extends TestDriver
     }
 
     protected boolean test3() {
-        System.out.println("------------------------ TEST 3 --------------------------");
+//        System.out.println("------------------------ TEST 3 --------------------------");
+//
+//        System.out.println("\n -- Testing BTClustered Deletion  -- ");
+//        boolean status = OK;
+//
+//        AttrType[] attrType = new AttrType[2];
+//        attrType[0] = new AttrType(AttrType.attrReal);
+//        attrType[1] = new AttrType(AttrType.attrReal);
+//        short[] attrSize = new short[0];
+//
+//        Tuple t = new Tuple();
+//
+//        try {
+//            t.setHdr((short) 2, attrType, attrSize);
+//        } catch (Exception e) {
+//            System.err.println("*** error in Tuple.setHdr() ***");
+//            status = FAIL;
+//            e.printStackTrace();
+//        }
+//
+//        int size = t.size();
+//
+//        t = new Tuple(size);
+//        try {
+//            t.setHdr((short) 2, attrType, attrSize);
+//        } catch (Exception e) {
+//            status = FAIL;
+//            e.printStackTrace();
+//        }
+//        float inum1 = 0;
+//        float inum2 = 0;
+//
+//        BTreeClusteredFile file = null;
+//        try {
+//            file = new BTreeClusteredFile("test3.in", AttrType.attrReal, 4, 1, (short) 2, attrType, attrSize);
+//        } catch (GetFileEntryException e) {
+//            e.printStackTrace();
+//        } catch (ConstructPageException e) {
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (AddFileEntryException e) {
+//            e.printStackTrace();
+//        }
+//
+//        ArrayList<ArrayList<Float>> list = new ArrayList<>();
+//
+//        System.out.println("\n -- Inserting random tuples -- ");
+//        int num_elements = 1000;
+//        for (int i = 0; i < num_elements; i++) {
+//            // setting fields
+//            inum1 = i + 1;
+//            inum2 = num_elements - i;
+//
+//            ArrayList<Float> elem = new ArrayList<>();
+//            elem.add(inum1);
+//            elem.add(inum2);
+//
+//            list.add(elem);
+//        }
+//
+//        Collections.shuffle(list);
+//
+//        for (int i = 0; i < num_elements; i++) {
+//
+//            try {
+//                t.setFloFld(1, list.get(i).get(0));
+//                t.setFloFld(2, list.get(i).get(1));
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//
+//            try {
+//                file.insert(new FloatKey(list.get(i).get(0)), t);
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//
+//            System.out.println("fld1 = " + list.get(i).get(0) + " fld2 = " + list.get(i).get(1));
+//        }
+//        FloatKey key1 = new FloatKey(22.0F);
+//        FloatKey key2 = new FloatKey(998.0F);
+//        BTClusteredFileScan scan = null;
+//        try {
+//
+//            scan = file.new_scan(key1, key2);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (KeyNotMatchException e) {
+//            e.printStackTrace();
+//        } catch (IteratorException e) {
+//            e.printStackTrace();
+//        } catch (ConstructPageException e) {
+//            e.printStackTrace();
+//        } catch (PinPageException e) {
+//            e.printStackTrace();
+//        } catch (UnpinPageException e) {
+//            e.printStackTrace();
+//        }
+//        KeyDataEntry data = null;
+//        try {
+//            data = scan.get_next();
+//            if (data != null) {
+//                try {
+//                    ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        } catch (ScanIteratorException e) {
+//            e.printStackTrace();
+//        }
+//
+//        while (data != null) {
+//            try {
+//                data = scan.get_next();
+//                if (data != null) {
+//                    try {
+//                        ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//
+//            } catch (ScanIteratorException e) {
+//                e.printStackTrace();
+//            }
+//
+//        }
+//
+//        System.out.println("\n -- Deleting 500 tuples -- ");
+//        for (int i = 0; i < num_elements-500; i++) {
+//            // setting fields
+//            inum1 = i+1;
+//            inum2 = num_elements-i;
+//
+//            try {
+//                t.setFloFld(1, inum1);
+//                t.setFloFld(2, inum2);
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//
+//            try {
+//                file.Delete(new FloatKey(inum1), t);
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//
+//            System.out.println("fld1 = " + inum1 + " fld2 = " + inum2);
+//        }
+//        System.out.println("\n -- Scanning from 22.0 to 998.0, after deletion ");
+//        try {
+//            scan = file.new_scan(key1, key2);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (KeyNotMatchException e) {
+//            e.printStackTrace();
+//        } catch (IteratorException e) {
+//            e.printStackTrace();
+//        } catch (ConstructPageException e) {
+//            e.printStackTrace();
+//        } catch (PinPageException e) {
+//            e.printStackTrace();
+//        } catch (UnpinPageException e) {
+//            e.printStackTrace();
+//        }
+//        try {
+//            data = scan.get_next();
+//            if (data!= null) {
+//                try {
+//                    ((Tuple)((ClusteredLeafData)data.data).getData()).print(attrType);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }}
+//        } catch (ScanIteratorException e) {
+//            e.printStackTrace();
+//        }
+//
+//        while (data != null) {
+//            try {
+//                data = scan.get_next();
+//                if (data!= null) {
+//                    try {
+//                        ((Tuple)((ClusteredLeafData)data.data).getData()).print(attrType);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//
+//            } catch (ScanIteratorException e) {
+//                e.printStackTrace();
+//            }
+//
+//        }
+//
+//
+//
+//
+//        System.out.println("------------------- TEST 3 completed ---------------------\n");
 
-        System.out.println("\n -- Testing BTClustered Deletion  -- ");
-        boolean status = OK;
-
-        AttrType[] attrType = new AttrType[2];
-        attrType[0] = new AttrType(AttrType.attrReal);
-        attrType[1] = new AttrType(AttrType.attrReal);
-        short[] attrSize = new short[0];
-
-        Tuple t = new Tuple();
-
-        try {
-            t.setHdr((short) 2, attrType, attrSize);
-        } catch (Exception e) {
-            System.err.println("*** error in Tuple.setHdr() ***");
-            status = FAIL;
-            e.printStackTrace();
-        }
-
-        int size = t.size();
-
-        t = new Tuple(size);
-        try {
-            t.setHdr((short) 2, attrType, attrSize);
-        } catch (Exception e) {
-            status = FAIL;
-            e.printStackTrace();
-        }
-        float inum1 = 0;
-        float inum2 = 0;
-
-        BTreeClusteredFile file = null;
-        try {
-            file = new BTreeClusteredFile("test3.in", AttrType.attrReal, 4, 1, (short) 2, attrType, attrSize);
-        } catch (GetFileEntryException e) {
-            e.printStackTrace();
-        } catch (ConstructPageException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (AddFileEntryException e) {
-            e.printStackTrace();
-        }
-
-        ArrayList<ArrayList<Float>> list = new ArrayList<>();
-
-        System.out.println("\n -- Inserting random tuples -- ");
-        int num_elements = 1000;
-        for (int i = 0; i < num_elements; i++) {
-            // setting fields
-            inum1 = i + 1;
-            inum2 = num_elements - i;
-
-            ArrayList<Float> elem = new ArrayList<>();
-            elem.add(inum1);
-            elem.add(inum2);
-
-            list.add(elem);
-        }
-
-        Collections.shuffle(list);
-
-        for (int i = 0; i < num_elements; i++) {
-
-            try {
-                t.setFloFld(1, list.get(i).get(0));
-                t.setFloFld(2, list.get(i).get(1));
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            try {
-                file.insert(new FloatKey(list.get(i).get(0)), t);
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            System.out.println("fld1 = " + list.get(i).get(0) + " fld2 = " + list.get(i).get(1));
-        }
-        FloatKey key1 = new FloatKey(22.0F);
-        FloatKey key2 = new FloatKey(998.0F);
-        BTClusteredFileScan scan = null;
-        try {
-
-            scan = file.new_scan(key1, key2);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (KeyNotMatchException e) {
-            e.printStackTrace();
-        } catch (IteratorException e) {
-            e.printStackTrace();
-        } catch (ConstructPageException e) {
-            e.printStackTrace();
-        } catch (PinPageException e) {
-            e.printStackTrace();
-        } catch (UnpinPageException e) {
-            e.printStackTrace();
-        }
-        KeyDataEntry data = null;
-        try {
-            data = scan.get_next();
-            if (data != null) {
-                try {
-                    ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        } catch (ScanIteratorException e) {
-            e.printStackTrace();
-        }
-
-        while (data != null) {
-            try {
-                data = scan.get_next();
-                if (data != null) {
-                    try {
-                        ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-            } catch (ScanIteratorException e) {
-                e.printStackTrace();
-            }
-
-        }
-
-        System.out.println("\n -- Deleting 500 tuples -- ");
-        for (int i = 0; i < num_elements-500; i++) {
-            // setting fields
-            inum1 = i+1;
-            inum2 = num_elements-i;
-
-            try {
-                t.setFloFld(1, inum1);
-                t.setFloFld(2, inum2);
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            try {
-                file.Delete(new FloatKey(inum1), t);
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            System.out.println("fld1 = " + inum1 + " fld2 = " + inum2);
-        }
-        System.out.println("\n -- Scanning from 22.0 to 998.0, after deletion ");
-        try {
-            scan = file.new_scan(key1, key2);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (KeyNotMatchException e) {
-            e.printStackTrace();
-        } catch (IteratorException e) {
-            e.printStackTrace();
-        } catch (ConstructPageException e) {
-            e.printStackTrace();
-        } catch (PinPageException e) {
-            e.printStackTrace();
-        } catch (UnpinPageException e) {
-            e.printStackTrace();
-        }
-        try {
-            data = scan.get_next();
-            if (data!= null) {
-                try {
-                    ((Tuple)((ClusteredLeafData)data.data).getData()).print(attrType);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }}
-        } catch (ScanIteratorException e) {
-            e.printStackTrace();
-        }
-
-        while (data != null) {
-            try {
-                data = scan.get_next();
-                if (data!= null) {
-                    try {
-                        ((Tuple)((ClusteredLeafData)data.data).getData()).print(attrType);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-            } catch (ScanIteratorException e) {
-                e.printStackTrace();
-            }
-
-        }
-
-
-
-
-        System.out.println("------------------- TEST 3 completed ---------------------\n");
-
-        return status;
+        return true;
     }
 
     protected boolean test4() {

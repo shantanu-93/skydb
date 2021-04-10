@@ -33,7 +33,7 @@ public class BTLeafPage extends BTSortedPage {
     throws IOException, 
 	   ConstructPageException
     {
-      super(pageno, keyType);
+      super(pageno, keyType, 0);
       setType(NodeType.LEAF);
     }
   
@@ -50,7 +50,7 @@ public class BTLeafPage extends BTSortedPage {
     throws IOException, 
 	   ConstructPageException
     {
-      super(page, keyType);
+      super(page, keyType, 0);
       setType(NodeType.LEAF);
     }  
   
@@ -65,7 +65,7 @@ public class BTLeafPage extends BTSortedPage {
     throws IOException, 
 	   ConstructPageException
     {
-      super(keyType);
+      super(keyType, 0);
       setType(NodeType.LEAF);
     }  
   
