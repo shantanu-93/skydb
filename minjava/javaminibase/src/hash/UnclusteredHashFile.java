@@ -2,6 +2,7 @@ package hash;
 
 import btree.AddFileEntryException;
 import btree.GetFileEntryException;
+import bufmgr.*;
 import global.RID;
 import heap.InvalidSlotNumberException;
 import heap.InvalidTupleSizeException;
@@ -18,15 +19,23 @@ public class UnclusteredHashFile extends HashFile {
         super(filename,false);
     }
 
-    public UnclusteredHashFile(String filename, int keyType, int keySize, int targetUtilization) throws GetFileEntryException, IOException, AddFileEntryException, ConstructPageException, InvalidSlotNumberException {
+    public UnclusteredHashFile(String filename, int keyType, int keySize, int targetUtilization) throws GetFileEntryException, IOException, AddFileEntryException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         super(filename, keyType, keySize, targetUtilization,false);
     }
 
-    public void insertRecord(KeyClass key, RID rid) throws IOException, ConstructPageException, InvalidSlotNumberException {
+    public void insertRecord(KeyClass key, RID rid) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
         super.insertRecord(key, new UnclusteredHashRecord(key, rid));
     }
 
     public void deleteRecord(KeyClass key, RID rid) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException {
         super.deleteRecord(key, new UnclusteredHashRecord(key, rid));
+    }
+
+    public UnclusteredHashFileScan newScan(KeyClass lowKey, KeyClass highKey) {
+        UnclusteredHashFileScan scan = new UnclusteredHashFileScan();
+        scan.hashFile = this;
+        scan.lowKey = lowKey;
+        scan.highKey = highKey;
+        return scan;
     }
 }

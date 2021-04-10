@@ -6,6 +6,9 @@ import bufmgr.InvalidFrameNumberException;
 import bufmgr.PageUnpinnedException;
 import bufmgr.ReplacerException;
 import global.*;
+import heap.InvalidSlotNumberException;
+import heap.InvalidTupleSizeException;
+import heap.InvalidTypeException;
 import heap.Tuple;
 
 import java.io.IOException;
@@ -385,31 +388,35 @@ class BTClusteredDriver extends TestDriver
             e.printStackTrace();
         }
         KeyDataEntry data = null;
+        RID tempRid = null;
         try {
-            data = scan.get_next();
-            if (data != null) {
-                try {
-                    ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+             tempRid = scan.get_next_rid();
+//            System.out.println(tempRid.slotNo);
         } catch (ScanIteratorException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InvalidTypeException e) {
+            e.printStackTrace();
+        } catch (InvalidSlotNumberException e) {
+            e.printStackTrace();
+        } catch (InvalidTupleSizeException e) {
             e.printStackTrace();
         }
 
-        while (data != null) {
+        while (tempRid != null) {
             try {
-                data = scan.get_next();
-                if (data != null) {
-                    try {
-                        ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
+                tempRid = scan.get_next_rid();
+//                System.out.println(tempRid.slotNo);
             } catch (ScanIteratorException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InvalidTypeException e) {
+                e.printStackTrace();
+            } catch (InvalidSlotNumberException e) {
+                e.printStackTrace();
+            } catch (InvalidTupleSizeException e) {
                 e.printStackTrace();
             }
 
