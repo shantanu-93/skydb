@@ -115,7 +115,21 @@ class BTreeHeaderPage extends HFPage {
   int get_deleteFashion() 
     throws IOException
     { 
-      return getSlotLength(2); 
+      return getSlotLength(2);
+    }
+
+    void set_keyIndex(int keyIndex )
+            throws IOException
+    {
+      setSlot(4, keyIndex, 0);
+    }
+
+    /** get the delete fashion
+     */
+    int get_keyIndex()
+            throws IOException
+    {
+      return getSlotLength(4);
     }
   
   

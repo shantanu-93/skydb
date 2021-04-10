@@ -24,6 +24,7 @@ public class BTSortedPage extends HFPage {
 
 
     int keyType; //it will be initialized in BTFile
+    int keyIndex;
 
 
     /**
@@ -35,13 +36,14 @@ public class BTSortedPage extends HFPage {
      *                AttrType.attrString or AttrType.attrInteger.
      * @throws ConstructPageException error for BTSortedPage constructor
      */
-    public BTSortedPage(PageId pageno, int keyType)
+    public BTSortedPage(PageId pageno, int keyType, int keyIndex)
             throws ConstructPageException {
         super();
         try {
             // super();
             SystemDefs.JavabaseBM.pinPage(pageno, this, false/*Rdisk*/);
             this.keyType = keyType;
+            this.keyIndex = keyIndex;
         } catch (Exception e) {
             throw new ConstructPageException(e, "construct sorted page failed");
         }
@@ -55,10 +57,11 @@ public class BTSortedPage extends HFPage {
      * @param keyType input parameter. It specifies the type of key. It can be
      *                AttrType.attrString or AttrType.attrInteger.
      */
-    public BTSortedPage(Page page, int keyType) {
+    public BTSortedPage(Page page, int keyType, int keyIndex) {
 
         super(page);
         this.keyType = keyType;
+        this.keyIndex = keyIndex;
     }
 
 
@@ -69,7 +72,7 @@ public class BTSortedPage extends HFPage {
      *                AttrType.attrString or AttrType.attrInteger.
      * @throws ConstructPageException error for BTSortedPage constructor
      */
-    public BTSortedPage(int keyType)
+    public BTSortedPage(int keyType, int keyIndex)
             throws ConstructPageException {
         super();
         try {
@@ -79,6 +82,7 @@ public class BTSortedPage extends HFPage {
                 throw new ConstructPageException(null, "construct new page failed");
             this.init(pageId, apage);
             this.keyType = keyType;
+            this.keyIndex = keyIndex;
         } catch (Exception e) {
             e.printStackTrace();
             throw new ConstructPageException(e, "construct sorted page failed");
@@ -139,10 +143,10 @@ public class BTSortedPage extends HFPage {
                 KeyClass key_i, key_iplus1;
 
                 key_i = BT.getEntryFromBytes(getpage(), getSlotOffset(i),
-                        getSlotLength(i), keyType, nType, tupleFldCnt, tupleAttrType, tupleStrSizes).key;
+                        getSlotLength(i), keyType, keyIndex, nType, tupleFldCnt, tupleAttrType, tupleStrSizes).key;
 
                 key_iplus1 = BT.getEntryFromBytes(getpage(), getSlotOffset(i - 1),
-                        getSlotLength(i - 1), keyType, nType, tupleFldCnt, tupleAttrType, tupleStrSizes).key;
+                        getSlotLength(i - 1), keyType, keyIndex, nType, tupleFldCnt, tupleAttrType, tupleStrSizes).key;
 
                 if (BT.keyCompare(key_i, key_iplus1) < 0) {
                     // switch slots:

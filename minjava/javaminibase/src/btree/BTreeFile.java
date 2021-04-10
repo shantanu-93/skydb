@@ -290,7 +290,7 @@ public class BTreeFile extends IndexFile
       
       BTSortedPage sortedPage;
       Page page=pinPage(pageno) ;
-      sortedPage= new BTSortedPage( page, headerPage.get_keyType());
+      sortedPage= new BTSortedPage( page, headerPage.get_keyType(), headerPage.get_keyIndex());
       
       if (sortedPage.getType() == NodeType.INDEX) {
 	BTIndexPage indexPage= new BTIndexPage( page, headerPage.get_keyType());
@@ -565,7 +565,7 @@ public class BTreeFile extends IndexFile
       
       
       page=pinPage(currentPageId);
-      currentPage=new BTSortedPage(page, headerPage.get_keyType());      
+      currentPage=new BTSortedPage(page, headerPage.get_keyType(), headerPage.get_keyIndex());
       
       if ( trace!=null )
 	{
@@ -1052,7 +1052,7 @@ public class BTreeFile extends IndexFile
       }
       
       page= pinPage(pageno);
-      sortPage=new BTSortedPage(page, headerPage.get_keyType());
+      sortPage=new BTSortedPage(page, headerPage.get_keyType(), headerPage.get_keyIndex());
       
       
       if ( trace!=null ) {
@@ -1080,7 +1080,7 @@ public class BTreeFile extends IndexFile
 	
 	pageno = prevpageno;
 	page=pinPage(pageno);
-	sortPage=new BTSortedPage(page, headerPage.get_keyType()); 
+	sortPage=new BTSortedPage(page, headerPage.get_keyType(), headerPage.get_keyIndex());
 	
 	
 	if ( trace!=null )
@@ -1336,7 +1336,7 @@ public class BTreeFile extends IndexFile
       BTSortedPage  sortPage;
       Page page;
       page=pinPage(currentPageId);
-      sortPage=new BTSortedPage(page, headerPage.get_keyType());
+      sortPage=new BTSortedPage(page, headerPage.get_keyType(), headerPage.get_keyIndex());
       
       
       if ( trace!=null )
@@ -1582,7 +1582,7 @@ public class BTreeFile extends IndexFile
 	  if (indexPage.numberOfRecords() == 0) {
 	    BTSortedPage childPage;
 	    childPage=new BTSortedPage(indexPage.getPrevPage(),
-				       headerPage.get_keyType()); 
+				       headerPage.get_keyType(), headerPage.get_keyIndex());
 	    
 	    
 	    if ( trace !=null )
@@ -1815,7 +1815,7 @@ public class BTreeFile extends IndexFile
 	PageId childPageId;
 	KeyClass key;
 	KeyDataEntry entry;
-	sortedPage=new BTSortedPage( pinPage( id), headerPage.get_keyType());
+	sortedPage=new BTSortedPage( pinPage( id), headerPage.get_keyType(), headerPage.get_keyIndex());
 	
 	
 	// Now print all the child nodes of the page.  

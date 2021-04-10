@@ -21,4 +21,9 @@ public class PCounter {
     public static void writeIncrement() {
         wcounter++;
     }
+
+    public static void printStats() {
+        System.out.println("\nRead statistics "+rcounter);
+        System.out.println("Write statistics "+wcounter);
+    }
 }

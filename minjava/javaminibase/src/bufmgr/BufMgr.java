@@ -538,7 +538,11 @@ public class BufMgr implements GlobalConst{
 	   PagePinnedException, 
 	   BufMgrException,
 	   IOException
-    { 
+    {
+        if(!(PCounter.rh.contains(pin_pgid.pid))){
+            PCounter.rh.add(pin_pgid.pid);
+            PCounter.readIncrement();
+        }
       int     frameNo;
       boolean bst, bst2; 
       PageId  oldpageNo = new PageId(-1);
@@ -642,6 +646,11 @@ public class BufMgr implements GlobalConst{
 	   HashEntryNotFoundException, 
 	   InvalidFrameNumberException
     {
+
+        if(!(PCounter.wh.contains(PageId_in_a_DB.pid)) && (PCounter.rh.contains(PageId_in_a_DB.pid))){
+            PCounter.wh.add(PageId_in_a_DB.pid);
+            PCounter.writeIncrement();
+        }
       
       int frameNo;
       

@@ -1,10 +1,3 @@
-/*
- * @(#) bt.java   98/03/24
- * Copyright (c) 1998 UW.  All Rights Reserved.
- *         Author: Xiaohu Li (xioahu@cs.wisc.edu).
- *
- */
-
 package btree;
 
 import bufmgr.HashEntryNotFoundException;
@@ -20,12 +13,6 @@ import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-/**
- * btfile.java
- * This is the main definition of class BTreeFile, which derives from
- * abstract base class IndexFile.
- * It provides an insert/delete interface.
- */
 public class BTreeClusteredFile extends IndexFile
         implements GlobalConst {
 
@@ -36,16 +23,6 @@ public class BTreeClusteredFile extends IndexFile
     private static FileOutputStream fos;
     private static DataOutputStream trace;
 
-
-    /**
-     * It causes a structured trace to be written to a
-     * file.  This output is
-     * used to drive a visualization tool that shows the inner workings of the
-     * b-tree during its operations.
-     *
-     * @param filename input parameter. The trace file name
-     * @throws IOException error from the lower layer
-     */
     public static void traceFilename(String filename)
             throws IOException {
 
@@ -53,11 +30,6 @@ public class BTreeClusteredFile extends IndexFile
         trace = new DataOutputStream(fos);
     }
 
-    /**
-     * Stop tracing. And close trace file.
-     *
-     * @throws IOException error from the lower layer
-     */
     public static void destroyTrace()
             throws IOException {
         if (trace != null) trace.close();
@@ -74,12 +46,6 @@ public class BTreeClusteredFile extends IndexFile
     private AttrType[] tupleAttrType;
     private short[] tupleStrSizes;
 
-    /**
-     * Access method to data member.
-     *
-     * @return Return a BTreeHeaderPage object that is the header page
-     * of this btree file.
-     */
     public BTreeHeaderPage getHeaderPage() {
         return headerPage;
     }
@@ -158,24 +124,17 @@ public class BTreeClusteredFile extends IndexFile
         }
     }
 
-
-    /**
-     * BTreeFile class
-     * an index file with given filename should already exist; this opens it.
-     *
-     * @param filename the B+ tree file name. Input parameter.
-     * @throws GetFileEntryException  can not ger the file from DB
-     * @throws PinPageException       failed when pin a page
-     * @throws ConstructPageException BT page constructor failed
-     */
-    public BTreeClusteredFile(String filename)
+    public BTreeClusteredFile(String filename, short tupleFldCnt,
+                              AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws GetFileEntryException,
             PinPageException,
-            ConstructPageException {
+            ConstructPageException, IOException {
 
 
         headerPageId = get_file_entry(filename);
-
+        this.tupleFldCnt = tupleFldCnt;
+        this.tupleAttrType = tupleAttrType;
+        this.tupleStrSizes = tupleStrSizes;
         headerPage = new BTreeHeaderPage(headerPageId);
         dbname = new String(filename);
         /*
@@ -184,25 +143,11 @@ public class BTreeClusteredFile extends IndexFile
          * - headerPage, headerPageId valid and pinned
          * - dbname contains a copy of the name of the database
          */
+        System.out.println("lol" + headerPage.get_keyIndex());
     }
 
-
-    /**
-     * if index file exists, open it; else create it.
-     *
-     * @param filename       file name. Input parameter.
-     * @param keytype        the type of key. Input parameter.
-     * @param keysize        the maximum size of a key. Input parameter.
-     * @param delete_fashion full delete or naive delete. Input parameter.
-     *                       It is either DeleteFashion.NAIVE_DELETE or
-     *                       DeleteFashion.FULL_DELETE.
-     * @throws GetFileEntryException  can not get file
-     * @throws ConstructPageException page constructor failed
-     * @throws IOException            error from lower layer
-     * @throws AddFileEntryException  can not add file into DB
-     */
     public BTreeClusteredFile(String filename, int keytype,
-                              int keysize, int delete_fashion, short tupleFldCnt,
+                              int keysize, int keyindex, int delete_fashion, short tupleFldCnt,
                               AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws GetFileEntryException,
             ConstructPageException,
@@ -222,6 +167,7 @@ public class BTreeClusteredFile extends IndexFile
             headerPage.set_maxKeySize(keysize);
             headerPage.set_deleteFashion(delete_fashion);
             headerPage.setType(NodeType.BTHEAD);
+            headerPage.set_keyIndex(keyindex);
         } else {
             headerPage = new BTreeHeaderPage(headerPageId);
         }
@@ -232,14 +178,6 @@ public class BTreeClusteredFile extends IndexFile
         this.tupleStrSizes = tupleStrSizes;
     }
 
-    /**
-     * Close the B+ tree file.  Unpin header page.
-     *
-     * @throws PageUnpinnedException       error from the lower layer
-     * @throws InvalidFrameNumberException error from the lower layer
-     * @throws HashEntryNotFoundException  error from the lower layer
-     * @throws ReplacerException           error from the lower layer
-     */
     public void close()
             throws PageUnpinnedException,
             InvalidFrameNumberException,
@@ -251,17 +189,6 @@ public class BTreeClusteredFile extends IndexFile
         }
     }
 
-    /**
-     * Destroy entire B+ tree file.
-     *
-     * @throws IOException              error from the lower layer
-     * @throws IteratorException        iterator error
-     * @throws UnpinPageException       error  when unpin a page
-     * @throws FreePageException        error when free a page
-     * @throws DeleteFileEntryException failed when delete a file from DM
-     * @throws ConstructPageException   error in BT page constructor
-     * @throws PinPageException         failed when pin a page
-     */
     public void destroyFile()
             throws IOException,
             IteratorException,
@@ -292,7 +219,7 @@ public class BTreeClusteredFile extends IndexFile
 
         BTSortedPage sortedPage;
         Page page = pinPage(pageno);
-        sortedPage = new BTSortedPage(page, headerPage.get_keyType());
+        sortedPage = new BTSortedPage(page, headerPage.get_keyType(), headerPage.get_keyIndex());
 
         if (sortedPage.getType() == NodeType.INDEX) {
             BTIndexPage indexPage = new BTIndexPage(page, headerPage.get_keyType());
@@ -335,29 +262,6 @@ public class BTreeClusteredFile extends IndexFile
 
     }
 
-
-    /**
-     * insert record with the given key and rid
-     *
-     * @param key the key of the record. Input parameter.
-     * @param rid the rid of the record. Input parameter.
-     * @throws KeyTooLongException     key size exceeds the max keysize.
-     * @throws KeyNotMatchException    key is not integer key nor string key
-     * @throws IOException             error from the lower layer
-     * @throws LeafInsertRecException  insert error in leaf page
-     * @throws IndexInsertRecException insert error in index page
-     * @throws ConstructPageException  error in BT page constructor
-     * @throws UnpinPageException      error when unpin a page
-     * @throws PinPageException        error when pin a page
-     * @throws NodeNotMatchException   node not match index page nor leaf page
-     * @throws ConvertException        error when convert between revord and byte
-     *                                 array
-     * @throws DeleteRecException      error when delete in index page
-     * @throws IndexSearchException    error when search
-     * @throws IteratorException       iterator error
-     * @throws LeafDeleteException     error when delete in leaf page
-     * @throws InsertException         error when insert in index page
-     */
     public void insert(KeyClass key, Tuple data)
             throws KeyTooLongException,
             KeyNotMatchException,
@@ -418,7 +322,7 @@ public class BTreeClusteredFile extends IndexFile
             BTClusteredLeafPage newRootPage;
             RID dummyrid;
 
-            newRootPage = new BTClusteredLeafPage(headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+            newRootPage = new BTClusteredLeafPage(headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
             newRootPageId = newRootPage.getCurPage();
 
 
@@ -550,7 +454,7 @@ public class BTreeClusteredFile extends IndexFile
 
 
         page = pinPage(currentPageId);
-        currentPage = new BTSortedPage(page, headerPage.get_keyType());
+        currentPage = new BTSortedPage(page, headerPage.get_keyType(), headerPage.get_keyIndex());
 
         if (trace != null) {
             trace.writeBytes("VISIT node " + currentPageId + lineSep);
@@ -751,7 +655,7 @@ public class BTreeClusteredFile extends IndexFile
 
         } else if (currentPage.getType() == NodeType.LEAF_CLUSTERED) {
             BTClusteredLeafPage currentLeafPage =
-                    new BTClusteredLeafPage(page, headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+                    new BTClusteredLeafPage(page, headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
 
             PageId currentLeafPageId = currentPageId;
 
@@ -787,7 +691,7 @@ public class BTreeClusteredFile extends IndexFile
             PageId newLeafPageId;
             // we have to allocate a new LEAF page and
             // to redistribute the data entries entries
-            newLeafPage = new BTClusteredLeafPage(headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+            newLeafPage = new BTClusteredLeafPage(headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
             newLeafPageId = newLeafPage.getCurPage();
 
             newLeafPage.setNextPage(currentLeafPage.getNextPage());
@@ -800,7 +704,7 @@ public class BTreeClusteredFile extends IndexFile
             rightPageId = newLeafPage.getNextPage();
             if (rightPageId.pid != INVALID_PAGE) {
                 BTClusteredLeafPage rightPage;
-                rightPage = new BTClusteredLeafPage(rightPageId, headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+                rightPage = new BTClusteredLeafPage(rightPageId, headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
 
                 rightPage.setPrevPage(newLeafPageId);
                 unpinPage(rightPageId, true /* = DIRTY */);
@@ -909,32 +813,6 @@ public class BTreeClusteredFile extends IndexFile
         }
     }
 
-
-    /**
-     * delete leaf entry  given its <key, rid> pair.
-     * `rid' is IN the data entry; it is not the id of the data entry)
-     *
-     * @param key the key in pair <key, rid>. Input Parameter.
-     * @param rid the rid in pair <key, rid>. Input Parameter.
-     * @return true if deleted. false if no such record.
-     * @throws DeleteFashionException    neither full delete nor naive delete
-     * @throws LeafRedistributeException redistribution error in leaf pages
-     * @throws RedistributeException     redistribution error in index pages
-     * @throws InsertRecException        error when insert in index page
-     * @throws KeyNotMatchException      key is neither integer key nor string key
-     * @throws UnpinPageException        error when unpin a page
-     * @throws IndexInsertRecException   error when insert in index page
-     * @throws FreePageException         error in BT page constructor
-     * @throws RecordNotFoundException   error delete a record in a BT page
-     * @throws PinPageException          error when pin a page
-     * @throws IndexFullDeleteException  fill delete error
-     * @throws LeafDeleteException       delete error in leaf page
-     * @throws IteratorException         iterator error
-     * @throws ConstructPageException    error in BT page constructor
-     * @throws DeleteRecException        error when delete in index page
-     * @throws IndexSearchException      error in search in index pages
-     * @throws IOException               error from the lower layer
-     */
     public boolean Delete(KeyClass key, Tuple data)
             throws DeleteFashionException,
             LeafRedistributeException,
@@ -1011,7 +889,7 @@ public class BTreeClusteredFile extends IndexFile
         }
 
         page = pinPage(pageno);
-        sortPage = new BTSortedPage(page, headerPage.get_keyType());
+        sortPage = new BTSortedPage(page, headerPage.get_keyType(), headerPage.get_keyIndex());
 
 
         if (trace != null) {
@@ -1039,7 +917,7 @@ public class BTreeClusteredFile extends IndexFile
 
             pageno = prevpageno;
             page = pinPage(pageno);
-            sortPage = new BTSortedPage(page, headerPage.get_keyType());
+            sortPage = new BTSortedPage(page, headerPage.get_keyType(), headerPage.get_keyIndex());
 
 
             if (trace != null) {
@@ -1050,7 +928,7 @@ public class BTreeClusteredFile extends IndexFile
 
         }
 
-        pageLeaf = new BTClusteredLeafPage(page, headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+        pageLeaf = new BTClusteredLeafPage(page, headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
 
         curEntry = pageLeaf.getFirst(startrid);
         while (curEntry == null) {
@@ -1063,7 +941,7 @@ public class BTreeClusteredFile extends IndexFile
             }
 
             pageno = nextpageno;
-            pageLeaf = new BTClusteredLeafPage(pinPage(pageno), headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+            pageLeaf = new BTClusteredLeafPage(pinPage(pageno), headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
             curEntry = pageLeaf.getFirst(startrid);
         }
 
@@ -1090,7 +968,7 @@ public class BTreeClusteredFile extends IndexFile
                 }
 
                 pageno = nextpageno;
-                pageLeaf = new BTClusteredLeafPage(pinPage(pageno), headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+                pageLeaf = new BTClusteredLeafPage(pinPage(pageno), headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
 
                 curEntry = pageLeaf.getFirst(startrid);
             }
@@ -1157,7 +1035,7 @@ public class BTreeClusteredFile extends IndexFile
                 }
 
                 leafPage = new BTClusteredLeafPage(pinPage(nextpage),
-                        headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+                        headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
                 entry = leafPage.getFirst(new RID());
             }
 
@@ -1184,7 +1062,7 @@ public class BTreeClusteredFile extends IndexFile
             nextpage = leafPage.getNextPage();
             unpinPage(leafPage.getCurPage());
 
-            leafPage = new BTClusteredLeafPage(pinPage(nextpage), headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+            leafPage = new BTClusteredLeafPage(pinPage(nextpage), headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
 
             entry = leafPage.getFirst(curRid);
         }
@@ -1288,7 +1166,7 @@ public class BTreeClusteredFile extends IndexFile
         BTSortedPage sortPage;
         Page page;
         page = pinPage(currentPageId);
-        sortPage = new BTSortedPage(page, headerPage.get_keyType());
+        sortPage = new BTSortedPage(page, headerPage.get_keyType(), headerPage.get_keyIndex());
 
 
         if (trace != null) {
@@ -1304,7 +1182,7 @@ public class BTreeClusteredFile extends IndexFile
             RID dummyRid;
             PageId nextpage;
             BTClusteredLeafPage leafPage;
-            leafPage = new BTClusteredLeafPage(page, headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+            leafPage = new BTClusteredLeafPage(page, headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
 
 
             KeyClass deletedKey = key;
@@ -1374,7 +1252,7 @@ public class BTreeClusteredFile extends IndexFile
                         }
 
                         siblingPage = new BTClusteredLeafPage(pinPage(siblingPageId),
-                                headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+                                headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
 
 
                         if (siblingPage.redistribute(leafPage, parentPage,
@@ -1429,7 +1307,7 @@ public class BTreeClusteredFile extends IndexFile
                             leftChild.setNextPage(rightChild.getNextPage());
                             if (rightChild.getNextPage().pid != INVALID_PAGE) {
                                 BTClusteredLeafPage nextLeafPage = new BTClusteredLeafPage(
-                                        rightChild.getNextPage(), headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+                                        rightChild.getNextPage(), headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
                                 nextLeafPage.setPrevPage(leftChild.getCurPage());
                                 unpinPage(nextLeafPage.getCurPage(), true);
                             }
@@ -1473,7 +1351,7 @@ public class BTreeClusteredFile extends IndexFile
                 if (nextpage.pid == INVALID_PAGE)
                     throw new RecordNotFoundException(null, "");
 
-                leafPage = new BTClusteredLeafPage(pinPage(nextpage), headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+                leafPage = new BTClusteredLeafPage(pinPage(nextpage), headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
                 tmpEntry = leafPage.getFirst(curRid);
 
             } //while loop
@@ -1523,7 +1401,7 @@ public class BTreeClusteredFile extends IndexFile
                 if (indexPage.numberOfRecords() == 0) {
                     BTSortedPage childPage;
                     childPage = new BTSortedPage(indexPage.getPrevPage(),
-                            headerPage.get_keyType());
+                            headerPage.get_keyType(), headerPage.get_keyIndex());
 
 
                     if (trace != null) {
@@ -1713,7 +1591,7 @@ public class BTreeClusteredFile extends IndexFile
             ConstructPageException,
             PinPageException,
             UnpinPageException {
-        BTClusteredFileScan scan = new BTClusteredFileScan(tupleFldCnt, tupleAttrType, tupleStrSizes);
+        BTClusteredFileScan scan = new BTClusteredFileScan();
         if (headerPage.get_rootId().pid == INVALID_PAGE) {
             scan.leafPage = null;
             return scan;
@@ -1727,6 +1605,10 @@ public class BTreeClusteredFile extends IndexFile
         scan.keyType = headerPage.get_keyType();
         scan.maxKeysize = headerPage.get_maxKeySize();
         scan.bfile = this;
+        scan.tupleFldCnt = tupleFldCnt;
+        scan.tupleAttrType = tupleAttrType;
+        scan.tupleStrSizes = tupleStrSizes;
+        scan.keyIndex = headerPage.get_keyIndex();
 
         //this sets up scan at the starting position, ready for iteration
         scan.leafPage = findRunStart(lo_key, scan.curRid);
@@ -1747,7 +1629,7 @@ public class BTreeClusteredFile extends IndexFile
             PageId childPageId;
             KeyClass key;
             KeyDataEntry entry;
-            sortedPage = new BTSortedPage(pinPage(id), headerPage.get_keyType());
+            sortedPage = new BTSortedPage(pinPage(id), headerPage.get_keyType(), headerPage.get_keyIndex());
 
 
             // Now print all the child nodes of the page.
@@ -1761,7 +1643,7 @@ public class BTreeClusteredFile extends IndexFile
                     trace.writeBytes("   " + ((IndexData) entry.data).getData());
                 }
             } else if (sortedPage.getType() == NodeType.LEAF_CLUSTERED) {
-                BTClusteredLeafPage leafPage = new BTClusteredLeafPage(sortedPage, headerPage.get_keyType(), tupleFldCnt, tupleAttrType, tupleStrSizes);
+                BTClusteredLeafPage leafPage = new BTClusteredLeafPage(sortedPage, headerPage.get_keyType(), headerPage.get_keyIndex(), tupleFldCnt, tupleAttrType, tupleStrSizes);
                 trace.writeBytes("LEAF CHILDREN " + id + " nodes" + lineSep);
                 for (entry = leafPage.getFirst(metaRid);
                      entry != null;

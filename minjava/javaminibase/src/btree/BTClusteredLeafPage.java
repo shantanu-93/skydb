@@ -1,10 +1,3 @@
-/*
- * @(#) BTIndexPage.java   98/05/14
- * Copyright (c) 1998 UW.  All Rights Reserved.
- *         Author: Xiaohu Li (xioahu@cs.wisc.edu)
- *
- */
-
 package btree;
 
 import diskmgr.Page;
@@ -21,85 +14,41 @@ public class BTClusteredLeafPage extends BTSortedPage {
     private short tupleFldCnt;
     private AttrType[] tupleAttrType;
     private short[] tupleStrSizes;
+    private int keyIndex;
 
-    /**
-     * pin the page with pageno, and get the corresponding BTLeafPage,
-     * also it sets the type to be NodeType.LEAF.
-     *
-     * @param pageno  Input parameter. To specify which page number the
-     *                BTLeafPage will correspond to.
-     * @param keyType either AttrType.attrInteger or AttrType.attrString.
-     *                Input parameter.
-     * @throws IOException            error from the lower layer
-     * @throws ConstructPageException BTLeafPage constructor error
-     */
-    public BTClusteredLeafPage(PageId pageno, int keyType, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
+    public BTClusteredLeafPage(PageId pageno, int keyType, int keyIndex, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws IOException,
             ConstructPageException {
-        super(pageno, keyType);
+        super(pageno, keyType, keyIndex);
         setType(NodeType.LEAF_CLUSTERED);
         this.tupleFldCnt = tupleFldCnt;
         this.tupleAttrType = tupleAttrType;
         this.tupleStrSizes = tupleStrSizes;
+        this.keyIndex = keyIndex;
     }
 
-    /**
-     * associate the BTLeafPage instance with the Page instance,
-     * also it sets the type to be NodeType.LEAF.
-     *
-     * @param page    input parameter. To specify which page  the
-     *                BTLeafPage will correspond to.
-     * @param keyType either AttrType.attrInteger or AttrType.attrString.
-     *                Input parameter.
-     * @throws IOException            error from the lower layer
-     * @throws ConstructPageException BTLeafPage constructor error
-     */
-    public BTClusteredLeafPage(Page page, int keyType, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
+    public BTClusteredLeafPage(Page page, int keyType, int keyIndex, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws IOException,
             ConstructPageException {
-        super(page, keyType);
+        super(page, keyType, keyIndex);
         setType(NodeType.LEAF_CLUSTERED);
         this.tupleFldCnt = tupleFldCnt;
         this.tupleAttrType = tupleAttrType;
         this.tupleStrSizes = tupleStrSizes;
+        this.keyIndex = keyIndex;
     }
 
-    /**
-     * new a page, associate the BTLeafPage instance with the Page instance,
-     * also it sets the type to be NodeType.LEAF.
-     *
-     * @param keyType either AttrType.attrInteger or AttrType.attrString.
-     *                Input parameter.
-     * @throws IOException            error from the lower layer
-     * @throws ConstructPageException BTLeafPage constructor error
-     */
-    public BTClusteredLeafPage(int keyType, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
+    public BTClusteredLeafPage(int keyType, int keyIndex, short tupleFldCnt, AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws IOException,
             ConstructPageException {
-        super(keyType);
+        super(keyType, keyIndex);
         setType(NodeType.LEAF_CLUSTERED);
         this.tupleFldCnt = tupleFldCnt;
         this.tupleAttrType = tupleAttrType;
         this.tupleStrSizes = tupleStrSizes;
+        this.keyIndex = keyIndex;
     }
 
-
-    /**
-     * insertRecord
-     * READ THIS DESCRIPTION CAREFULLY. THERE ARE TWO RIDs
-     * WHICH MEAN TWO DIFFERENT THINGS.
-     * Inserts a key, rid value into the leaf node. This is
-     * accomplished by a call to SortedPage::insertRecord()
-     * Parameters:
-     *
-     * @param key     - the key value of the data record. Input parameter.
-     * @param dataRid - the rid of the data record. This is
-     *                stored on the leaf page along with the
-     *                corresponding key value. Input parameter.
-     * @return - the rid of the inserted leaf record data entry,
-     * i.e., the <key, dataRid> pair.
-     * @throws LeafInsertRecException error when insert
-     */
     public RID insertRecord(KeyClass key, Tuple data)
             throws LeafInsertRecException {
         KeyDataEntry entry;
@@ -113,18 +62,6 @@ public class BTClusteredLeafPage extends BTSortedPage {
         }
     } // end of insertRecord
 
-
-    /**
-     * Iterators.
-     * One of the two functions: getFirst and getNext
-     * which  provide an iterator interface to the records on a BTLeafPage.
-     *
-     * @param rid It will be modified and the first rid in the leaf page
-     *            will be passed out by itself. Input and Output parameter.
-     * @return return the first KeyDataEntry in the leaf page.
-     * null if no more record
-     * @throws IteratorException iterator error
-     */
     public KeyDataEntry getFirst(RID rid)
             throws IteratorException {
 
@@ -139,26 +76,13 @@ public class BTClusteredLeafPage extends BTSortedPage {
             }
 
             entry = BT.getEntryFromBytes(getpage(), getSlotOffset(0), getSlotLength(0),
-                    keyType, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+                    keyType, keyIndex, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
 
             return entry;
         } catch (Exception e) {
             throw new IteratorException(e, "Get first entry failed");
         }
     } // end of getFirst
-
-
-    /**
-     * Iterators.
-     * One of the two functions: getFirst and getNext which  provide an
-     * iterator interface to the records on a BTLeafPage.
-     *
-     * @param rid It will be modified and the next rid will be passed out
-     *            by itself. Input and Output parameter.
-     * @return return the next KeyDataEntry in the leaf page.
-     * null if no more record.
-     * @throws IteratorException iterator error
-     */
 
     public KeyDataEntry getNext(RID rid)
             throws IteratorException {
@@ -173,7 +97,7 @@ public class BTClusteredLeafPage extends BTSortedPage {
             }
 
             entry = BT.getEntryFromBytes(getpage(), getSlotOffset(i), getSlotLength(i),
-                    keyType, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+                    keyType, keyIndex, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
 
             return entry;
         } catch (Exception e) {
@@ -181,30 +105,12 @@ public class BTClusteredLeafPage extends BTSortedPage {
         }
     }
 
-
-    /**
-     * getCurrent returns the current record in the iteration; it is like
-     * getNext except it does not advance the iterator.
-     *
-     * @param rid the current rid. Input and Output parameter. But
-     *            Output=Input.
-     * @return return the current KeyDataEntry
-     * @throws IteratorException iterator error
-     */
     public KeyDataEntry getCurrent(RID rid)
             throws IteratorException {
         rid.slotNo--;
         return getNext(rid);
     }
 
-
-    /**
-     * delete a data entry in the leaf page.
-     *
-     * @param dEntry the entry will be deleted in the leaf page. Input parameter.
-     * @return true if deleted; false if no dEntry in the page
-     * @throws LeafDeleteException error when delete
-     */
     public boolean delEntry(KeyDataEntry dEntry)
             throws LeafDeleteException {
         KeyDataEntry entry;
@@ -226,16 +132,6 @@ public class BTClusteredLeafPage extends BTSortedPage {
 
     } // end of delEntry
 
-    /*used in full delete
-     *@param leafPage the sibling page of this. Input parameter.
-     *@param parentIndexPage the parant of leafPage and this. Input parameter.
-     *@param direction -1 if "this" is left sibling of leafPage ;
-     *      1 if "this" is right sibling of leafPage. Input parameter.
-     *@param deletedKey the key which was already deleted, and cause
-     *        redistribution. Input parameter.
-     *@exception LeafRedistributeException
-     *@return true if redistrbution success. false if we can not redistribute them.
-     */
     boolean redistribute(BTClusteredLeafPage leafPage, BTIndexPage parentIndexPage,
                          int direction, KeyClass deletedKey)
             throws LeafRedistributeException {
@@ -253,7 +149,7 @@ public class BTClusteredLeafPage extends BTSortedPage {
                     // get the last record
                     KeyDataEntry lastEntry;
                     lastEntry = BT.getEntryFromBytes(getpage(), getSlotOffset(getSlotCnt() - 1)
-                            , getSlotLength(getSlotCnt() - 1), keyType, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+                            , getSlotLength(getSlotCnt() - 1), keyType, keyIndex, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
 
 
                     //get its sibling's first record's key for adjusting parent pointer
@@ -292,7 +188,7 @@ public class BTClusteredLeafPage extends BTSortedPage {
                     // get the first record
                     KeyDataEntry firstEntry;
                     firstEntry = BT.getEntryFromBytes(getpage(), getSlotOffset(0),
-                            getSlotLength(0), keyType,
+                            getSlotLength(0), keyType, keyIndex,
                             NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
 
                     // insert it into its sibling
@@ -324,9 +220,8 @@ public class BTClusteredLeafPage extends BTSortedPage {
         } catch (Exception e) {
             throw new LeafRedistributeException(e, "redistribute failed");
         }
-    } // end of redistribute
-
-} // end of BTLeafPage
+    }
+}
 
     
  
