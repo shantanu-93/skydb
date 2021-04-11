@@ -8,8 +8,7 @@ import heap.Tuple;
 
 import java.io.IOException;
 
-public class BTClusteredFileScan extends IndexFileScan
-        implements GlobalConst {
+public class BTClusteredFileScan implements GlobalConst {
 
     BTreeClusteredFile bfile;
     String treeFilename;     // B+ tree we're scanning
@@ -43,7 +42,7 @@ public class BTClusteredFileScan extends IndexFileScan
      * @return null if done; otherwise next KeyDataEntry
      * @throws ScanIteratorException iterator error
      */
-    public KeyDataEntry get_next()
+    public KeyDataEntry get_next(RID TupleRid)
             throws ScanIteratorException {
 
         KeyDataEntry entry;
@@ -80,7 +79,8 @@ public class BTClusteredFileScan extends IndexFileScan
                     leafPage = null;
                     return null;
                 }
-
+            TupleRid.pageNo = curRid.pageNo;
+            TupleRid.slotNo = curRid.slotNo;
             return entry;
         } catch (Exception e) {
             e.printStackTrace();
@@ -96,7 +96,9 @@ public class BTClusteredFileScan extends IndexFileScan
 //            record.setHdr(tupleFldCnt, tupleAttrType, tupleStrSizes);
 //            record.print(tupleAttrType);
             tempRid = curRid;
-            get_next();
+
+            RID testRid = new RID();
+            get_next(testRid);
         }
         return tempRid;
     }
