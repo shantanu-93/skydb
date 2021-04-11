@@ -179,6 +179,8 @@ class BTClusteredDriver extends TestDriver
 
         Collections.shuffle(list);
 
+        // System.out.println(list);
+
         for (int i = 0; i < num_elements; i++) {
 
             try {
@@ -196,7 +198,7 @@ class BTClusteredDriver extends TestDriver
                 e.printStackTrace();
             }
 
-            System.out.println("fld1 = " + list.get(i).get(0) + " fld2 = " + list.get(i).get(1));
+            // System.out.println("fld1 = " + list.get(i).get(0) + " fld2 = " + list.get(i).get(1));
         }
         System.out.println("\n -- Scanning from 22.0 to 998.0, results should be sorted ");
         FloatKey key1 = new FloatKey(22.0F);
