@@ -1,15 +1,24 @@
 package queryinterface;
 
+import btree.ConstructPageException;
+import btree.IntegerKey;
+import btree.StringKey;
 import btree.*;
 import bufmgr.*;
-import catalog.attrInfo;
 import diskmgr.PCounter;
-import global.*;
+import global.AttrType;
+import global.GlobalConst;
+import global.RID;
+import global.SystemDefs;
+import hash.*;
 import heap.*;
 import iterator.*;
 import tests.TestDriver;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -22,17 +31,37 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     private static RID rid;
     private static int _n_pages;
     private static Heapfile f = null;
+    private static String METAFILE_POSTFIX = "-meta";
+    private static BTreeFile bTreeUnclusteredFile = null;
+    private static BTreeClusteredFile bTreeClusteredFile = null;
+    private static ClusteredHashFile hashFile = null;
+    private static UnclusteredHashFile unclusteredHashFile = null;
+    private static Heapfile indexCatalogFile = null;
     private static boolean status = OK;
     private static int nColumns;
     private static AttrType[] attrType;
     private static short[] attrSizes;
+    private static String[] attrNames;
+    private static AttrType[] indexAttrTypes;
+    private static short[] indexAttrSizes;
+    private static AttrType[] metaAttrTypes;
+    private static short[] metaAttrSizes;
+    private static Tuple indexTuple;
+    private static Tuple metaTuple;
     private static short tSize = 34;
+    private static short attrStringSize = 32;
     private static int[] pref_list;
     private static FldSpec[] projlist;
     private static RelSpec rel = new RelSpec(RelSpec.outer);
     private SystemDefs sysDef;
     private static boolean indexesCreated;
     private boolean dbClosed = true;
+    public static final short CLUSTERED_HASH = 0;
+    public static final short CLUSTERED_BTREE = 1;
+    public static final short UNCLUSTERED_HASH = 2;
+    public static final short UNCLUSTERED_BTREE = 3;
+    public static final short NO_INDEX = 4;
+    public static final String INDEX_FILE_NAME = "indexCatalog";
 
     private void menuInterface() {
         System.out.println("-------------------------- MENU --------------------------");
@@ -64,6 +93,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     }
 
     public boolean runTests() {
+        initMetaAndIndexAttrs();
         boolean _pass = runAllTests();
 
         //Clean up again
@@ -72,15 +102,79 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             closeDB();
         }
 
-        System.out.print ("\n" + "..." + testName() + " tests ");
-        System.out.print (_pass==OK ? "completely successfully" : "failed");
-        System.out.print (".\n\n");
+        System.out.print("\n" + "..." + testName() + " tests ");
+        System.out.print(_pass == OK ? "completed successfully" : "failed");
+        System.out.print(".\n\n");
 
         return _pass;
     }
 
     protected String testName() {
         return "Query Interface Driver";
+    }
+
+    private void initMetaAndIndexAttrs() {
+        // For Index
+        short size;
+        indexTuple = new Tuple();
+        indexAttrTypes = new AttrType[4];
+
+        indexAttrTypes[0] = new AttrType(AttrType.attrString); // For relName
+        indexAttrTypes[1] = new AttrType(AttrType.attrString); // For attrName
+        indexAttrTypes[2] = new AttrType(AttrType.attrInteger);// For indexType
+        indexAttrTypes[3] = new AttrType(AttrType.attrInteger);// For keyIndex
+
+        indexAttrSizes = new short[2];
+        indexAttrSizes[0] = (short) attrStringSize;
+        indexAttrSizes[1] = (short) attrStringSize;
+
+        try {
+            indexTuple.setHdr((short) 4, indexAttrTypes, indexAttrSizes);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to set tuple header!");
+        }
+
+        size = indexTuple.size();
+
+        indexTuple = new Tuple(size);
+        try {
+            indexTuple.setHdr((short) 4, indexAttrTypes, indexAttrSizes);
+        } catch (Exception e) {
+            System.err.println("*** error in Tuple.setHdr() ***");
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        //For Attrs
+        metaTuple = new Tuple();
+        metaAttrTypes = new AttrType[3];
+
+        metaAttrTypes[0] = new AttrType(AttrType.attrString); // For attrName
+        metaAttrTypes[1] = new AttrType(AttrType.attrInteger);// For indexType
+        metaAttrTypes[2] = new AttrType(AttrType.attrInteger);// For attrLen
+
+        metaAttrSizes = new short[1];
+        metaAttrSizes[0] = (short) attrStringSize;
+
+        try {
+            metaTuple.setHdr((short) 3, metaAttrTypes, metaAttrSizes);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to set tuple header!");
+
+        }
+
+        size = metaTuple.size();
+
+        metaTuple = new Tuple(size);
+        try {
+            metaTuple.setHdr((short) 3, metaAttrTypes, metaAttrSizes);
+        } catch (Exception e) {
+            System.err.println("*** error in Tuple.setHdr() ***");
+            status = FAIL;
+            e.printStackTrace();
+        }
     }
 
     protected boolean runAllTests() {
@@ -90,7 +184,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         System.out.println();
         while (choice != 0) {
             menuInterface();
-
+            status = OK;
             try {
                 choice = GetStuff.getChoice();
                 if (choice != 1 && dbClosed && choice != 0) {
@@ -112,14 +206,11 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             break;
 
                         case 3:
-                            System.out.print("Enter Filename: ");
-                            fname = GetStuff.getStringChoice();
-                            System.out.println();
-                            createTable(fname);
+                            createTableMenu();
                             break;
 
                         case 4:
-
+                            createIndexMenu();
                             break;
 
                         case 5:
@@ -151,7 +242,13 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             break;
 
                         case 8:
-
+                            SystemDefs.JavabaseBM.flushPages();
+                            System.out.print("Enter Tablename: ");
+                            tname = GetStuff.getStringChoice();
+                            System.out.print("Enter Attribute Number: ");
+                            int attrIndex = GetStuff.getChoice();
+                            System.out.println();
+                            printIndexKeys(tname, attrIndex);
                             break;
 
                         case 9:
@@ -212,7 +309,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         try {
             System.out.print("Enter Tablename: ");
             String tname = GetStuff.getStringChoice();
-            setAttrDesc(tname);
+            getTableAttrsAndType(tname);
             System.out.println();
             prefMenu();
             indexesCreated = false;
@@ -324,7 +421,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             System.out.println("       !!         Something is wrong                    !!");
             System.out.println("       !!     Is your DB full? then exit. rerun it!     !!");
             System.out.println("       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-
         }
     }
 
@@ -337,6 +433,72 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         System.out.println("[6]   Set your own preference list of attributes");
         System.out.println("\n[0]  Quit!");
         System.out.print("Enter your choice :");
+    }
+
+    private void createTableMenu() throws IOException, InvalidTupleSizeException, ConstructPageException, GetFileEntryException, AddFileEntryException {
+        System.out.print("Enter Filename: ");
+        String fname = GetStuff.getStringChoice();
+        System.out.println();
+        System.out.println();
+        System.out.println("[1]   Create Clustered BT Index");
+        System.out.println("[2]   Create Clustered Hash Index");
+        System.out.println("[3]   Do not create index");
+        System.out.print("Please enter your choice: ");
+        int choice = GetStuff.getChoice();
+        int attrInd = -1;
+        if (choice == 1 || choice == 2) {
+            System.out.print("Please enter attribute index :");
+            attrInd = GetStuff.getChoice();
+        }
+        try {
+            switch (choice) {
+                case 1:
+                    createTable(fname, true, CLUSTERED_BTREE, attrInd);
+                    break;
+                case 2:
+                    createTable(fname, true, CLUSTERED_HASH, attrInd);
+                    break;
+                case 3:
+                    createTable(fname, false, NO_INDEX, attrInd);
+                    break;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void createIndexMenu() throws IOException, InvalidTupleSizeException, ConstructPageException, GetFileEntryException, AddFileEntryException {
+        System.out.print("Enter Table Name: ");
+        String tname = GetStuff.getStringChoice();
+        System.out.println();
+        System.out.println();
+        System.out.println("[1]   Create Unclustered BT Index");
+        System.out.println("[2]   Create Unclustered Hash Index");
+        System.out.println("[3]   Do not create index");
+
+        int choice = GetStuff.getChoice();
+        int attrInd = -1;
+        if (choice == 1 || choice == 2) {
+            System.out.print("Please enter attribute index :");
+            attrInd = GetStuff.getChoice();
+        }
+
+        try {
+            switch (choice) {
+                case 1:
+                    createIndex(tname, CLUSTERED_BTREE, attrInd);
+                    break;
+                case 2:
+                    createIndex(tname, CLUSTERED_HASH, attrInd);
+                    break;
+                case 3:
+                    createIndex(tname, NO_INDEX, attrInd);
+                    break;
+            }
+        } catch (Exception e) {
+            System.err.println(e);
+            e.printStackTrace();
+        }
     }
 
     private void pageMenu() {
@@ -411,31 +573,24 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     public void openDB(String nameRoot) {
         dbName = nameRoot;
-        dbpath = "/tmp/" + nameRoot + ".minibase-db";
-        logpath = "/tmp/" + nameRoot + ".minibase-log";
+//        dbpath = "/tmp/" + nameRoot + ".minibase-db";
+//        logpath = "/tmp/" + nameRoot + ".minibase-log";
+        dbpath = "..\\" + nameRoot + ".minibase-db";
+        logpath = "..\\" + nameRoot + ".minibase-log";
         File f = new File(dbpath);
 
-        if(f.exists() && !f.isDirectory()) {
-            sysDef = new ExtendedSystemDefs(dbpath, 0, 40000, "Clock");
+        if (f.exists() && !f.isDirectory()) {
+            sysDef = new SystemDefs(dbpath, 0, 40000, "Clock");
             System.out.println("Successfully opened database " + dbName.toUpperCase());
-        }else{
-            sysDef = new ExtendedSystemDefs(
+        } else {
+            sysDef = new SystemDefs(
                     dbpath, 50000, 40000, "Clock");
             System.out.println("Successfully created database " + dbName.toUpperCase());
         }
 
     }
 
-    private void createTable(String fileName) throws IOException, InvalidTupleSizeException {
-
-        // Create the heap file object
-        try {
-            f = new Heapfile(fileName);
-        } catch (Exception e) {
-            status = FAIL;
-            System.err.println("*** Could not create heap file\n");
-            e.printStackTrace();
-        }
+    private void createTable(String fileName, Boolean createIndex, short clusteredIndexType, int attrIndex) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
 
         if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
                 != SystemDefs.JavabaseBM.getNumBuffers()) {
@@ -446,45 +601,37 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         if (status == OK) {
 
             // Read data and construct tuples
-            File file = new File("../../data/" + fileName + ".txt");
+            setAttrDesc(fileName);
+//          File file = new File("../../data/" + fileName + ".txt");
+            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + fileName + ".txt");
+
+
             Scanner sc = new Scanner(file);
 
             nColumns = Integer.valueOf(sc.nextLine().trim());
 
-            attrType = new AttrType[nColumns];
-            attrInfo[] ai = new attrInfo[nColumns] ;
-            attrSizes = new short[nColumns];
-            String[] columnMetaData;
-            String attribute;
-            for (int i = 0; i < attrType.length; i++) {
-                columnMetaData = sc.nextLine().trim().split("\\s+");
-                attribute = columnMetaData[1];
-                if (attribute.equals("INT")) {
-                    attrType[i] = new AttrType(AttrType.attrInteger);
-                } else {
-                    attrType[i] = new AttrType(AttrType.attrString);
-                    attrSizes[i] = 32;
-                }
-
-                ai[i] = new attrInfo();
-                ai[i].attrName = columnMetaData[0];
-                ai[i].attrType = attrType[i];
-                ai[i].attrLen = 32;
+            for (int i = 0; i < nColumns; i++) {
+                sc.nextLine();
             }
 
-//            try {
-//                ExtendedSystemDefs.MINIBASE_CATALOGPTR.createRel(fileName,nColumns,ai);
-//            } catch (Exception e) {
-//                System.err.println("*** error in creating relation ***");
-//                status = FAIL;
-//                e.printStackTrace();
-//            }
-
-            projlist = new FldSpec[nColumns];
-
-            for (int i = 0; i < nColumns; i++) {
-                projlist[i] = new FldSpec(rel, i + 1);
-                ;
+            try {
+                if (createIndex) {
+                    short keySize = 4;
+                    if (attrType[attrIndex - 1].attrType == AttrType.attrString) {
+                        keySize = attrStringSize;
+                    }
+                    if (clusteredIndexType == CLUSTERED_BTREE) {
+                        bTreeClusteredFile = new BTreeClusteredFile(fileName, attrType[attrIndex - 1].toInt(), keySize, attrIndex, 1, (short) nColumns, attrType, attrSizes);
+                    } else {
+                        hashFile = new ClusteredHashFile(fileName, 75, attrType[attrIndex - 1].toInt(), keySize, (short) nColumns, attrType, attrSizes);
+                    }
+                } else {
+                    f = new Heapfile(fileName);
+                }
+            } catch (Exception e) {
+                status = FAIL;
+                System.err.println("*** Could not create file\n");
+                e.printStackTrace();
             }
 
             Tuple tuple1 = new Tuple();
@@ -508,7 +655,9 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 status = FAIL;
                 e.printStackTrace();
             }
+
             int value;
+            int count = 0;
             while (sc.hasNextLine()) {
                 // create a tuple1 of appropriate size
                 String[] row = sc.nextLine().trim().split("\\s+");
@@ -529,7 +678,31 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 }
 
                 try {
-                    rid = f.insertRecord(tuple1.returnTupleByteArray());
+                    if (createIndex) {
+                        if (clusteredIndexType == CLUSTERED_BTREE) {
+                            if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                                IntegerKey key = new IntegerKey(tuple1.getIntFld(attrIndex));
+                                bTreeClusteredFile.insert(key, tuple1);
+                            } else {
+                                StringKey key = new StringKey(tuple1.getStrFld(attrIndex));
+                                bTreeClusteredFile.insert(key, tuple1);
+                            }
+
+                        } else {
+                            if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                                hash.IntegerKey key = new hash.IntegerKey(tuple1.getIntFld(attrIndex));
+                                hashFile.insertRecord(key, new ClusteredHashRecord(key, tuple1));
+                            } else {
+                                hash.StringKey key = new hash.StringKey(tuple1.getStrFld(attrIndex));
+                                hashFile.insertRecord(key, new ClusteredHashRecord(key, tuple1));
+                            }
+
+                        }
+
+                    } else {
+                        rid = f.insertRecord(tuple1.returnTupleByteArray());
+                    }
+                    count++;
                 } catch (Exception e) {
                     status = FAIL;
                     e.printStackTrace();
@@ -537,151 +710,665 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             }
 
             try {
+                if (createIndex) {
+                    addIndexToCatalog(fileName, attrNames[attrIndex - 1], clusteredIndexType, attrIndex);
+                }
                 System.out.println("New table created " + fileName.toUpperCase());
-                System.out.println("Record count: " + f.getRecCnt());
-            } catch (InvalidSlotNumberException e) {
-                e.printStackTrace();
-            } catch (HFDiskMgrException e) {
-                e.printStackTrace();
-            } catch (HFBufMgrException e) {
+                System.out.println("Record count: " + count);
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private void setAttrDesc(String tableName) throws FileNotFoundException {
-        File file = new File("../../data/" + tableName + ".txt");
-        Scanner sc = new Scanner(file);
+    private void createIndex(String tableName, short unclusteredIndexType, int attrIndex) throws IOException, FieldNumberOutOfBoundException {
 
-        nColumns = Integer.valueOf(sc.nextLine().trim());
-
-        attrType = new AttrType[nColumns];
-        attrSizes = new short[nColumns];
-
-        String columnMetaData;
-        String attribute;
-        for (int i = 0; i < attrType.length; i++) {
-            columnMetaData = sc.nextLine().trim();
-            attribute = columnMetaData.split("\\s+")[1];
-            if (attribute.equals("INT")) {
-                attrType[i] = new AttrType(AttrType.attrInteger);
-            } else {
-                attrType[i] = new AttrType(AttrType.attrString);
-                attrSizes[i] = 32;
-            }
-//            System.out.println(attrType[i]);
+        Tuple t;
+        int count;
+        //Check if clustered index exists
+        int indexTypeIfExists = findIfIndexExists(tableName, -1);
+        getTableAttrsAndType(tableName);
+        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
+                != SystemDefs.JavabaseBM.getNumBuffers()) {
+            System.err.println("*** The heap file has left pages pinned ***\n");
+            status = FAIL;
         }
-    }
 
-    private void printTable(String tableName) throws JoinsException,
-            IOException,
-            InvalidTupleSizeException,
-            InvalidTypeException,
-            PageNotReadException,
-            PredEvalException,
-            UnknowAttrType,
-            FieldNumberOutOfBoundException,
-            WrongPermat {
-        status = OK;
+        int indexOnAttrExists = findIfIndexExists(tableName, attrIndex);
+
+        if (status != OK) {
+            return;
+        }
+
+        if (indexOnAttrExists != NO_INDEX) {
+            String indexType = "";
+            switch (indexOnAttrExists) {
+                case 0:
+                    indexType = "CLUSTERED_HASH";
+                    break;
+                case 1:
+                    indexType = "CLUSTERED_BTREE";
+                    break;
+                case 2:
+                    indexType = "UNCLUSTERED_HASH";
+                    break;
+                case 3:
+                    indexType = "UNCLUSTERED_BTREE";
+                    break;
+            }
+            System.out.println("Index already exists on this attribute of type: " + indexType);
+            return;
+        }
+
+        String indexFileName = tableName + '-' + unclusteredIndexType + '-' + attrIndex;
+
         try {
-            f = new Heapfile(tableName);
+            short keySize = 4;
+            if (attrType[attrIndex - 1].attrType == AttrType.attrString) {
+                keySize = attrStringSize;
+            }
+            if (unclusteredIndexType == UNCLUSTERED_HASH) {
+                unclusteredHashFile = new UnclusteredHashFile(indexFileName, attrType[attrIndex - 1].toInt(), keySize, 75);
+            } else {
+                bTreeUnclusteredFile = new BTreeFile(indexFileName, attrType[attrIndex - 1].toInt(), keySize, 1);
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to initialize unclustered index file!");
+            e.printStackTrace();
+        }
+
+        try {
+            if (indexTypeIfExists == NO_INDEX) {
+                try {
+                    f = new Heapfile(tableName);
+                } catch (Exception e) {
+                    status = FAIL;
+                    System.err.println("*** Could not create heap file ***\n");
+                    e.printStackTrace();
+                }
+
+                Scan scan = null;
+                RID rid = new RID();
+
+                try {
+                    scan = f.openScan();
+                } catch (Exception e) {
+                    status = FAIL;
+                    System.err.println("*** Error opening scan\n");
+                    e.printStackTrace();
+                }
+
+                t = new Tuple();
+
+                try {
+                    t = scan.getNext(rid);
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+
+                while (t != null) {
+                    try {
+                        t.setHdr((short) nColumns, attrType, attrSizes);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+
+
+                    try {
+                        if (unclusteredIndexType == UNCLUSTERED_HASH) {
+                            if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                                hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
+                                unclusteredHashFile.insertRecord(key, rid);
+                            } else {
+                                hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
+                                unclusteredHashFile.insertRecord(key, rid);
+                            }
+                        } else {
+                            if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                                IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
+                                bTreeUnclusteredFile.insert(key, rid);
+
+                            } else {
+                                StringKey key = new StringKey(t.getStrFld(attrIndex));
+                                bTreeUnclusteredFile.insert(key, rid);
+                            }
+                        }
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                        return;
+                    }
+
+                    try {
+                        t = scan.getNext(rid);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+                // clean up
+                try {
+                    scan.closescan();
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+            } else if (indexTypeIfExists == CLUSTERED_BTREE) {
+                bTreeClusteredFile = new BTreeClusteredFile(tableName, (short) nColumns, attrType, attrSizes);
+                BTClusteredFileScan scan = null;
+                try {
+                    scan = bTreeClusteredFile.new_scan(null, null);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (KeyNotMatchException e) {
+                    e.printStackTrace();
+                } catch (IteratorException e) {
+                    e.printStackTrace();
+                } catch (ConstructPageException e) {
+                    e.printStackTrace();
+                } catch (PinPageException e) {
+                    e.printStackTrace();
+                } catch (UnpinPageException e) {
+                    e.printStackTrace();
+                }
+
+                KeyDataEntry data = null;
+                data = scan.get_next(rid);
+                t = null;
+
+                while (data != null) {
+                    try {
+                        t = ((Tuple) ((ClusteredLeafData) data.data).getData());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    if (unclusteredIndexType == UNCLUSTERED_HASH) {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
+                            unclusteredHashFile.insertRecord(key, rid);
+                        } else {
+                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
+                            unclusteredHashFile.insertRecord(key, rid);
+                        }
+                    } else {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
+                            bTreeUnclusteredFile.insert(key, rid);
+
+                        } else {
+                            StringKey key = new StringKey(t.getStrFld(attrIndex));
+                            bTreeUnclusteredFile.insert(key, rid);
+                        }
+                    }
+
+                    try {
+                        data = scan.get_next(rid);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+            } else if (indexTypeIfExists == CLUSTERED_HASH) {
+                hashFile = new ClusteredHashFile(tableName, (short) nColumns, attrType, attrSizes);
+                ClusteredHashFileScan fscan = null;
+                fscan = hashFile.newScan(null, null);
+                t = null;
+                t = fscan.getNextTuple(rid);
+
+                count = 0;
+                while (t != null) {
+                    try {
+                        t.print(attrType);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+
+                    if (unclusteredIndexType == UNCLUSTERED_HASH) {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
+                            unclusteredHashFile.insertRecord(key, rid);
+                        } else {
+                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
+                            unclusteredHashFile.insertRecord(key, rid);
+                        }
+                    } else {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
+                            bTreeUnclusteredFile.insert(key, rid);
+
+                        } else {
+                            StringKey key = new StringKey(t.getStrFld(attrIndex));
+                            bTreeUnclusteredFile.insert(key, rid);
+                        }
+                    }
+
+                    try {
+                        t = fscan.getNextTuple(rid);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+                System.out.println("Record count: " + count);
+            }
+            System.out.println("Successfully created unclustered index!");
+        } catch (Exception e) {
+            status = FAIL;
+            System.out.println("Failed to print results");
+            e.printStackTrace();
+        }
+    }
+
+    private void printIndexKeys(String tableName, int attrIndex) throws IOException, FieldNumberOutOfBoundException {
+
+        Tuple t;
+        int count = 0;
+        //Check if clustered index exists
+        getTableAttrsAndType(tableName);
+        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
+                != SystemDefs.JavabaseBM.getNumBuffers()) {
+            System.err.println("*** The heap file has left pages pinned ***\n");
+            status = FAIL;
+        }
+
+        int indexOnAttrExists = findIfIndexExists(tableName, attrIndex);
+
+        if (status != OK) {
+            return;
+        }
+
+        if (indexOnAttrExists == NO_INDEX) {
+            System.out.println("No Index exists on this attribute: ");
+            return;
+        }
+
+        String unclusteredIndexFileName = tableName + '-' + indexOnAttrExists + '-' + attrIndex;
+
+        short keySize = 4;
+        if (attrType[attrIndex - 1].attrType == AttrType.attrString) {
+            keySize = attrStringSize;
+        }
+
+        System.out.println("***KEYS***");
+        System.out.println("----------");
+        rid = null;
+        try {
+            if (indexOnAttrExists == CLUSTERED_HASH) {
+                hashFile = new ClusteredHashFile(tableName, (short) nColumns, attrType, attrSizes);
+                ClusteredHashFileScan fscan = null;
+                fscan = hashFile.newScan(null, null);
+                t = null;
+                t = fscan.getNextTuple(rid);
+
+
+                while (t != null) {
+                    try {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            System.out.println(t.getIntFld(attrIndex));
+                        } else {
+                            System.out.println(t.getStrFld(attrIndex));
+                        }
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+
+                    count++;
+
+                    try {
+                        t = fscan.getNextTuple(rid);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+            } else if (indexOnAttrExists == CLUSTERED_BTREE) {
+                bTreeClusteredFile = new BTreeClusteredFile(tableName, (short) nColumns, attrType, attrSizes);
+                BTClusteredFileScan scan = null;
+                try {
+                    scan = bTreeClusteredFile.new_scan(null, null);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (KeyNotMatchException e) {
+                    e.printStackTrace();
+                } catch (IteratorException e) {
+                    e.printStackTrace();
+                } catch (ConstructPageException e) {
+                    e.printStackTrace();
+                } catch (PinPageException e) {
+                    e.printStackTrace();
+                } catch (UnpinPageException e) {
+                    e.printStackTrace();
+                }
+
+                KeyDataEntry data = null;
+                data = scan.get_next(rid);
+//                t = null;
+
+
+                while (data != null) {
+                    try {
+//                        t = ((Tuple) ((ClusteredLeafData) data.data).getData());
+                        System.out.println(data.key);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    count++;
+
+//                    if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+//                        System.out.println(t.getIntFld(attrIndex));
+//                    } else {
+//                        System.out.println(t.getStrFld(attrIndex));
+//                    }
+
+                    try {
+                        data = scan.get_next(rid);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+            } else if (indexOnAttrExists == UNCLUSTERED_HASH) {
+                unclusteredHashFile = new UnclusteredHashFile(unclusteredIndexFileName);
+                UnclusteredHashRecord record = null;
+                UnclusteredHashFileScan scan = unclusteredHashFile.newScan(null, null);
+                try {
+                    record = scan.getNextRecord();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (PageUnpinnedException e) {
+                    e.printStackTrace();
+                } catch (InvalidFrameNumberException e) {
+                    e.printStackTrace();
+                } catch (HashEntryNotFoundException e) {
+                    e.printStackTrace();
+                } catch (ReplacerException e) {
+                    e.printStackTrace();
+                }
+
+                while (record != null) {
+                    try {
+                        System.out.println(record.toString());
+                        record = scan.getNextRecord();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (PageUnpinnedException e) {
+                        e.printStackTrace();
+                    } catch (InvalidFrameNumberException e) {
+                        e.printStackTrace();
+                    } catch (HashEntryNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (ReplacerException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else if (indexOnAttrExists == UNCLUSTERED_BTREE) {
+                bTreeUnclusteredFile = new BTreeFile(unclusteredIndexFileName);
+                BTFileScan scan = bTreeUnclusteredFile.new_scan(null, null);
+
+                KeyDataEntry data = null;
+
+                data = scan.get_next();
+
+                while (data != null) {
+                    try {
+                        System.out.println(data.key);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    count++;
+
+                    try {
+                        data = scan.get_next();
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+            }
+            System.out.println("AT THE END OF SCAN!");
+            System.out.println("*** TOTAL KEYS " + count + " ***");
+        } catch (Exception e) {
+            status = FAIL;
+            System.out.println("Failed to print index keys");
+            e.printStackTrace();
+        }
+    }
+
+    private void addIndexToCatalog(String relName, String attrName, short indexType, int attrIndex) throws IOException, FieldNumberOutOfBoundException, HFDiskMgrException, InvalidTupleSizeException, HFException, InvalidSlotNumberException, SpaceNotAvailableException, HFBufMgrException {
+        try {
+            indexCatalogFile = new Heapfile(INDEX_FILE_NAME);
         } catch (Exception e) {
             status = FAIL;
             System.err.println("*** Could not create heap file\n");
             e.printStackTrace();
         }
 
-        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
-                != SystemDefs.JavabaseBM.getNumBuffers()) {
-            System.err.println("*** The heap file has left pages pinned\n");
-            status = FAIL;
+        indexTuple.setStrFld(1, relName);
+        indexTuple.setStrFld(2, attrName);
+        indexTuple.setIntFld(3, (int) indexType);
+        indexTuple.setIntFld(4, attrIndex);
+
+        indexCatalogFile.insertRecord(indexTuple.returnTupleByteArray());
+    }
+
+    // Return index type
+    private int findIfIndexExists(String relName, int attrIndex) {
+        // Read data and construct tuples
+        FileScan fscan = null;
+        int indexType = NO_INDEX;
+
+        FldSpec[] projections = new FldSpec[indexAttrTypes.length];
+
+        for (int i = 0; i < indexAttrTypes.length; i++) {
+            projections[i] = new FldSpec(rel, i + 1);
         }
-//        AttrType[] at;
-//        short[] as;
-//        AttrDesc[] ad = new AttrDesc[2];
-//
-//        try {
-//            ExtendedSystemDefs.MINIBASE_ATTRCAT.getRelInfo(tableName,0,ad);
-//        } catch (Exception e) {
-//            status = FAIL;
-//            e.printStackTrace();
-//        }
 
-        if (status == OK) {
-            File file = new File("../../data/" + tableName + ".txt");
-            Scanner sc = new Scanner(file);
+        try {
+            fscan = new FileScan(INDEX_FILE_NAME, indexAttrTypes, indexAttrSizes, (short) indexAttrTypes.length, indexAttrTypes.length, projections, null);
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
 
-            nColumns = Integer.valueOf(sc.nextLine().trim());
-
-            attrType = new AttrType[nColumns];
-            attrSizes = new short[nColumns];
-
-            String columnMetaData;
-            String attribute;
-            for (int i = 0; i < attrType.length; i++) {
-                columnMetaData = sc.nextLine().trim();
-                attribute = columnMetaData.split("\\s+")[1];
-                if (attribute.equals("INT")) {
-                    attrType[i] = new AttrType(AttrType.attrInteger);
-                } else {
-                    attrType[i] = new AttrType(AttrType.attrString);
-                    attrSizes[i] = 32;
-                }
-            }
-
-            projlist = new FldSpec[nColumns];
-
-            for (int i = 0; i < nColumns; i++) {
-                projlist[i] = new FldSpec(rel, i + 1);
-                ;
-            }
-
-            FileScan fscan = null;
-
+        Tuple t = null;
+        try {
+            t = fscan.get_next();
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+        while (t != null) {
             try {
-                fscan = new FileScan(tableName, attrType, attrSizes, (short) nColumns, nColumns, projlist, null);
+                if (attrIndex == -1 && t.getStrFld(1).equals(relName) && (t.getIntFld(3) == CLUSTERED_BTREE || t.getIntFld(3) == CLUSTERED_HASH)) {
+                    indexType = t.getIntFld(3);
+                    break;
+                }
+                if (attrIndex != -1 && t.getStrFld(1).equals(relName) && t.getIntFld(4) == attrIndex) {
+                    indexType = t.getIntFld(2);
+                    break;
+                }
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
             }
 
-            Integer count = 0;
-            Tuple t = null;
+            nColumns++;
+
             try {
                 t = fscan.get_next();
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
             }
-            while (t != null) {
+        }
+
+        // clean up
+        try {
+            fscan.close();
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+        return indexType;
+    }
+
+    private void printTable(String tableName) throws IOException {
+        Tuple t;
+        int count;
+        int indexTypeIfExists = findIfIndexExists(tableName, -1);
+        getTableAttrsAndType(tableName);
+        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
+                != SystemDefs.JavabaseBM.getNumBuffers()) {
+            System.err.println("*** The heap file has left pages pinned\n");
+            status = FAIL;
+        }
+
+        if (status != OK) {
+            return;
+        }
+        rid = null;
+        try {
+            if (indexTypeIfExists == NO_INDEX) {
                 try {
-                    t.print(attrType);
+                    f = new Heapfile(tableName);
+                } catch (Exception e) {
+                    status = FAIL;
+                    System.err.println("*** Could not create heap file\n");
+                    e.printStackTrace();
+                }
+
+                FileScan fscan = null;
+
+                try {
+                    fscan = new FileScan(tableName, attrType, attrSizes, (short) nColumns, nColumns, projlist, null);
                 } catch (Exception e) {
                     status = FAIL;
                     e.printStackTrace();
                 }
 
-                count++;
-
+                count = 0;
+                t = null;
                 try {
                     t = fscan.get_next();
                 } catch (Exception e) {
                     status = FAIL;
                     e.printStackTrace();
                 }
+                while (t != null) {
+                    try {
+                        t.print(attrType);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+
+                    count++;
+
+                    try {
+                        t = fscan.get_next();
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+
+                System.out.println("Record count: " + count);
+
+                // clean up
+                try {
+                    fscan.close();
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+            } else if (indexTypeIfExists == CLUSTERED_BTREE) {
+                bTreeClusteredFile = new BTreeClusteredFile(tableName, (short) nColumns, attrType, attrSizes);
+                BTClusteredFileScan scan = null;
+                try {
+                    scan = bTreeClusteredFile.new_scan(null, null);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (KeyNotMatchException e) {
+                    e.printStackTrace();
+                } catch (IteratorException e) {
+                    e.printStackTrace();
+                } catch (ConstructPageException e) {
+                    e.printStackTrace();
+                } catch (PinPageException e) {
+                    e.printStackTrace();
+                } catch (UnpinPageException e) {
+                    e.printStackTrace();
+                }
+
+                KeyDataEntry data = null;
+                data = scan.get_next(rid);
+
+                count = 0;
+                while (data != null) {
+                    if (data != null) {
+                        try {
+                            ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    count++;
+
+                    try {
+                        data = scan.get_next(rid);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+                System.out.println("Record count: " + count);
+
+            } else if (indexTypeIfExists == CLUSTERED_HASH) {
+                hashFile = new ClusteredHashFile(tableName, (short) nColumns, attrType, attrSizes);
+                ClusteredHashFileScan fscan = null;
+                fscan = hashFile.newScan(null, null);
+                t = null;
+                t = fscan.getNextTuple(rid);
+
+                count = 0;
+                while (t != null) {
+                    try {
+                        t.print(attrType);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+
+                    count++;
+
+                    try {
+                        t = fscan.getNextTuple(rid);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+                System.out.println("Record count: " + count);
             }
-
-
-            System.out.println("Record count: " + count);
-
-            // clean up
-            try {
-                fscan.close();
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
+        } catch (Exception e) {
+            status = FAIL;
+            System.out.println("Failed to print results");
+            e.printStackTrace();
         }
+
     }
 
     private void insert_data(String tableName, String filename) throws IOException {
@@ -733,7 +1420,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 } else {
                     attrType[i] = new AttrType(AttrType.attrString);
                 }
-                attrSizes[i] = 32;
+                attrSizes[i] = attrStringSize;
             }
 
             projlist = new FldSpec[nColumns];
@@ -856,7 +1543,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 } else {
                     attrType[i] = new AttrType(AttrType.attrString);
                 }
-                attrSizes[i] = 32;
+                attrSizes[i] = attrStringSize;
             }
 
             projlist = new FldSpec[nColumns];
@@ -886,7 +1573,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 status = FAIL;
                 e.printStackTrace();
             }
-
 
 
             Integer count = 0;
@@ -974,6 +1660,13 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                         e.printStackTrace();
                     }
                 }
+                // clean up
+                try {
+                    scan.closescan();
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
             }
 
             try {
@@ -990,7 +1683,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     public static void runNestedLoopSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscanNested = initialiseFileScan(hf);
-        getTableAttrsAndType(hf);
         NestedLoopsSky nested = null;
         try {
             nested = new NestedLoopsSky(attrType, attrType.length, attrSizes, fscanNested, hf, pref_list, pref_list.length, _n_pages);
@@ -1011,7 +1703,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     public static void runBNLSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscanBlock = initialiseFileScan(hf);
-        getTableAttrsAndType(hf);
         Iterator block = null;
         try {
             block = new BlockNestedLoopsSky(attrType, attrType.length, attrSizes, fscanBlock, hf, pref_list, pref_list.length, _n_pages);
@@ -1032,7 +1723,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     public static void runSortFirstSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscan = initialiseFileScan(hf);
-        getTableAttrsAndType(hf);
         Iterator sort = null;
         try {
             sort = new SortFirstSky(attrType, attrType.length, attrSizes, fscan, hf, pref_list, pref_list.length, _n_pages);
@@ -1057,7 +1747,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         System.out.println("Preference list: " + Arrays.toString(pref_list));
         System.out.println("Number of pages: " + _n_pages);
         System.out.println("Pref list length: " + pref_list.length);
-        getTableAttrsAndType(hf);
         if (!indexesCreated) {
             BTreeUtil.createBtreesForPrefList(hf, f, attrType, attrSizes, pref_list);
             indexesCreated = true;
@@ -1146,42 +1835,177 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         return fscan;
     }
 
-    public static void getTableAttrsAndType(String fileName) {
-        // Read data and construct tuples
-        File file = new File("../../data/" + fileName + ".txt");
-
-        Scanner sc = null;
+    private void setAttrDesc(String tableName) throws IOException, FieldNumberOutOfBoundException {
         try {
-            sc = new Scanner(file);
+            f = new Heapfile(tableName + METAFILE_POSTFIX);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
         }
+//        File file = new File("../../data/" + tableName + ".txt");
+        File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + tableName + ".txt");
+        Scanner sc = new Scanner(file);
 
         nColumns = Integer.valueOf(sc.nextLine().trim());
 
         attrType = new AttrType[nColumns];
-        attrSizes = new short[nColumns];
 
-        String columnMetaData;
+
+        String columnMetaData[];
         String attribute;
+        attrNames = new String[nColumns];
+
+        int stringColumns = 0;
         for (int i = 0; i < attrType.length; i++) {
-            columnMetaData = sc.nextLine().trim();
-            attribute = columnMetaData.split("\\s+")[1];
+            columnMetaData = sc.nextLine().trim().split("\\s+");
+            attribute = columnMetaData[1];
+            attrNames[i] = columnMetaData[0];
+
             if (attribute.equals("INT")) {
                 attrType[i] = new AttrType(AttrType.attrInteger);
             } else {
                 attrType[i] = new AttrType(AttrType.attrString);
+                stringColumns++;
             }
-            attrSizes[i] = 32;
         }
 
+        attrSizes = new short[stringColumns];
+        for (int i = 0; i < stringColumns; i++) {
+            attrSizes[i] = attrStringSize;
+        }
+
+        for (int i = 0; i < attrType.length; i++) {
+            metaTuple.setStrFld(1, attrNames[i]);
+            metaTuple.setIntFld(2, attrType[i].attrType);
+            if (attrType[i].attrType == AttrType.attrString) {
+                metaTuple.setIntFld(3, attrStringSize);
+            } else {
+                metaTuple.setIntFld(3, 0);
+            }
+
+            try {
+                rid = f.insertRecord(metaTuple.returnTupleByteArray());
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+        }
 
         projlist = new FldSpec[nColumns];
 
         for (int i = 0; i < nColumns; i++) {
             projlist[i] = new FldSpec(rel, i + 1);
-            ;
+        }
+    }
+
+    public static void getTableAttrsAndType(String tableName) {
+        // Read data and construct tuples
+        FileScan fscan = null;
+
+        FldSpec[] projections = new FldSpec[metaAttrTypes.length];
+
+        for (int i = 0; i < metaAttrTypes.length; i++) {
+            projections[i] = new FldSpec(rel, i + 1);
+        }
+
+        try {
+            fscan = new FileScan(tableName + METAFILE_POSTFIX, metaAttrTypes, metaAttrSizes, (short) metaAttrTypes.length, metaAttrTypes.length, projections, null);
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        nColumns = 0;
+        Tuple t = null;
+        try {
+            t = fscan.get_next();
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        int stringColumns = 0;
+        while (t != null) {
+            try {
+                if (t.getIntFld(2) == AttrType.attrString) {
+                    stringColumns++;
+                }
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+
+            nColumns++;
+
+            try {
+                t = fscan.get_next();
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+        }
+
+        // clean up
+        try {
+            fscan.close();
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        try {
+            fscan = new FileScan(tableName + METAFILE_POSTFIX, metaAttrTypes, metaAttrSizes, (short) metaAttrTypes.length, metaAttrTypes.length, projections, null);
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        attrType = new AttrType[nColumns];
+        attrSizes = new short[stringColumns];
+        attrNames = new String[nColumns];
+        try {
+            t = fscan.get_next();
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        int i = 0, j = 0;
+        while (t != null) {
+            try {
+                attrNames[i] = t.getStrFld(1);
+                attrType[i] = new AttrType(t.getIntFld(2));
+                if (t.getIntFld(2) == AttrType.attrString) {
+                    attrSizes[j] = (short) t.getIntFld(3);
+                    j++;
+                }
+
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+
+            i++;
+            try {
+                t = fscan.get_next();
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+        }
+
+        projlist = new FldSpec[nColumns];
+
+        for (i = 0; i < nColumns; i++) {
+            projlist[i] = new FldSpec(rel, i + 1);
+        }
+
+        // clean up
+        try {
+            fscan.close();
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
         }
     }
 
