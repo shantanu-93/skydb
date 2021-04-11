@@ -41,12 +41,14 @@ public class ClusteredHashFileScan {
         equalityAnswerReturned = false;
     }
 
-    public Tuple getNextTuple() throws IOException, InvalidTupleSizeException, InvalidTypeException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
+    public Tuple getNextTuple(RID tupleRid) throws IOException, InvalidTupleSizeException, InvalidTypeException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
         getNext();
 //        SystemDefs.JavabaseBM.flushPages();
         if (currDataRid == null) {
             return null;
         }
+        tupleRid.pageNo = currDataRid.pageNo;
+        tupleRid.slotNo = currDataRid.slotNo;
         Tuple tup = currPage.getTupleFromSlot(currDataRid.slotNo);
         tup.setHdr(tupleFldCnt, tupleAttrType, tupleStrSizes);
         return tup;
