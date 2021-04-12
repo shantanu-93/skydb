@@ -96,8 +96,8 @@ public class HFPage extends Page
     {
       data = page.getpage();
     }
-  
-  /**
+
+    /**
    * Constructor of class HFPage
    * open a existed hfpage
    * @param  apage   a page in buffer pool

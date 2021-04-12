@@ -38,6 +38,7 @@ db:
 	make -C index
 	make -C iterator
 	make -C readdriver
+	make -C queryinterface
 	
 doc:
 	$(JAVADOC) $(DOCFILES)
