@@ -99,6 +99,10 @@ public class ClusteredHashFile extends HashFile {
         // record id is null if insufficient space
         boolean recordInserted = recordRid != null;
 
+        if(recordInserted){
+            SystemDefs.JavabaseBM.unpinPage(page.getCurPage(), true);
+        }
+
         // if insufficient space, try to insert in overflow page if it is already there, else add overflow page
         ClusteredDataPage prevPage = page;
         ClusteredDataPage nextPage;

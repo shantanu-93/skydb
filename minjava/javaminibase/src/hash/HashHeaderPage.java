@@ -1,10 +1,13 @@
 package hash;
 
-import java.io.*;
+import diskmgr.Page;
+import global.Convert;
+import global.PageId;
+import global.SystemDefs;
+import heap.HFPage;
+import heap.InvalidSlotNumberException;
 
-import diskmgr.*;
-import global.*;
-import heap.*;
+import java.io.IOException;
 
 class HashHeaderPage extends HFPage {
     private int n;
@@ -79,9 +82,12 @@ class HashHeaderPage extends HFPage {
 
         Convert.setIntValue(keyType, 0, tempData);
         this.insertRecord(tempData);
+        this.keyType = keyType;
 
         Convert.setIntValue(keySize, 0, tempData);
         this.insertRecord(tempData);
+        this.keySize = keySize;
+
     }
 
     public HashPage getNewHashPage(boolean isClustered, short pageType) throws ConstructPageException {
