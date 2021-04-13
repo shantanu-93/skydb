@@ -12,6 +12,7 @@ import heap.Tuple;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class BTreeClusteredFile extends IndexFile
         implements GlobalConst {
@@ -262,7 +263,51 @@ public class BTreeClusteredFile extends IndexFile
 
     }
 
-    public void insert(KeyClass key, Tuple data)
+    public class RidChange {
+        public RID oldRid;
+        public RID newRid;
+        public KeyDataEntry keyData = null;
+
+        @Override
+        public String toString() {
+//            if (keyData != null) {
+                try {
+                    ((ClusteredLeafData)keyData.data).getData().print(tupleAttrType);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+//            }
+
+            return "RidChange{" +
+                    "oldRid=" + oldRid +
+                    ", newRid=" + newRid +
+                    '}';
+
+        }
+    }
+
+    public static void updateNewRid(ArrayList<RidChange> ridChanges, RID rid, RID updateRid) {
+        for (int i = 0; i < ridChanges.size(); i++) {
+            if (ridChanges.get(i).newRid.equals(rid)) {
+                ridChanges.get(i).newRid = updateRid;
+                break;
+            }
+        }
+    }
+
+    public static void eliminateRedundant(ArrayList<RidChange> ridChanges) {
+        for (int i = 0; i < ridChanges.size(); i++) {
+            for (int j = 0; j < ridChanges.size(); j++) {
+                if (ridChanges.get(j).newRid.equals(ridChanges.get(j).oldRid)) {
+                    ridChanges.remove(j);
+                    break;
+                }
+            }
+
+        }
+    }
+
+    public ArrayList<RidChange> insert(KeyClass key, Tuple data)
             throws KeyTooLongException,
             KeyNotMatchException,
             LeafInsertRecException,
@@ -316,6 +361,7 @@ public class BTreeClusteredFile extends IndexFile
 //	  trace.flush();
 //	}
 
+        ArrayList<RidChange> ridChanges = new ArrayList<>();
 
         if (headerPage.get_rootId().pid == INVALID_PAGE) {
             PageId newRootPageId;
@@ -339,7 +385,9 @@ public class BTreeClusteredFile extends IndexFile
             // ASSERTIONS:
             // - newRootPage, newRootPageId valid and pinned
 
-            newRootPage.insertRecord(key, data);
+            RID newRid = newRootPage.insertRecord(key, data);
+            addRidChangesDueToInsert(ridChanges, newRootPage, newRid);
+
 
             if (trace != null) {
                 trace.writeBytes("PUTIN node " + newRootPageId + lineSep);
@@ -355,7 +403,7 @@ public class BTreeClusteredFile extends IndexFile
             }
 
 
-            return;
+            return ridChanges;
         }
 
         // ASSERTIONS:
@@ -370,7 +418,7 @@ public class BTreeClusteredFile extends IndexFile
         }
 
 
-        newRootEntry = _insert(key, data, headerPage.get_rootId());
+        newRootEntry = _insert(key, data, headerPage.get_rootId(), ridChanges);
 
         // TWO CASES:
         // - newRootEntry != null: a leaf split propagated up to the root
@@ -425,12 +473,12 @@ public class BTreeClusteredFile extends IndexFile
         }
 
 
-        return;
+        return ridChanges;
     }
 
 
     private KeyDataEntry _insert(KeyClass key, Tuple data,
-                                 PageId currentPageId)
+                                 PageId currentPageId, ArrayList<RidChange> ridChanges)
             throws PinPageException,
             IOException,
             ConstructPageException,
@@ -479,7 +527,7 @@ public class BTreeClusteredFile extends IndexFile
             // now unpin the page, recurse and then pin it again
             unpinPage(currentIndexPageId);
 
-            upEntry = _insert(key, data, nextPageId);
+            upEntry = _insert(key, data, nextPageId, ridChanges);
 
             // two cases:
             // - upEntry == null: one level lower no split has occurred:
@@ -667,7 +715,9 @@ public class BTreeClusteredFile extends IndexFile
                     BT.getKeyDataLength(key, NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes)) {
                 // no split has occurred
 
-                currentLeafPage.insertRecord(key, data);
+                RidChange ridChange = new RidChange();
+                RID newRid = currentLeafPage.insertRecord(key, data);
+                addRidChangesDueToInsert(ridChanges, currentLeafPage, newRid);
 
                 unpinPage(currentLeafPageId, true /* DIRTY */);
 
@@ -729,15 +779,20 @@ public class BTreeClusteredFile extends IndexFile
             KeyDataEntry tmpEntry;
             RID firstRid = new RID();
 
-
+            int count = 0;
             for (tmpEntry = currentLeafPage.getFirst(firstRid);
                  tmpEntry != null;
                  tmpEntry = currentLeafPage.getFirst(firstRid)) {
 
-                newLeafPage.insertRecord(tmpEntry.key,
+                RidChange ridChange = new RidChange();
+                ridChange.oldRid = new RID(firstRid.pageNo, count );
+                ridChange.newRid = newLeafPage.insertRecord(tmpEntry.key,
                         ((ClusteredLeafData) (tmpEntry.data)).getData());
                 currentLeafPage.deleteSortedRecord(firstRid);
 
+//                System.out.println(ridChange.newRid);
+                ridChanges.add(ridChange);
+                count++;
             }
 
 
@@ -745,29 +800,64 @@ public class BTreeClusteredFile extends IndexFile
             // - currentLeafPage empty
             // - newLeafPage holds all former records from currentLeafPage
 
+            count = 0;
             KeyDataEntry undoEntry = null;
             for (tmpEntry = newLeafPage.getFirst(firstRid);
                  newLeafPage.available_space() <
                          currentLeafPage.available_space();
                  tmpEntry = newLeafPage.getFirst(firstRid)) {
                 undoEntry = tmpEntry;
-                currentLeafPage.insertRecord(tmpEntry.key,
+
+                RID tempRid = new RID(firstRid.pageNo, count );
+
+                RID newRid = currentLeafPage.insertRecord(tmpEntry.key,
                         ((ClusteredLeafData) tmpEntry.data).getData());
                 newLeafPage.deleteSortedRecord(firstRid);
+
+//                System.out.println(tempRid);
+//                System.out.println(newRid);
+                updateNewRid(ridChanges, tempRid, newRid);
+                count++;
             }
+
+
 
             if (BT.keyCompare(key, undoEntry.key) < 0) {
                 //undo the final record
                 if (currentLeafPage.available_space() <
                         newLeafPage.available_space()) {
-                    newLeafPage.insertRecord(undoEntry.key,
+                    RID newRid = newLeafPage.insertRecord(undoEntry.key,
                             ((ClusteredLeafData) undoEntry.data).getData());
 
-                    currentLeafPage.deleteSortedRecord
-                            (new RID(currentLeafPage.getCurPage(),
-                                    (int) currentLeafPage.getSlotCnt() - 1));
+                    RID tempRid = (new RID(currentLeafPage.getCurPage(),
+                            (int) currentLeafPage.getSlotCnt() - 1));
+                    currentLeafPage.deleteSortedRecord(tempRid);
+//                    System.out.println("lolmusab");
+//                    System.out.println(newRid);
+                    updateNewRid(ridChanges, tempRid, newRid);
                 }
             }
+            eliminateRedundant(ridChanges);
+
+            int firstVal = 0;
+            for (int i = 0; i < ridChanges.size(); i++) {
+                if (i == 0) {
+                    firstVal = ridChanges.get(i).newRid.slotNo;
+                }
+                ridChanges.get(i).newRid.slotNo-=firstVal;
+            }
+
+            for (int i = 0; i < ridChanges.size(); i++) {
+                BTClusteredLeafPage page1 = null;
+                if (ridChanges.get(i).newRid.pageNo.pid == currentLeafPage.getCurPage().pid) {
+                    page1 = currentLeafPage;
+                } else {
+                    page1 = newLeafPage;
+                }
+                ridChanges.get(i).keyData = BT.getEntryFromBytes(page1.getpage(), page1.getSlotOffset(ridChanges.get(i).newRid.slotNo),
+                        page1.getSlotLength(ridChanges.get(i).newRid.slotNo), headerPage.get_keyType(), headerPage.get_keyIndex(), NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+            }
+
 
             // check whether <key, rid>
             // will be inserted
@@ -775,8 +865,15 @@ public class BTreeClusteredFile extends IndexFile
 
             if (BT.keyCompare(key, undoEntry.key) >= 0) {
                 // the new data entry belongs on the new Leaf page
-                newLeafPage.insertRecord(key, data);
-
+//                RID loopRid = newLeafPage.firstRecord();
+//                while (loopRid != null) {
+//                    System.out.println(loopRid);
+//                    loopRid = newLeafPage.nextRecord(loopRid);
+//                }
+//                System.out.print("inserting");
+                RID newRid = newLeafPage.insertRecord(key, data);
+//                System.out.println(newRid);
+                addRidChangesDueToInsert(ridChanges, newLeafPage, newRid);
 
                 if (trace != null) {
                     trace.writeBytes("PUTIN node " + newLeafPageId + lineSep);
@@ -785,7 +882,16 @@ public class BTreeClusteredFile extends IndexFile
 
 
             } else {
-                currentLeafPage.insertRecord(key, data);
+//                RID loopRid = currentLeafPage.firstRecord();
+//                while (loopRid != null) {
+//                    System.out.println(loopRid);
+//                    loopRid = currentLeafPage.nextRecord(loopRid);
+//                }
+//                System.out.print("inserting");
+
+                RID newRid = currentLeafPage.insertRecord(key, data);
+//                System.out.println(newRid);
+                addRidChangesDueToInsert(ridChanges, currentLeafPage, newRid);
             }
 
             unpinPage(currentLeafPageId, true /* dirty */);
@@ -811,6 +917,31 @@ public class BTreeClusteredFile extends IndexFile
         } else {
             throw new InsertException(null, "");
         }
+    }
+
+    public void addRidChangesDueToInsert(ArrayList<RidChange> ridChanges, BTClusteredLeafPage page, RID newRid) throws IOException, NodeNotMatchException, KeyNotMatchException, ConvertException {
+        RID loopRid = newRid;
+        loopRid = page.nextRecord(loopRid);
+        while (loopRid != null) {
+//            System.out.println(loopRid);
+            RidChange ridChange = new RidChange();
+            ridChange.newRid = loopRid;
+            ridChange.keyData = BT.getEntryFromBytes(page.getpage(), page.getSlotOffset(ridChange.newRid.slotNo),
+                    page.getSlotLength(ridChange.newRid.slotNo), headerPage.get_keyType(), headerPage.get_keyIndex(), NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+            RID tempRid = new RID();
+            tempRid.slotNo = loopRid.slotNo - 1;
+            tempRid.pageNo = loopRid.pageNo;
+            ridChange.oldRid = tempRid;
+            ridChanges.add(ridChange);
+
+            loopRid = page.nextRecord(loopRid);
+        }
+        RidChange ridChange = new RidChange();
+        ridChange.newRid = newRid;
+        ridChange.oldRid = null;
+        ridChange.keyData = BT.getEntryFromBytes(page.getpage(), page.getSlotOffset(ridChange.newRid.slotNo),
+                page.getSlotLength(ridChange.newRid.slotNo), headerPage.get_keyType(), headerPage.get_keyIndex(), NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+        ridChanges.add(ridChange);
     }
 
     public boolean Delete(KeyClass key, Tuple data)

@@ -39,7 +39,7 @@ public class ClusteredHashFile extends HashFile {
         insertRecord(key, new ClusteredHashRecord(key, data));
     }
 
-    public void deleteRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException {
+    public void deleteRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         deleteRecord(key, new ClusteredHashRecord(key, data));
     }
 
@@ -137,7 +137,7 @@ public class ClusteredHashFile extends HashFile {
         }
     }
 
-    public void deleteRecord(KeyClass key, HashRecord data) throws IOException, InvalidSlotNumberException, InvalidTupleSizeException, InvalidTypeException, UnknowAttrType, TupleUtilsException {
+    public void deleteRecord(KeyClass key, HashRecord data) throws IOException, InvalidSlotNumberException, InvalidTupleSizeException, InvalidTypeException, UnknowAttrType, TupleUtilsException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         int bucketKey = key.getHash() % headerPage.getNValue();
         if (bucketKey < headerPage.getNextValue()) {
             bucketKey = key.getHash() % (2 * headerPage.getNValue());
@@ -186,6 +186,7 @@ public class ClusteredHashFile extends HashFile {
                         System.out.print("Deleting Record: ");
                         tup.print(tupleAttrType);
                         dataPage.deleteRecord(tempDataRid);
+                        SystemDefs.JavabaseBM.unpinPage(dataPage.getCurPage(), true);
                         break;
                     }
                     tempDataRid = dataPage.nextRecord(tempDataRid);
