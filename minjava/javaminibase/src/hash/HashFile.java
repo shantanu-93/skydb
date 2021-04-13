@@ -98,7 +98,7 @@ public class HashFile {
         }
     }
 
-    public void insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
+    public RID insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
         key.setKeyType(headerPage.getKeyType());
         key.setKeySize(headerPage.getKeySize());
 
@@ -155,6 +155,7 @@ public class HashFile {
         }
         headerPage.setNumOfRecords(headerPage.getNumOfRecords() + 1);
 //        printIndex();
+        return null;
     }
 
 //    public RID getNextFromBucket(int bucketKey, RID rid) throws IOException {
@@ -188,6 +189,7 @@ public class HashFile {
 
         RID recordRid = headerPage.insertRecord(tempData);
         boolean recordInserted = recordRid != null;
+
         // if insufficient space, try to insert in overflow page if it is already there, else add overflow page
         HashHeaderPage prevPage = headerPage;
         HashHeaderPage nextPage;
@@ -299,7 +301,7 @@ public class HashFile {
         }
     }
 
-    public void deleteRecord(KeyClass key, HashRecord data) throws IOException, InvalidSlotNumberException, InvalidTupleSizeException, InvalidTypeException, UnknowAttrType, TupleUtilsException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
+    public RID deleteRecord(KeyClass key, HashRecord data) throws IOException, InvalidSlotNumberException, InvalidTupleSizeException, InvalidTypeException, UnknowAttrType, TupleUtilsException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         key.setKeyType(headerPage.getKeyType());
         key.setKeySize(headerPage.getKeySize());
 
@@ -337,6 +339,7 @@ public class HashFile {
                 break;
             }
         }
+        return null;
     }
 
     public void printIndex() throws IOException, InvalidTupleSizeException, InvalidTypeException {
