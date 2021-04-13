@@ -270,13 +270,13 @@ public class BTreeClusteredFile extends IndexFile
 
         @Override
         public String toString() {
-//            if (keyData != null) {
+            if (keyData != null) {
                 try {
                     ((ClusteredLeafData)keyData.data).getData().print(tupleAttrType);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-//            }
+            }
 
             return "RidChange{" +
                     "oldRid=" + oldRid +
@@ -944,7 +944,7 @@ public class BTreeClusteredFile extends IndexFile
         ridChanges.add(ridChange);
     }
 
-    public boolean Delete(KeyClass key, Tuple data)
+    public ArrayList<RidChange> Delete(KeyClass key, Tuple data)
             throws DeleteFashionException,
             LeafRedistributeException,
             RedistributeException,
@@ -961,12 +961,16 @@ public class BTreeClusteredFile extends IndexFile
             ConstructPageException,
             DeleteRecException,
             IndexSearchException,
-            IOException {
-        if (headerPage.get_deleteFashion() == DeleteFashion.FULL_DELETE)
-            return FullDelete(key, data);
-        else if (headerPage.get_deleteFashion() == DeleteFashion.NAIVE_DELETE)
-            return NaiveDelete(key, data);
-        else
+            IOException, NodeNotMatchException, ConvertException {
+        ArrayList<RidChange> ridChanges = new ArrayList<>();
+
+        if (headerPage.get_deleteFashion() == DeleteFashion.FULL_DELETE) {
+            FullDelete(key, data, ridChanges);
+            return ridChanges;
+        } else if (headerPage.get_deleteFashion() == DeleteFashion.NAIVE_DELETE) {
+            NaiveDelete(key, data, ridChanges);
+            return ridChanges;
+        } else
             throw new DeleteFashionException(null, "");
     }
 
@@ -1108,7 +1112,28 @@ public class BTreeClusteredFile extends IndexFile
         return pageLeaf;
     }
 
+    public void addRidChangesDueToDelete(ArrayList<RidChange> ridChanges, BTClusteredLeafPage page, RID deletedRid) throws IOException, NodeNotMatchException, KeyNotMatchException, ConvertException {
+        RID loopRid = deletedRid;
+        loopRid = page.nextRecord(loopRid);
+        while (loopRid != null) {
+//            System.out.println(loopRid);
+            RidChange ridChange = new RidChange();
+            ridChange.oldRid = loopRid;
+            RID tempRid = new RID();
+            tempRid.slotNo = loopRid.slotNo - 1;
+            tempRid.pageNo = loopRid.pageNo;
+            ridChange.newRid = tempRid;
+            ridChange.keyData = BT.getEntryFromBytes(page.getpage(), page.getSlotOffset(ridChange.newRid.slotNo),
+                    page.getSlotLength(ridChange.newRid.slotNo), headerPage.get_keyType(), headerPage.get_keyIndex(), NodeType.LEAF_CLUSTERED, tupleFldCnt, tupleAttrType, tupleStrSizes);
+            ridChanges.add(ridChange);
 
+            loopRid = page.nextRecord(loopRid);
+        }
+        RidChange ridChange = new RidChange();
+        ridChange.oldRid = deletedRid;
+        ridChange.newRid = null;
+        ridChanges.add(ridChange);
+    }
 
     /*
      *  Status BTreeFile::NaiveDelete (const void *key, const RID rid)
@@ -1123,7 +1148,7 @@ public class BTreeClusteredFile extends IndexFile
      * BTLeafPage::delUserRid.
      */
 
-    private boolean NaiveDelete(KeyClass key, Tuple data)
+    private boolean NaiveDelete(KeyClass key, Tuple data, ArrayList<RidChange> ridChanges)
             throws LeafDeleteException,
             KeyNotMatchException,
             PinPageException,
@@ -1132,7 +1157,7 @@ public class BTreeClusteredFile extends IndexFile
             UnpinPageException,
             PinPageException,
             IndexSearchException,
-            IteratorException {
+            IteratorException, NodeNotMatchException, ConvertException {
         BTClusteredLeafPage leafPage;
         RID curRid = new RID();  // iterator
         KeyClass curkey;
@@ -1173,12 +1198,13 @@ public class BTreeClusteredFile extends IndexFile
             if (BT.keyCompare(key, entry.key) > 0)
                 break;
 
-            if (leafPage.delEntry(new KeyDataEntry(key, data))) {
+            RID deletedRid = leafPage.delEntry(new KeyDataEntry(key, data));
+            if (deletedRid != null) {
+                addRidChangesDueToDelete(ridChanges, leafPage, deletedRid);
 
                 // successfully found <key, rid> on this page and deleted it.
                 // unpin dirty page and return OK.
                 unpinPage(leafPage.getCurPage(), true /* = DIRTY */);
-
 
                 if (trace != null) {
                     trace.writeBytes("TAKEFROM node " + leafPage.getCurPage() + lineSep);
@@ -1226,7 +1252,7 @@ public class BTreeClusteredFile extends IndexFile
      *@return false if no such record; true if succees
      */
 
-    private boolean FullDelete(KeyClass key, Tuple data)
+    private boolean FullDelete(KeyClass key, Tuple data, ArrayList<RidChange> ridChanges)
             throws IndexInsertRecException,
             RedistributeException,
             IndexSearchException,
@@ -1325,7 +1351,7 @@ public class BTreeClusteredFile extends IndexFile
                 // WriteUpdateLog is done in the btleafpage level - to log the
                 // deletion of the rid.
 
-                if (leafPage.delEntry(new KeyDataEntry(key, data))) {
+                if (leafPage.delEntry(new KeyDataEntry(key, data)) != null) {
                     // successfully found <key, rid> on this page and deleted it.
 
 

@@ -111,7 +111,7 @@ public class BTClusteredLeafPage extends BTSortedPage {
         return getNext(rid);
     }
 
-    public boolean delEntry(KeyDataEntry dEntry)
+    public RID delEntry(KeyDataEntry dEntry)
             throws LeafDeleteException {
         KeyDataEntry entry;
         RID rid = new RID();
@@ -121,11 +121,11 @@ public class BTClusteredLeafPage extends BTSortedPage {
                 if (entry.equals(dEntry)) {
                     if (super.deleteSortedRecord(rid) == false)
                         throw new LeafDeleteException(null, "Delete record failed");
-                    return true;
+                    return rid;
                 }
 
             }
-            return false;
+            return null;
         } catch (Exception e) {
             throw new LeafDeleteException(e, "delete entry failed");
         }
