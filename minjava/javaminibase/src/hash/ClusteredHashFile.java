@@ -39,11 +39,11 @@ public class ClusteredHashFile extends HashFile {
         insertRecord(key, new ClusteredHashRecord(key, data));
     }
 
-    public void deleteRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException {
+    public void deleteRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         deleteRecord(key, new ClusteredHashRecord(key, data));
     }
 
-    public void insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
+    public RID insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
         key.setKeyType(headerPage.getKeyType());
         key.setKeySize(headerPage.getKeySize());
 //        SystemDefs.JavabaseBM.flushPages();
@@ -57,6 +57,7 @@ public class ClusteredHashFile extends HashFile {
         int bucketPageId = buckets.get(bucketKey);
         ClusteredHashPage bucketPage = new ClusteredHashPage(new PageId(bucketPageId));
         RID tempRid = bucketPage.firstRecord();
+        RID recordRid = null;
         while (true) {
             while (tempRid != null) {
                 byte[] bytesRecord = bucketPage.getBytesFromSlot(tempRid.slotNo);
@@ -82,22 +83,26 @@ public class ClusteredHashFile extends HashFile {
         }
         if (dataPageFound) {
             ClusteredDataPage dataPage = new ClusteredDataPage(dataPageId);
-            insertRecordToDataPage(dataPage, ((ClusteredHashRecord)data).getTupleBytes());
+            recordRid = insertRecordToDataPage(dataPage, ((ClusteredHashRecord)data).getTupleBytes());
 //            SystemDefs.JavabaseBM.unpinPage(dataPage.getCurPage(), true);
         } else {
             ClusteredDataPage dataPage = new ClusteredDataPage(HashPageType.CLUSTERED_DATA);
-            insertRecordToDataPage(dataPage, ((ClusteredHashRecord)data).getTupleBytes());
+            recordRid = insertRecordToDataPage(dataPage, ((ClusteredHashRecord)data).getTupleBytes());
             ((ClusteredHashRecord)data).setPageId(dataPage.getCurPage());
 //            System.out.println("Adding page");
             super.insertRecord(key, data);
         }
         SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
+        return recordRid;
     }
 
-    public void insertRecordToDataPage(ClusteredDataPage page, byte[] data) throws IOException, ConstructPageException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
+    public RID insertRecordToDataPage(ClusteredDataPage page, byte[] data) throws IOException, ConstructPageException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         RID recordRid = page.insertRecord(data);
         // record id is null if insufficient space
         boolean recordInserted = recordRid != null;
+        if (recordInserted) {
+            SystemDefs.JavabaseBM.unpinPage(page.getCurPage(), true);
+        }
 
         if(recordInserted){
             SystemDefs.JavabaseBM.unpinPage(page.getCurPage(), true);
@@ -136,12 +141,13 @@ public class ClusteredHashFile extends HashFile {
             ClusteredDataPage overflowPage = new ClusteredDataPage(HashPageType.CLUSTERED_DATA_OVERFLOW);
             prevPage.setNextPage(overflowPage.getCurPage());
             overflowPage.setPrevPage(prevPage.getCurPage());
-            overflowPage.insertRecord(data);
+            recordRid = overflowPage.insertRecord(data);
             SystemDefs.JavabaseBM.unpinPage(overflowPage.getCurPage(), true);
         }
+        return recordRid;
     }
 
-    public void deleteRecord(KeyClass key, HashRecord data) throws IOException, InvalidSlotNumberException, InvalidTupleSizeException, InvalidTypeException, UnknowAttrType, TupleUtilsException {
+    public RID deleteRecord(KeyClass key, HashRecord data) throws IOException, InvalidSlotNumberException, InvalidTupleSizeException, InvalidTypeException, UnknowAttrType, TupleUtilsException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         int bucketKey = key.getHash() % headerPage.getNValue();
         if (bucketKey < headerPage.getNextValue()) {
             bucketKey = key.getHash() % (2 * headerPage.getNValue());
@@ -152,6 +158,7 @@ public class ClusteredHashFile extends HashFile {
         int bucketPageId = buckets.get(bucketKey);
         ClusteredHashPage bucketPage = new ClusteredHashPage(new PageId(bucketPageId));
         RID tempRid = bucketPage.firstRecord();
+        RID returnDataRid = null;
         while (true) {
             while (tempRid != null) {
                 byte[] bytesRecord = bucketPage.getBytesFromSlot(tempRid.slotNo);
@@ -190,6 +197,8 @@ public class ClusteredHashFile extends HashFile {
                         System.out.print("Deleting Record: ");
                         tup.print(tupleAttrType);
                         dataPage.deleteRecord(tempDataRid);
+                        returnDataRid = tempDataRid;
+                        SystemDefs.JavabaseBM.unpinPage(dataPage.getCurPage(), true);
                         break;
                     }
                     tempDataRid = dataPage.nextRecord(tempDataRid);
@@ -221,7 +230,7 @@ public class ClusteredHashFile extends HashFile {
                 super.deleteRecord(key, data);
             }
         }
-
+        return returnDataRid;
     }
 
     public ClusteredHashFileScan newScan(KeyClass lowKey, KeyClass highKey) {

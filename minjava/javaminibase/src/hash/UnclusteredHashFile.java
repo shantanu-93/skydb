@@ -23,12 +23,12 @@ public class UnclusteredHashFile extends HashFile {
         super(filename, keyType, keySize, targetUtilization,false);
     }
 
-    public void insertRecord(KeyClass key, RID rid) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
-        super.insertRecord(key, new UnclusteredHashRecord(key, rid));
+    public RID insertRecord(KeyClass key, RID rid) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
+        return super.insertRecord(key, new UnclusteredHashRecord(key, rid));
     }
 
-    public void deleteRecord(KeyClass key, RID rid) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException {
-        super.deleteRecord(key, new UnclusteredHashRecord(key, rid));
+    public RID deleteRecord(KeyClass key, RID rid) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
+        return super.deleteRecord(key, new UnclusteredHashRecord(key, rid));
     }
 
     public UnclusteredHashFileScan newScan(KeyClass lowKey, KeyClass highKey) {
