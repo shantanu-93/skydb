@@ -35,12 +35,12 @@ public class ClusteredHashFile extends HashFile {
         this.tupleStrSizes = tupleStrSizes;
     }
 
-    public void insertRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
-        insertRecord(key, new ClusteredHashRecord(key, data));
+    public RID insertRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {
+        return insertRecord(key, new ClusteredHashRecord(key, data));
     }
 
-    public void deleteRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
-        deleteRecord(key, new ClusteredHashRecord(key, data));
+    public RID deleteRecord(KeyClass key, Tuple data) throws IOException, ConstructPageException, InvalidSlotNumberException, InvalidTypeException, UnknowAttrType, TupleUtilsException, InvalidTupleSizeException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
+       return deleteRecord(key, new ClusteredHashRecord(key, data));
     }
 
     public RID insertRecord(KeyClass key, HashRecord data) throws IOException, ConstructPageException, InvalidSlotNumberException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException, PagePinnedException, PageNotFoundException, BufMgrException, HashOperationException {

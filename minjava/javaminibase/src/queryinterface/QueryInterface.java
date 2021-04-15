@@ -66,6 +66,11 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     public static final short UNCLUSTERED_BTREE = 3;
     public static final short NO_INDEX = 4;
     public static final String INDEX_FILE_NAME = "indexCatalog";
+    public static String outputTableName = null;
+    public static Boolean outputResultToTable = false;
+    public static Heapfile outputTable = null;
+    public static ArrayList<BTreeClusteredFile.RidChange> RidChanges = null;
+    public static ArrayList<RidTuplePair> ridTuplePairs = null;
 
     private void menuInterface() {
         System.out.println("-------------------------- MENU --------------------------");
@@ -315,6 +320,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             System.out.print("Enter Tablename: ");
             String tname = GetStuff.getStringChoice();
             getTableAttrsAndType(tname);
+            String tempRelName = createTempHeapFileForSkyline(tname);
+            f = new Heapfile(tempRelName);
             System.out.println();
             prefMenu();
             indexesCreated = false;
@@ -380,43 +387,44 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             //choice = GetStuff.getChoice();
             while (choice != 0) {
                 algoMenu();
-
-
                 choice = GetStuff.getChoice();
+                outputTableMenu();
+
                 switch (choice) {
                     case 1:
                         // call nested loop sky
                         SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
-                        runNestedLoopSky(tname);
+                        runNestedLoopSky(tempRelName, outputResultToTable, outputTableName);
                         break;
 
                     case 2:
                         // call block nested loop sky
                         SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
-                        runBNLSky(tname);
+                        runBNLSky(tempRelName, outputResultToTable, outputTableName);
                         break;
 
                     case 3:
                         SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
-                        runSortFirstSky(tname);
+                        runSortFirstSky(tempRelName, outputResultToTable, outputTableName);
                         break;
 
                     case 4:
                         SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
-                        runBtreeSky(tname);
+                        runBtreeSky(tempRelName, outputResultToTable, outputTableName);
                         break;
 
                     case 5:
                         SystemDefs.JavabaseBM.flushPages();
                         PCounter.initialize();
-                        runBTreeSortedSky(tname);
+                        runBTreeSortedSky(tempRelName, outputResultToTable, outputTableName);
                         break;
 
                     case 0:
+                        f.deleteFile();
                         break;
                 }
             }
@@ -426,6 +434,30 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             System.out.println("       !!         Something is wrong                    !!");
             System.out.println("       !!     Is your DB full? then exit. rerun it!     !!");
             System.out.println("       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        }
+    }
+
+    private void outputTableMenu() {
+        System.out.println("Do you want to store result in an output table");
+        System.out.println("[1] YES");
+        System.out.println("[2] NO");
+        System.out.print("Enter your choice:");
+        int yourChoice = GetStuff.getChoice();
+        outputResultToTable = false;
+        if (yourChoice == 1) {
+            outputResultToTable = true;
+            System.out.print("Enter Tablename: ");
+            outputTableName = GetStuff.getStringChoice();
+            try {
+                outputTable = new Heapfile(outputTableName);
+                outputTable.deleteFile();
+                setTableMeta(outputTableName, attrType, attrSizes, attrNames);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            outputResultToTable = false;
+            outputTableName = null;
         }
     }
 
@@ -769,7 +801,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
         try {
             short keySize = 4;
-            if (attrType[attrIndex - 1].attrType ==  AttrType.attrString) {
+            if (attrType[attrIndex - 1].attrType == AttrType.attrString) {
                 keySize = attrStringSize;
             }
             if (unclusteredIndexType == UNCLUSTERED_HASH) {
@@ -1459,7 +1491,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 //          File file = new File("../../data/" + filename + ".txt");
             File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + filename + ".txt");
             Scanner sc = new Scanner(file);
-            int attrIndex = 1;
+            int attrIndex = -1;
             int indexTypeIfExists = findIfIndexExists(tableName, -1);
             List<IndexDesc> allIndexes = getAllIndexesForRel(tableName);
 
@@ -1475,10 +1507,13 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             try {
                 if (indexTypeIfExists == CLUSTERED_BTREE) {
                     bTreeClusteredFile = new BTreeClusteredFile(tableName, (short) nColumns, attrType, attrSizes);
+                    RidChanges = new ArrayList<BTreeClusteredFile.RidChange>();
                 } else if (indexTypeIfExists == CLUSTERED_HASH) {
                     hashFile = new ClusteredHashFile(tableName, (short) nColumns, attrType, attrSizes);
+                    ridTuplePairs = new ArrayList<RidTuplePair>();
                 } else {
                     f = new Heapfile(tableName);
+                    ridTuplePairs = new ArrayList<RidTuplePair>();
                 }
             } catch (Exception e) {
                 status = FAIL;
@@ -1528,7 +1563,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
             int count = 0;
             int value;
-            ClusteredHashRecord rec;
+            RidTuplePair ridtuple;
             while (sc.hasNextLine()) {
                 // create a tuple1 of appropriate size
                 String[] row = sc.nextLine().trim().split("\\s+");
@@ -1552,25 +1587,34 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                     if (indexTypeIfExists == CLUSTERED_BTREE) {
                         if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
                             IntegerKey key = new IntegerKey(tuple1.getIntFld(attrIndex));
-                            bTreeClusteredFile.insert(key, tuple1);
+                            RidChanges = bTreeClusteredFile.insert(key, tuple1);
                         } else {
                             StringKey key = new StringKey(tuple1.getStrFld(attrIndex));
-                            bTreeClusteredFile.insert(key, tuple1);
+                            RidChanges = bTreeClusteredFile.insert(key, tuple1);
                         }
-
+                        IndexDesc index;
+                        for (int i = 0; i < allIndexes.size(); i++) {
+                            index = allIndexes.get(i);
+                            if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
+                                bulkRestructureUnclustered(RidChanges, tableName, index.indexType, index.attrIndex);
+                            }
+                        }
                     } else if (indexTypeIfExists == CLUSTERED_HASH) {
+                        ridtuple = new RidTuplePair();
+                        ridtuple.tuple = tuple1;
                         if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
                             hash.IntegerKey key = new hash.IntegerKey(tuple1.getIntFld(attrIndex));
-                            rec = new ClusteredHashRecord(key, tuple1);
-                            hashFile.insertRecord(key, rec);
+                            ridtuple.rid = hashFile.insertRecord(key, tuple1);
                         } else {
                             hash.StringKey key = new hash.StringKey(tuple1.getStrFld(attrIndex));
-                            rec = new ClusteredHashRecord(key, tuple1);
-                            hashFile.insertRecord(key, rec);
+                            ridtuple.rid = hashFile.insertRecord(key, tuple1);
                         }
-
+                        ridTuplePairs.add(ridtuple);
                     } else {
-                        rid = f.insertRecord(tuple1.returnTupleByteArray());
+                        ridtuple = new RidTuplePair();
+                        ridtuple.rid = f.insertRecord(tuple1.returnTupleByteArray());
+                        ridtuple.tuple = tuple1;
+                        ridTuplePairs.add(ridtuple);
                     }
                     count++;
                 } catch (Exception e) {
@@ -1591,36 +1635,130 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 e.printStackTrace();
             }
 
-//            IndexDesc index;
-//            for (int i = 0; i < allIndexes.size(); i++) {
-//                index = allIndexes.get(i);
-//                if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
-//                    bulkInsertUnclustered(filename, tableName, index.indexType, index.indexType);
-//                }
-//            }
+            if (indexTypeIfExists != CLUSTERED_BTREE) {
+                IndexDesc index;
+                for (int i = 0; i < allIndexes.size(); i++) {
+                    index = allIndexes.get(i);
+                    if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
+                        bulkUpdateUnclustered(ridTuplePairs, tableName, index.indexType, index.attrIndex, true);
+                    }
+                }
+            }
 
         }
     }
 
-    private void bulkInsertUnclustered(String filename, String tableName, int indexType, int attrIndex) throws FileNotFoundException {
-        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
-                != SystemDefs.JavabaseBM.getNumBuffers()) {
-            System.err.println("*** The heap file has left pages pinned\n");
-            status = FAIL;
+    private Boolean bulkRestructureUnclustered(ArrayList<BTreeClusteredFile.RidChange> ridChanges, String tableName, int indexType, int attrIndex) throws FileNotFoundException {
+        String indexFileName = tableName + '-' + indexType + '-' + attrIndex;
+
+        try {
+            if (indexType == UNCLUSTERED_HASH) {
+                unclusteredHashFile = new UnclusteredHashFile(indexFileName);
+            } else {
+                bTreeUnclusteredFile = new BTreeFile(indexFileName);
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to initialize unclustered index file!");
+            e.printStackTrace();
         }
+        Boolean isNewUpdate = false;
+        BTreeClusteredFile.RidChange ridChange = null;
+        Tuple t;
+        for (int i = 0; i < ridChanges.size(); i++) {
+            ridChange = ridChanges.get(i);
+            try {
+                t = ((Tuple) ((ClusteredLeafData) ridChange.keyData.data).getData());
+                if (indexType == UNCLUSTERED_HASH) {
+                    if (ridChange.newRid == null) {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
+                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
+                        } else {
+                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
+                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
+                        }
+                        isNewUpdate = true;
+                    } else if (ridChange.oldRid == null) {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
+                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
+                        } else {
+                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
+                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
+                        }
+                        isNewUpdate = true;
+                    } else if (ridChange.oldRid != null && ridChange.newRid != null) {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
+                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
+                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
+                        } else {
+                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
+                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
+                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
+                        }
+                    }
+                } else {
+                    if (ridChange.newRid == null) {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
+                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
+                        } else {
+                            StringKey key = new StringKey(t.getStrFld(attrIndex));
+                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
+                        }
+                        isNewUpdate = true;
+                    } else if (ridChange.oldRid == null) {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
+                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
+                        } else {
+                            StringKey key = new StringKey(t.getStrFld(attrIndex));
+                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
+                        }
+                        isNewUpdate = true;
+                    } else if (ridChange.oldRid != null && ridChange.newRid != null) {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
+                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
+                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
+
+                        } else {
+                            StringKey key = new StringKey(t.getStrFld(attrIndex));
+                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
+                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            if (indexType == UNCLUSTERED_HASH) {
+                unclusteredHashFile.close();
+            } else {
+                bTreeUnclusteredFile.close();
+            }
+        } catch (Exception e) {
+            status = FAIL;
+            System.out.println("Failed to close files");
+            e.printStackTrace();
+        }
+        return isNewUpdate;
+    }
+
+    private void bulkUpdateUnclustered(ArrayList<RidTuplePair> rtPair, String tableName, int indexType, int attrIndex, Boolean isInsert) throws FileNotFoundException {
+//        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
+//                != SystemDefs.JavabaseBM.getNumBuffers()) {
+//            System.err.println("*** The heap file has left pages pinned\n");
+//            status = FAIL;
+//        }
 
 
         if (status == OK) {
-//          File file = new File("../../data/" + filename + ".txt");
-            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + filename + ".txt");
-            Scanner sc = new Scanner(file);
-
-            nColumns = Integer.valueOf(sc.nextLine().trim());
-
-            for (int i = 0; i < nColumns; i++) {
-                sc.nextLine();
-            }
-
             String indexFileName = tableName + '-' + indexType + '-' + attrIndex;
 
             try {
@@ -1634,67 +1772,42 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 e.printStackTrace();
             }
 
-            Tuple tuple1 = new Tuple();
-            try {
-                tuple1.setHdr((short) nColumns, attrType, attrSizes);
-            } catch (Exception e) {
-                System.err.println("*** error in Tuple.setHdr() ***");
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            short size = tuple1.size();
-            System.out.println("Size: " + size);
-            tSize = size;
-
-            tuple1 = new Tuple(size);
-            try {
-                tuple1.setHdr((short) nColumns, attrType, attrSizes);
-            } catch (Exception e) {
-                System.err.println("*** error in Tuple.setHdr() ***");
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-            int value;
-            while (sc.hasNextLine()) {
-                // create a tuple1 of appropriate size
-                String[] row = sc.nextLine().trim().split("\\s+");
-
-
-                for (int i = 0; i < row.length; i++) {
-                    try {
-                        if (attrType[i].toInt().equals(AttrType.attrInteger)) {
-                            value = Integer.parseInt(row[i]);
-                            tuple1.setIntFld(i + 1, value);
-                        } else {
-                            tuple1.setStrFld(i + 1, row[i]);
-                        }
-
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-                }
-
-
+            RidTuplePair ridtuple = null;
+            for (int i = 0; i < rtPair.size(); i++) {
+                ridtuple = rtPair.get(i);
                 try {
                     if (indexType == UNCLUSTERED_HASH) {
                         if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                            hash.IntegerKey key = new hash.IntegerKey(tuple1.getIntFld(attrIndex));
-                            unclusteredHashFile.insertRecord(key, rid);
+                            hash.IntegerKey key = new hash.IntegerKey(ridtuple.tuple.getIntFld(attrIndex));
+                            if (isInsert) {
+                                unclusteredHashFile.insertRecord(key, ridtuple.rid);
+                            } else {
+                                unclusteredHashFile.deleteRecord(key, ridtuple.rid);
+                            }
                         } else {
-                            hash.StringKey key = new hash.StringKey(tuple1.getStrFld(attrIndex));
-                            unclusteredHashFile.insertRecord(key, rid);
+                            hash.StringKey key = new hash.StringKey(ridtuple.tuple.getStrFld(attrIndex));
+                            if (isInsert) {
+                                unclusteredHashFile.insertRecord(key, ridtuple.rid);
+                            } else {
+                                unclusteredHashFile.deleteRecord(key, ridtuple.rid);
+                            }
                         }
                     } else {
                         if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                            IntegerKey key = new IntegerKey(tuple1.getIntFld(attrIndex));
-                            bTreeUnclusteredFile.insert(key, rid);
-
+                            IntegerKey key = new IntegerKey(ridtuple.tuple.getIntFld(attrIndex));
+                            if (isInsert) {
+                                bTreeUnclusteredFile.insert(key, ridtuple.rid);
+                            } else {
+                                bTreeUnclusteredFile.Delete(key, ridtuple.rid);
+                            }
                         } else {
-                            StringKey key = new StringKey(tuple1.getStrFld(attrIndex));
-                            bTreeUnclusteredFile.insert(key, rid);
+                            StringKey key = new StringKey(ridtuple.tuple.getStrFld(attrIndex));
+                            bTreeUnclusteredFile.insert(key, ridtuple.rid);
+                            if (isInsert) {
+                                bTreeUnclusteredFile.insert(key, ridtuple.rid);
+                            } else {
+                                bTreeUnclusteredFile.Delete(key, ridtuple.rid);
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -1704,7 +1817,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             }
 
             try {
-                sc.close();
                 if (indexType == UNCLUSTERED_HASH) {
                     unclusteredHashFile.close();
                 } else {
@@ -1712,7 +1824,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 }
             } catch (Exception e) {
                 status = FAIL;
-                System.out.println("Failed to close scan");
+                System.out.println("Failed to close files");
                 e.printStackTrace();
             }
 
@@ -1756,10 +1868,13 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             try {
                 if (indexTypeIfExists == CLUSTERED_BTREE) {
                     bTreeClusteredFile = new BTreeClusteredFile(tableName, (short) nColumns, attrType, attrSizes);
+                    RidChanges = new ArrayList<BTreeClusteredFile.RidChange>();
                 } else if (indexTypeIfExists == CLUSTERED_HASH) {
                     hashFile = new ClusteredHashFile(tableName, (short) nColumns, attrType, attrSizes);
+                    ridTuplePairs = new ArrayList<RidTuplePair>();
                 } else {
                     f = new Heapfile(tableName);
+                    ridTuplePairs = new ArrayList<RidTuplePair>();
                 }
             } catch (Exception e) {
                 status = FAIL;
@@ -1809,9 +1924,10 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
 
             Integer count = 0;
-            Boolean match, removed, result;
+            Boolean match, removed = false, result;
             Scan scan;
             RID rid;
+            RidTuplePair ridtuple;
             while (sc.hasNextLine()) {
                 // create a tuple1 of appropriate size
                 String[] row = sc.nextLine().trim().split("\\s+");
@@ -1872,9 +1988,14 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                         if (match) {
                             try {
+                                ridtuple = new RidTuplePair();
                                 removed = f.deleteRecord(rid);
+
                                 if (removed) {
                                     count++;
+                                    ridtuple.rid = rid;
+                                    ridtuple.tuple = tuple1;
+                                    ridTuplePairs.add(ridtuple);
                                     System.out.print("Successfully deleted: ");
                                 } else {
                                     System.out.print("Failed to remove: ");
@@ -1902,25 +2023,45 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                         e.printStackTrace();
                     }
                 } else if (indexTypeIfExists == CLUSTERED_BTREE) {
-                    if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                        IntegerKey key = new IntegerKey(tuple1.getIntFld(attrIndex));
-                        match = bTreeClusteredFile.Delete(key, tuple1);
-                    } else {
-                        StringKey key = new StringKey(tuple1.getStrFld(attrIndex));
-                        match = bTreeClusteredFile.Delete(key, tuple1);
+                    try {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            IntegerKey key = new IntegerKey(tuple1.getIntFld(attrIndex));
+                            RidChanges = bTreeClusteredFile.Delete(key, tuple1);
+                        } else {
+                            StringKey key = new StringKey(tuple1.getStrFld(attrIndex));
+                            RidChanges = bTreeClusteredFile.Delete(key, tuple1);
+                        }
+                        IndexDesc index;
+                        for (int i = 0; i < allIndexes.size(); i++) {
+                            index = allIndexes.get(i);
+                            if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
+                                removed = bulkRestructureUnclustered(RidChanges, tableName, index.indexType, index.attrIndex);
+                            }
+                        }
+                        if (removed) {
+                            count++;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                    if (match) {
-                        count++;
-                    }
+
                 } else if (indexTypeIfExists == CLUSTERED_HASH) {
-                    if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                        hash.IntegerKey key = new hash.IntegerKey(tuple1.getIntFld(attrIndex));
-                        hashFile.deleteRecord(key, tuple1);
+                    ridtuple = new RidTuplePair();
+                    ridtuple.tuple = tuple1;
+                    try {
+                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                            hash.IntegerKey key = new hash.IntegerKey(tuple1.getIntFld(attrIndex));
+                            ridtuple.rid = hashFile.deleteRecord(key, tuple1);
+                        } else {
+                            hash.StringKey key = new hash.StringKey(tuple1.getStrFld(attrIndex));
+                            ridtuple.rid = hashFile.deleteRecord(key, tuple1);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    if (ridtuple.rid != null) {
                         count++;
-                    } else {
-                        hash.StringKey key = new hash.StringKey(tuple1.getStrFld(attrIndex));
-                        hashFile.deleteRecord(key, tuple1);
-                        count++;
+                        ridTuplePairs.add(ridtuple);
                     }
                 }
             }
@@ -1932,19 +2073,20 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                     hashFile.close();
                 }
                 System.out.println("Records removed: " + count);
-                System.out.println();
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
             }
 
-//            IndexDesc index;
-//            for (int i = 0; i < allIndexes.size(); i++) {
-//                index = allIndexes.get(i);
-//                if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
-//                    bulkRemoveUnclustered(filename, tableName, index.indexType, index.indexType);
-//                }
-//            }
+            if (indexTypeIfExists != CLUSTERED_BTREE) {
+                IndexDesc index;
+                for (int i = 0; i < allIndexes.size(); i++) {
+                    index = allIndexes.get(i);
+                    if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
+                        bulkUpdateUnclustered(ridTuplePairs, tableName, index.indexType, index.attrIndex, false);
+                    }
+                }
+            }
         }
     }
 
@@ -2082,7 +2224,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }
     }
 
-    public static void runNestedLoopSky(String hf) throws
+    public static void runNestedLoopSky(String hf, Boolean outputResultToTable, String outputTableName) throws
             PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscanNested = initialiseFileScan(hf);
         NestedLoopsSky nested = null;
@@ -2093,7 +2235,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             e.printStackTrace();
         }
 
-        getNextAndPrintAllSkyLine(nested);
+        getNextAndPrintAllSkyLine(nested, outputResultToTable, outputTableName);
 
         try {
             nested.close();
@@ -2103,7 +2245,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }
     }
 
-    public static void runBNLSky(String hf) throws
+    public static void runBNLSky(String hf, Boolean outputResultToTable, String outputTableName) throws
             PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscanBlock = initialiseFileScan(hf);
         Iterator block = null;
@@ -2114,7 +2256,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             e.printStackTrace();
         }
 
-        getNextAndPrintAllSkyLine(block);
+        getNextAndPrintAllSkyLine(block, outputResultToTable, outputTableName);
 
         try {
             block.close();
@@ -2124,7 +2266,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }
     }
 
-    public static void runSortFirstSky(String hf) throws
+    public static void runSortFirstSky(String hf, Boolean outputResultToTable, String outputTableName) throws
             PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
         FileScan fscan = initialiseFileScan(hf);
         Iterator sort = null;
@@ -2135,7 +2277,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             e.printStackTrace();
         }
 
-        getNextAndPrintAllSkyLine(sort);
+        getNextAndPrintAllSkyLine(sort, outputResultToTable, outputTableName);
 
         try {
             sort.close();
@@ -2145,7 +2287,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }
     }
 
-    private void runBtreeSky(String hf) throws Exception {
+    private void runBtreeSky(String hf, Boolean outputResultToTable, String outputTableName) throws Exception {
         System.out.println("Running BTreeSky");
         System.out.println("DataFile: " + hf);
         System.out.println("Preference list: " + Arrays.toString(pref_list));
@@ -2164,12 +2306,18 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 pref_list.length, index_file_list, _n_pages);
 
         PCounter.initialize();
-        btreesky.findBTreeSky();
+        String tempHeapFile = btreesky.findBTreeSky();
+
+        if (tempHeapFile != null) {
+            runSortFirstSky(tempHeapFile, outputResultToTable, outputTableName);
+            Heapfile tempHF = new Heapfile(tempHeapFile);
+            tempHF.deleteFile();
+        }
 
         System.out.println("BTreeSky Complete\n");
     }
 
-    public void runBTreeSortedSky(String hf) {
+    public void runBTreeSortedSky(String hf, Boolean outputResultToTable, String outputTableName) {
         try {
             BTreeCombinedIndex obj = new BTreeCombinedIndex();
             IndexFile indexFile = obj.combinedIndex(hf, attrType, attrSizes, pref_list, pref_list.length);
@@ -2181,7 +2329,13 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
             BTreeSortedSky btree = new BTreeSortedSky(attrType, attrType.length, attrSizes, null, fileName, pref_list, pref_list.length, indexFile, _n_pages);
             PCounter.initialize();
-            btree.computeSkyline();
+            String tempHeapFile = btree.computeSkyline();
+
+            if (tempHeapFile != null) {
+                runSortFirstSky(tempHeapFile, outputResultToTable, outputTableName);
+                Heapfile tempHF = new Heapfile(tempHeapFile);
+                tempHF.deleteFile();
+            }
 
             System.out.println("BTreeSortSky Complete");
 
@@ -2190,10 +2344,17 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }
     }
 
-    public static void getNextAndPrintAllSkyLine(Iterator iter) {
+    public static void getNextAndPrintAllSkyLine(Iterator iter, Boolean outputResultToTable, String outputTableName) {
 // this needs to be before the fn call since call to any algo 1,2,3 from 4,5 reinitializes counter
 //        PCounter.initialize();
-
+        outputTable = null;
+        if (outputResultToTable && outputTableName != null) {
+            try {
+                outputTable = new Heapfile(outputTableName);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         int count = -1;
         Tuple tuple1 = null;
         System.out.println("\n -- Skyline Objects -- ");
@@ -2201,6 +2362,9 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             try {
                 if (tuple1 != null) {
                     tuple1.print(attrType);
+                    if (outputTable != null && outputResultToTable && outputTableName != null) {
+                        outputTable.insertRecord(tuple1.returnTupleByteArray());
+                    }
                 }
             } catch (Exception e) {
                 status = FAIL;
@@ -2238,6 +2402,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     private void setAttrDesc(String tableName) throws IOException, FieldNumberOutOfBoundException {
         try {
+            f = new Heapfile(tableName + METAFILE_POSTFIX);
+            f.deleteFile();
             f = new Heapfile(tableName + METAFILE_POSTFIX);
         } catch (Exception e) {
             status = FAIL;
@@ -2299,7 +2465,36 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }
     }
 
-    public static void getTableAttrsAndType(String tableName) {
+    private void setTableMeta(String tableName, AttrType[] attrT, short[] attrS, String[] attrN) throws IOException, FieldNumberOutOfBoundException {
+        Heapfile filehf = null;
+        try {
+            filehf = new Heapfile(tableName + METAFILE_POSTFIX);
+            filehf.deleteFile();
+            filehf = new Heapfile(tableName + METAFILE_POSTFIX);
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        for (int i = 0; i < attrT.length; i++) {
+            metaTuple.setStrFld(1, attrN[i]);
+            metaTuple.setIntFld(2, attrT[i].attrType);
+            if (attrT[i].attrType == AttrType.attrString) {
+                metaTuple.setIntFld(3, attrStringSize);
+            } else {
+                metaTuple.setIntFld(3, 0);
+            }
+
+            try {
+                rid = filehf.insertRecord(metaTuple.returnTupleByteArray());
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void getTableAttrsAndType(String tableName) {
         // Read data and construct tuples
         FileScan fscan = null;
 
@@ -2410,7 +2605,150 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }
     }
 
-    public static void getSecondTableAttrsAndType(String tableName) {
+    public String createTempHeapFileForSkyline(String tableName) {
+        Tuple t;
+        int indexTypeIfExists = findIfIndexExists(tableName, -1);
+
+        Heapfile tempHF = null;
+        String tempHfName = null;
+        try {
+            tempHfName = Heapfile.getRandomHFName();
+            tempHF = new Heapfile(tempHfName);
+        } catch (Exception e) {
+            status = FAIL;
+            System.err.println("*** Could not create heap file\n");
+            e.printStackTrace();
+        }
+
+        if (status != OK) {
+            return null;
+        }
+        rid = new RID();
+        try {
+            if (indexTypeIfExists == NO_INDEX) {
+                try {
+                    f = new Heapfile(tableName);
+                } catch (Exception e) {
+                    status = FAIL;
+                    System.err.println("*** Could not create heap file\n");
+                    e.printStackTrace();
+                }
+
+                FileScan fscan = null;
+
+                try {
+                    fscan = new FileScan(tableName, attrType, attrSizes, (short) nColumns, nColumns, projlist, null);
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+
+                t = null;
+                try {
+                    t = fscan.get_next();
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+                while (t != null) {
+                    try {
+                        tempHF.insertRecord(t.returnTupleByteArray());
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+
+
+                    try {
+                        t = fscan.get_next();
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+                // clean up
+                try {
+                    fscan.close();
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+            } else if (indexTypeIfExists == CLUSTERED_BTREE) {
+                bTreeClusteredFile = new BTreeClusteredFile(tableName, (short) nColumns, attrType, attrSizes);
+                BTClusteredFileScan scan = null;
+                try {
+                    scan = bTreeClusteredFile.new_scan(null, null);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (KeyNotMatchException e) {
+                    e.printStackTrace();
+                } catch (IteratorException e) {
+                    e.printStackTrace();
+                } catch (ConstructPageException e) {
+                    e.printStackTrace();
+                } catch (PinPageException e) {
+                    e.printStackTrace();
+                } catch (UnpinPageException e) {
+                    e.printStackTrace();
+                }
+
+                KeyDataEntry data = null;
+                data = scan.get_next(rid);
+
+                while (data != null) {
+                    if (data != null) {
+                        try {
+                            t = ((Tuple) ((ClusteredLeafData) data.data).getData());
+                            tempHF.insertRecord(t.returnTupleByteArray());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    try {
+                        data = scan.get_next(rid);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+                bTreeClusteredFile.close();
+
+            } else if (indexTypeIfExists == CLUSTERED_HASH) {
+                hashFile = new ClusteredHashFile(tableName, (short) nColumns, attrType, attrSizes);
+                ClusteredHashFileScan fscan = null;
+                fscan = hashFile.newScan(null, null);
+                t = null;
+                t = fscan.getNextTuple(rid);
+
+                while (t != null) {
+                    try {
+                        tempHF.insertRecord(t.returnTupleByteArray());
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+
+                    try {
+                        t = fscan.getNextTuple(rid);
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+                hashFile.close();
+            }
+            return tempHfName;
+        } catch (Exception e) {
+            status = FAIL;
+            System.out.println("Failed to open heapfile for skyline!");
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public void getSecondTableAttrsAndType(String tableName) {
         // Read data and construct tuples
         FileScan fscan = null;
 
@@ -2595,4 +2933,14 @@ class IndexDesc {
         this.attrIndex = attrIndex;
         this.indexType = indexType;
     }
+}
+
+class RidTuplePair {
+    public RID rid;
+    public Tuple tuple;
+
+//    public RidTuplePair(RID rid, Tuple tuple) {
+//        this.rid = rid;
+//        this.tuple = tuple;
+//    }
 }
