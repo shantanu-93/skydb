@@ -52,6 +52,7 @@ public class ClusteredHashFile extends HashFile {
         if (bucketKey < headerPage.getNextValue()) {
             bucketKey = key.getHash() % (2 * headerPage.getNValue());
         }
+
         boolean dataPageFound = false;
         PageId dataPageId = null;
         int bucketPageId = buckets.get(bucketKey);
@@ -101,10 +102,6 @@ public class ClusteredHashFile extends HashFile {
         // record id is null if insufficient space
         boolean recordInserted = recordRid != null;
         if (recordInserted) {
-            SystemDefs.JavabaseBM.unpinPage(page.getCurPage(), true);
-        }
-
-        if(recordInserted){
             SystemDefs.JavabaseBM.unpinPage(page.getCurPage(), true);
         }
 

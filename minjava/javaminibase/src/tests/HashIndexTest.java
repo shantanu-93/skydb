@@ -1,9 +1,19 @@
 package tests;
 
+import btree.AddFileEntryException;
+import btree.GetFileEntryException;
+//import btree.*;
+import bufmgr.*;
+import hash.*;
+import global.AttrType;
 import global.GlobalConst;
 import global.SystemDefs;
-
+import hash.ClusteredHashFile;
+import heap.InvalidSlotNumberException;
+import heap.Tuple;
+import heap.*;
 import java.io.IOException;
+import java.util.ArrayList;
 
 
 class HashIndexDriver extends TestDriver
@@ -482,54 +492,54 @@ class HashIndexDriver extends TestDriver
     }
 
     protected boolean test5() {
-//        AttrType[] attrType = new AttrType[2];
-//        attrType[0] = new AttrType(AttrType.attrReal);
-//        attrType[1] = new AttrType(AttrType.attrReal);
-//        short[] attrSize = new short[0];
-//
-//        Tuple t = new Tuple();
-//
-//        try {
-//            t.setHdr((short) 2, attrType, attrSize);
-//        } catch (Exception e) {
-//            System.err.println("*** error in Tuple.setHdr() ***");
-//            e.printStackTrace();
-//        }
-//
-//        float inum1 = 1.0F;
-//        float inum2 = 1.0F;
-//
-//        try {
-//            t.setFloFld(1, inum1);
-//            t.setFloFld(2, inum2);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//
-//        ClusteredHashFile blah1 = null;
-//        try {
-//            ClusteredHashFile blah = new ClusteredHashFile("lol.in", 75, AttrType.attrString, 10, (short) 2, attrType, attrSize);
-//            blah.close();
-//            blah1 = new ClusteredHashFile("lol.in", (short) 2, attrType, attrSize);
-//
-//        } catch (GetFileEntryException e) {
-//            e.printStackTrace();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } catch (AddFileEntryException e) {
-//            e.printStackTrace();
-//        } catch (ConstructPageException e) {
-//            e.printStackTrace();
-//        } catch (PageUnpinnedException e) {
-//            e.printStackTrace();
-//        } catch (InvalidFrameNumberException e) {
-//            e.printStackTrace();
-//        } catch (HashEntryNotFoundException e) {
-//            e.printStackTrace();
-//        } catch (ReplacerException | InvalidSlotNumberException e) {
-//            e.printStackTrace();
-//        }
-//
+        AttrType[] attrType = new AttrType[2];
+        attrType[0] = new AttrType(AttrType.attrReal);
+        attrType[1] = new AttrType(AttrType.attrReal);
+        short[] attrSize = new short[0];
+
+        Tuple t = new Tuple();
+
+        try {
+            t.setHdr((short) 2, attrType, attrSize);
+        } catch (Exception e) {
+            System.err.println("*** error in Tuple.setHdr() ***");
+            e.printStackTrace();
+        }
+
+        float inum1 = 1.0F;
+        float inum2 = 1.0F;
+
+        try {
+            t.setFloFld(1, inum1);
+            t.setFloFld(2, inum2);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        ClusteredHashFile blah1 = null;
+        try {
+            ClusteredHashFile blah = new ClusteredHashFile("lol.in", 75, AttrType.attrString, 10, (short) 2, attrType, attrSize);
+            blah.close();
+            blah1 = new ClusteredHashFile("lol.in", (short) 2, attrType, attrSize);
+
+        } catch (GetFileEntryException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (AddFileEntryException e) {
+            e.printStackTrace();
+        } catch (ConstructPageException e) {
+            e.printStackTrace();
+        } catch (PageUnpinnedException e) {
+            e.printStackTrace();
+        } catch (InvalidFrameNumberException e) {
+            e.printStackTrace();
+        } catch (HashEntryNotFoundException e) {
+            e.printStackTrace();
+        } catch (ReplacerException | InvalidSlotNumberException e) {
+            e.printStackTrace();
+        }
+
 //        try {
 //            StringKey key = new StringKey("MUSAB");
 //            blah1.insertRecord(key, new ClusteredHashRecord(key, t));
@@ -558,67 +568,80 @@ class HashIndexDriver extends TestDriver
 //        } catch (BufMgrException e) {
 //            e.printStackTrace();
 //        }
-//
-//        ArrayList<String> stringList = new ArrayList<String>();
-//
-//        for (int i = 0; i < 1000; i++) {
-//            try {
-//                String blash = Heapfile.getRandomHFName();
-////                System.out.println(blash);
-//                stringList.add(blash);
-//                StringKey key = new StringKey(blash);
+
+        ArrayList<String> stringList = new ArrayList<String>();
+
+        for (int i = 0; i < 1000; i++) {
+            try {
+                String blash = Heapfile.getRandomHFName();
+//                System.out.println(blash);
+                stringList.add(blash);
+                StringKey key = new StringKey(blash);
 //                PCounter.initialize();
-//                blah1.insertRecord(key, new ClusteredHashRecord(key, t));
-////                SystemDefs.JavabaseBM.flushPages();
+                blah1.insertRecord(key, new ClusteredHashRecord(key, t));
+//                SystemDefs.JavabaseBM.flushPages();
 //                PCounter.printStats();
-////                blah1.insertRecord(key, new ClusteredHashRecord(key, t));
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            } catch (ConstructPageException e) {
-//                e.printStackTrace();
-//            } catch (InvalidSlotNumberException | PageUnpinnedException | InvalidFrameNumberException | HashEntryNotFoundException | ReplacerException e) {
-//                e.printStackTrace();
-//            } catch (PageNotFoundException e) {
-//                e.printStackTrace();
-//            } catch (PagePinnedException e) {
-//                e.printStackTrace();
-//            } catch (HashOperationException e) {
-//                e.printStackTrace();
-//            } catch (BufMgrException e) {
-//                e.printStackTrace();
-//            }
-//        }
-
-
-
-
-//        try {
-//            blah1.printIndex();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } catch (InvalidTupleSizeException e) {
-//            e.printStackTrace();
-//        } catch (InvalidTypeException e) {
-//            e.printStackTrace();
-//        }
-
-
-//        for (int i = 0; i < 1000; i++) {
-//            try {
-////                String blash = Heapfile.getRandomHFName();
-////                System.out.println(blash);
-////                stringList.add(blash);
-//                StringKey key = new StringKey(stringList.get(i));
 //                blah1.insertRecord(key, new ClusteredHashRecord(key, t));
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ConstructPageException e) {
+                e.printStackTrace();
+            } catch (InvalidSlotNumberException | PageUnpinnedException | InvalidFrameNumberException | HashEntryNotFoundException | ReplacerException e) {
+                e.printStackTrace();
+            } catch (PageNotFoundException e) {
+                e.printStackTrace();
+            } catch (PagePinnedException e) {
+                e.printStackTrace();
+            } catch (HashOperationException e) {
+                e.printStackTrace();
+            } catch (BufMgrException e) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            blah1.printIndex();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InvalidTupleSizeException e) {
+            e.printStackTrace();
+        } catch (InvalidTypeException e) {
+            e.printStackTrace();
+        }
+
+
+        for (int i = 0; i < 1000; i++) {
+            try {
+//                String blash = Heapfile.getRandomHFName();
+//                System.out.println(blash);
+//                stringList.add(blash);
+                StringKey key = new StringKey(stringList.get(i));
+                blah1.insertRecord(key, new ClusteredHashRecord(key, t));
 //                blah1.insertRecord(key, new ClusteredHashRecord(key, t));
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            } catch (ConstructPageException e) {
-//                e.printStackTrace();
-//            } catch (InvalidSlotNumberException e) {
-//                e.printStackTrace();
-//            }
-//        }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ConstructPageException e) {
+                e.printStackTrace();
+            } catch (InvalidSlotNumberException e) {
+                e.printStackTrace();
+            } catch (InvalidFrameNumberException e) {
+                e.printStackTrace();
+            } catch (PageNotFoundException e) {
+                e.printStackTrace();
+            } catch (PageUnpinnedException e) {
+                e.printStackTrace();
+            } catch (HashEntryNotFoundException e) {
+                e.printStackTrace();
+            } catch (HashOperationException e) {
+                e.printStackTrace();
+            } catch (ReplacerException e) {
+                e.printStackTrace();
+            } catch (PagePinnedException e) {
+                e.printStackTrace();
+            } catch (BufMgrException e) {
+                e.printStackTrace();
+            }
+        }
 
 
 //        for (int i = 0; i < 1000; i++) {
@@ -634,8 +657,8 @@ class HashIndexDriver extends TestDriver
 //                e.printStackTrace();
 //            }
 //        }
-
-
+//
+//
 //        try {
 //            blah1.close();
 //        } catch (PageUnpinnedException e) {
@@ -751,7 +774,7 @@ class HashIndexDriver extends TestDriver
 //                e.printStackTrace();
 //            }
 //        }
-
+//
 //
 //        for (int i = 0; i < 1000; i++) {
 //            try {
