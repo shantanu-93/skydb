@@ -50,8 +50,11 @@ class HashJoin{
     private Scan _outerScan;
     private String innerRelName;
     private String outterRelName;
-    private HashMap<String, Integer> innerPartitionMap;
-    private HashMap<String, Integer> outerPartitionMap;
+    private HashMap<Integer, String> innerPartitionMap;
+    private HashMap<Integer, String> outerPartitionMap;
+    private int BUCKET_NUMBER=15;
+    private String BUCKET_NAME_PREFIX = "bucket_";
+
 
 
     public HashJoin(String inRelName, String outRelName){
@@ -70,7 +73,8 @@ class HashJoin{
             RID inRID = new RID();
             Tuple inTup = null;
             while ((inTup=sc.getNext(inRID))!= null){
-                //call the functin
+                //call the function
+
             }
 
             //Outer partitionning
@@ -90,6 +94,8 @@ class HashJoin{
 
     public int hashFunction(){
         //implement hash function
+
+
         return 0;
     }
 
