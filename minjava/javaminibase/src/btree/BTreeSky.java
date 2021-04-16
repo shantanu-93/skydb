@@ -3,11 +3,12 @@ package btree;
 
 import bufmgr.PageNotReadException;
 import diskmgr.PCounter;
-import global.*;
+import global.AttrType;
+import global.GlobalConst;
+import global.RID;
 import heap.*;
 import index.IndexException;
 import iterator.*;
-import readdriver.ReadDriver;
 
 import java.io.IOException;
 
@@ -54,7 +55,7 @@ public class BTreeSky extends Iterator implements GlobalConst {
 
   }
 
-  public void findBTreeSky() throws Exception {
+  public String findBTreeSky() throws Exception {
 
     Tuple firstSkyTuple = BTreeUtil.getEmptyTuple(attrType, attrSizes);;
     RID firstSkyTupleRid = null;
@@ -157,10 +158,11 @@ public class BTreeSky extends Iterator implements GlobalConst {
 
       System.out.println("\nNumber of Skyline candidates: " + 1 +"\n");
 
-      return;
+      return null;
     } else{
       System.out.println("\nrunSortFirstSky");
-      ReadDriver.runSortFirstSky(smallHeapFileName);
+      return smallHeapFileName;
+//      ReadDriver.runSortFirstSky(smallHeapFileName);
     }
 //    SystemDefs.JavabaseBM.flushAllPages();
 

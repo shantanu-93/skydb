@@ -50,4 +50,21 @@ public class AttrType {
     }
     return ("Unexpected AttrType " + attrType);
   }
+
+  public Integer toInt() {
+
+    switch (attrType) {
+      case attrString:
+        return 0;
+      case attrInteger:
+        return 1;
+      case attrReal:
+        return 3;
+      case attrSymbol:
+        return 4;
+      case attrNull:
+        return 5;
+    }
+    return -1;
+  }
 }

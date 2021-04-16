@@ -1,25 +1,19 @@
 package btree;
 
-import static tests.TestDriver.FAIL;
-import static tests.TestDriver.OK;
+import global.AttrType;
+import global.GlobalConst;
+import global.RID;
+import global.SystemDefs;
+import heap.*;
+import iterator.Iterator;
+import iterator.TupleUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import diskmgr.PCounter;
-import global.AttrType;
-import global.GlobalConst;
-import global.RID;
-import global.SystemDefs;
-import heap.Heapfile;
-import heap.InvalidSlotNumberException;
-import heap.InvalidTupleSizeException;
-import heap.InvalidTypeException;
-import heap.Tuple;
-import iterator.TupleUtils;
-import iterator.Iterator;
-import readdriver.ReadDriver;
+import static tests.TestDriver.FAIL;
+import static tests.TestDriver.OK;
 
 public class BTreeSortedSky implements GlobalConst {
 	
@@ -53,7 +47,7 @@ public class BTreeSortedSky implements GlobalConst {
 		this.n_pages = n_pages; 	
 	}
 	
-	public void computeSkyline() throws InvalidSlotNumberException, InvalidTupleSizeException, Exception {
+	public String computeSkyline() throws InvalidSlotNumberException, InvalidTupleSizeException, Exception {
 		
 		Heapfile hf = new Heapfile(relationName);
 		String temp_heap_name = Heapfile.getRandomHFName();
@@ -129,9 +123,9 @@ public class BTreeSortedSky implements GlobalConst {
         System.out.println("Buffer Size: " + size);
 
 		SystemDefs.JavabaseBM.flushPages();
-		ReadDriver.runSortFirstSky(temp_heap_name);
-
-		hf.deleteFile();
+//		QueryInterface.runSortFirstSky(temp_heap_name);
+		return temp_heap_name;
+//		hf.deleteFile();
 	}
 	
 	private Tuple getTuple() throws InvalidTypeException, InvalidTupleSizeException, IOException {
