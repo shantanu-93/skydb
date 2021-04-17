@@ -37,7 +37,7 @@ public class HashFile {
         this.isClustered = isClustered;
 
         headerPage = new HashHeaderPage(headerPageId);
-        System.out.println("opening existing");
+//        System.out.println("opening existing");
         headerPage.initialiseAlreadyExisting();
         getAllBuckets();
 
@@ -60,7 +60,7 @@ public class HashFile {
             getAllBuckets();
         } else {
             headerPage = new HashHeaderPage(headerPageId);
-            System.out.println("opening existing");
+//            System.out.println("opening existing");
             headerPage.initialiseAlreadyExisting();
             getAllBuckets();
         }
@@ -219,7 +219,7 @@ public class HashFile {
 
         // if record still not inserted, add overflow page and insert into it
         if (!recordInserted) {
-            System.out.println("inserting overflow page");
+//            System.out.println("inserting overflow page");
             HFPage overflowPage = new HashHeaderPage();
             prevPage.setNextPage(overflowPage.getCurPage());
             overflowPage.setPrevPage(prevPage.getCurPage());
