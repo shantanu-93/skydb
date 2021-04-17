@@ -148,7 +148,7 @@ public class BTreeClusteredFile extends IndexFile
     }
 
     public BTreeClusteredFile(String filename, int keytype,
-                              int keysize, int keyindex, short tupleFldCnt,
+                              int keysize, int keyindex, int delete_fashion, short tupleFldCnt,
                               AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws GetFileEntryException,
             ConstructPageException,
