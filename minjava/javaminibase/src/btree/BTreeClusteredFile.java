@@ -148,7 +148,7 @@ public class BTreeClusteredFile extends IndexFile
     }
 
     public BTreeClusteredFile(String filename, int keytype,
-                              int keysize, int keyindex, int delete_fashion, short tupleFldCnt,
+                              int keysize, int keyindex, short tupleFldCnt,
                               AttrType[] tupleAttrType, short[] tupleStrSizes)
             throws GetFileEntryException,
             ConstructPageException,
@@ -166,7 +166,7 @@ public class BTreeClusteredFile extends IndexFile
             headerPage.set_rootId(new PageId(INVALID_PAGE));
             headerPage.set_keyType((short) keytype);
             headerPage.set_maxKeySize(keysize);
-            headerPage.set_deleteFashion(delete_fashion);
+            headerPage.set_deleteFashion(0);
             headerPage.setType(NodeType.BTHEAD);
             headerPage.set_keyIndex(keyindex);
         } else {

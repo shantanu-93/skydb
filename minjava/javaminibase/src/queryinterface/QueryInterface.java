@@ -655,7 +655,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                         keySize = attrStringSize;
                     }
                     if (clusteredIndexType == CLUSTERED_BTREE) {
-                        bTreeClusteredFile = new BTreeClusteredFile(fileName, attrType[attrIndex - 1].toInt(), keySize, attrIndex, 1, (short) nColumns, attrType, attrSizes);
+                        bTreeClusteredFile = new BTreeClusteredFile(fileName, attrType[attrIndex - 1].toInt(), keySize, attrIndex, (short) nColumns, attrType, attrSizes);
                     } else {
                         hashFile = new ClusteredHashFile(fileName, 75, attrType[attrIndex - 1].toInt(), keySize, (short) nColumns, attrType, attrSizes);
                     }

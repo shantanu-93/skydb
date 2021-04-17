@@ -310,7 +310,7 @@ class BTClusteredDriver extends TestDriver
 
         BTreeClusteredFile file = null;
         try {
-            file = new BTreeClusteredFile("test2.in", AttrType.attrString, 32, 1, 1, (short) 2, attrType, attrSize);
+            file = new BTreeClusteredFile("test2.in", AttrType.attrString, 32, 1, (short) 2, attrType, attrSize);
             file.close();
             file = new BTreeClusteredFile("test2.in", (short) 2, attrType, attrSize);
         } catch (GetFileEntryException e) {
