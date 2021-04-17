@@ -1,14 +1,12 @@
 package iterator;
    
 
+import bufmgr.PageNotReadException;
+import global.AttrType;
+import global.RID;
 import heap.*;
-import global.*;
-import bufmgr.*;
-import diskmgr.*;
 
-
-import java.lang.*;
-import java.io.*;
+import java.io.IOException;
 
 /**
  *open a heapfile and according to the condition expression to get

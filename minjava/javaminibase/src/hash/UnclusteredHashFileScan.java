@@ -60,7 +60,7 @@ public class UnclusteredHashFileScan {
                     return record;
                 }
                 if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
-                    System.out.println("lol");
+//                    System.out.println("lol");
 //                    SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
                     bucketPage = new UnclusteredHashPage(bucketPage.getNextPage());
                     ;

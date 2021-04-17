@@ -69,7 +69,7 @@ public class UnclusteredHashPage extends HFPage implements HashPage {
         }
         tempKey.setKeyType(keyType);
         tempKey.setKeySize(keySize);
-        System.out.println("blah: " + this.getSlotCnt());
+//        System.out.println("blah: " + this.getSlotCnt());
         RID tempRid = insertRecord(tempKey, new UnclusteredHashRecord(tempKey, new RID(new PageId(1), 1 )));
 
         capacity++;
@@ -77,7 +77,7 @@ public class UnclusteredHashPage extends HFPage implements HashPage {
             tempRid = insertRecord(tempKey, new UnclusteredHashRecord(tempKey, new RID(new PageId(1), 1 )));
             capacity++;
         }
-        System.out.println("blah: " + this.available_space());
+//        System.out.println("blah: " + this.available_space());
         return --capacity;
     }
 
