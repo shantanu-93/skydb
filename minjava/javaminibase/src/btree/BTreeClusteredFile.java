@@ -143,7 +143,7 @@ public class BTreeClusteredFile extends IndexFile
          * - headerPage, headerPageId valid and pinned
          * - dbname contains a copy of the name of the database
          */
-        System.out.println("lol" + headerPage.get_keyIndex());
+        // System.out.println("lol" + headerPage.get_keyIndex());
     }
 
     public BTreeClusteredFile(String filename, int keytype,
@@ -281,7 +281,7 @@ public class BTreeClusteredFile extends IndexFile
         KeyDataEntry newRootEntry;
 
         if (BT.getKeyLength(key) > headerPage.get_maxKeySize())
-            throw new KeyTooLongException(null, "");
+            throw new KeyTooLongException(null, BT.getKeyLength(key)+" "+headerPage.get_maxKeySize());
 
         if (key instanceof StringKey) {
             if (headerPage.get_keyType() != AttrType.attrString) {

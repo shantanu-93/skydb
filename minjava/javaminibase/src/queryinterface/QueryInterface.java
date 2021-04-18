@@ -165,7 +165,51 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             break;
 
                         case 12:
-                            
+                            System.out.println("Enter your choice:\n[1] Hash-based Top-K Join\n[2] NRA-based Top-K Join");
+                            int ch = GetStuff.getChoice();
+                            if(ch == 1){
+
+                            }else if(ch == 2){
+                                System.out.println("Enter Query:");
+                                String[] tokens = GetStuff.getStringChoice().split(" ");
+                                int jAttr1 = Integer.valueOf(tokens[4]), jAttr2 = Integer.valueOf(tokens[7]), 
+                                    mAttr1 = Integer.valueOf(tokens[5]), mAttr2 = Integer.valueOf(tokens[8]);
+                                String fileName1 = tokens[3], fileName2 = tokens[6];
+                                int k = Integer.valueOf(tokens[2]);
+                                int n_pages = Integer.valueOf(tokens[9]);
+                                createTableNRA(fileName1, jAttr1, mAttr1);
+                                createTableNRA(fileName2, jAttr2, mAttr2);
+
+                                scanBTCluster(fileName1, attrType, attrSizes);
+                                scanBTCluster(fileName2, attrType, attrSizes);
+
+                                FldSpec[] joinList = new FldSpec[2];
+                                FldSpec[] mergeList = new FldSpec[2];
+                                
+                                joinList[0] = new FldSpec(rel, jAttr1);
+                                joinList[1] = new FldSpec(rel, jAttr2);
+                                mergeList[0] = new FldSpec(rel, mAttr1);
+                                mergeList[1] = new FldSpec(rel, mAttr2);
+
+                                TopK_NRAJoin topK_NRAJoin = new TopK_NRAJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0], 
+                                attrType, attrType.length, attrSizes, joinList[1], mergeList[1], fileName1, fileName2, k, n_pages);
+
+                                PCounter.initialize();
+                                try {
+                                    SystemDefs.JavabaseBM.flushPages();
+                                } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+                                    e.printStackTrace();
+                                }
+
+                                topK_NRAJoin.computeTopK_NRA();
+
+                                System.out.println("\nRead statistics "+PCounter.rcounter);
+                                System.out.println("Write statistics "+PCounter.wcounter);
+
+                                System.out.println("------------------- TEST 1 completed ---------------------\n");
+
+                                System.out.println();
+                            }
                             break;
 
                         case 13:
@@ -550,7 +594,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     }
 
     private void setAttrDesc(String tableName) throws FileNotFoundException {
-        File file = new File("../../data/" + tableName + ".txt");
+        File file = new File("../../../data/" + tableName + ".txt");
         Scanner sc = new Scanner(file);
 
         nColumns = Integer.valueOf(sc.nextLine().trim());
@@ -702,8 +746,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
         if (status == OK) {
 
-            File file = new File("../../data/" + filename + ".txt");
-            File fileTable = new File("../../data/" + tableName + ".txt");
+            File file = new File("../../../data/" + filename + ".txt");
+            File fileTable = new File("../../../data/" + tableName + ".txt");
             Scanner sc = new Scanner(file);
             Scanner scTable = new Scanner(fileTable);
 
@@ -825,8 +869,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
         if (status == OK) {
 
-            File file = new File("../../data/" + filename + ".txt");
-            File fileTable = new File("../../data/" + tableName + ".txt");
+            File file = new File("../../../data/" + filename + ".txt");
+            File fileTable = new File("../../../data/" + tableName + ".txt");
             Scanner sc = new Scanner(file);
             Scanner scTable = new Scanner(fileTable);
 
@@ -986,6 +1030,182 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             }
 
         }
+    }
+
+    private void createTableNRA(String fileName, int jAttr, int mAttr) throws IOException, InvalidTupleSizeException {
+
+        if (status == OK) {
+
+            // Read data and construct tuples
+            File file = new File("../../data/" + fileName + ".txt");
+            Scanner sc = new Scanner(file);
+
+            nColumns = Integer.valueOf(sc.nextLine().trim());
+
+            attrType = new AttrType[nColumns];
+            attrInfo[] ai = new attrInfo[nColumns] ;
+            attrSizes = new short[nColumns];
+            String[] columnMetaData;
+            String attribute;
+
+            for (int i = 0; i < attrType.length; i++) {
+                columnMetaData = sc.nextLine().trim().split("\\s+");
+                attribute = columnMetaData[1];
+                if (attribute.equals("INT")) {
+                    attrType[i] = new AttrType(AttrType.attrInteger);
+                    attrSizes[i] = 4;
+                } else {
+                    attrType[i] = new AttrType(AttrType.attrString);
+                    attrSizes[i] = 32;
+                }
+
+                ai[i] = new attrInfo();
+                ai[i].attrName = columnMetaData[0];
+                ai[i].attrType = attrType[i];
+                ai[i].attrLen = 32;
+            }
+
+            projlist = new FldSpec[nColumns];
+
+            for (int i = 0; i < nColumns; i++) {
+                projlist[i] = new FldSpec(rel, i + 1);
+            }
+
+            Tuple tuple1 = new Tuple();
+            try {
+                tuple1.setHdr((short) nColumns, attrType, attrSizes);
+            } catch (Exception e) {
+                System.err.println("*** error in Tuple.setHdr() ***");
+                status = FAIL;
+                e.printStackTrace();
+            }
+
+            short size = tuple1.size();
+            System.out.println("Size: " + size);
+            tSize = size;
+
+            tuple1 = new Tuple(size);
+            try {
+                tuple1.setHdr((short) nColumns, attrType, attrSizes);
+            } catch (Exception e) {
+                System.err.println("*** error in Tuple.setHdr() ***");
+                status = FAIL;
+                e.printStackTrace();
+            }
+            int value;
+
+            BTreeClusteredFile bfile = null;
+
+            try {
+                bfile = new BTreeClusteredFile(fileName, attrType[mAttr - 1].attrType, attrSizes[mAttr - 1], mAttr, 1, (short) attrType.length, attrType, attrSizes);
+            } catch (GetFileEntryException e) {
+                e.printStackTrace();
+            } catch (ConstructPageException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (AddFileEntryException e) {
+                e.printStackTrace();
+            }
+
+            while (sc.hasNextLine()) {
+                // create a tuple1 of appropriate size
+                String[] row = sc.nextLine().trim().split("\\s+");
+
+                for (int i = 0; i < row.length; i++) {
+                    try {
+                        if (attrType[i].toInt().equals(AttrType.attrInteger)) {
+                            if(i == mAttr - 1)
+                                value = -Integer.parseInt(row[i]);
+                            else   
+                                value = Integer.parseInt(row[i]);
+                            tuple1.setIntFld(i + 1, value);
+                        } else {
+                            tuple1.setStrFld(i + 1, row[i]);
+                        }
+
+                    } catch (Exception e) {
+                        status = FAIL;
+                        e.printStackTrace();
+                    }
+                }
+
+                try {
+                    if(attrType[mAttr - 1].attrType == AttrType.attrString)
+                        bfile.insert(new StringKey(row[mAttr - 1]), tuple1);
+                    else
+                        bfile.insert(new IntegerKey(-Integer.valueOf(row[mAttr - 1])), tuple1);
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+            }
+
+            System.out.println("Table "+fileName+" created");
+        }
+    }
+
+    public void scanBTCluster(String relationName1, AttrType[] in1, short[] t1_str_sizes){
+        BTClusteredFileScan scan = null;
+        BTreeClusteredFile file = null;
+        try {
+            file = new BTreeClusteredFile(relationName1, (short) attrType.length, in1, t1_str_sizes);
+        } catch (GetFileEntryException e1) {
+            e1.printStackTrace();
+        } catch (PinPageException e1) {
+            e1.printStackTrace();
+        } catch (ConstructPageException e1) {
+            e1.printStackTrace();
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
+        try {
+            scan = file.new_scan(new IntegerKey(-100000), new IntegerKey(0));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (KeyNotMatchException e) {
+            e.printStackTrace();
+        } catch (IteratorException e) {
+            e.printStackTrace();
+        } catch (ConstructPageException e) {
+            e.printStackTrace();
+        } catch (PinPageException e) {
+            e.printStackTrace();
+        } catch (UnpinPageException e) {
+            e.printStackTrace();
+        }
+        KeyDataEntry data = null;
+        try {
+            data = scan.get_next();
+            if (data != null) {
+                try {
+                    ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (ScanIteratorException e) {
+            e.printStackTrace();
+        }
+
+        while (data != null) {
+            try {
+                data = scan.get_next();
+                if (data != null) {
+                    try {
+                        ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            } catch (ScanIteratorException e) {
+                e.printStackTrace();
+            }
+
+        }
+        
+
     }
 
     public static void runNestedLoopSky(String hf) throws PageNotFoundException, BufMgrException, HashOperationException, PagePinnedException {
@@ -1148,7 +1368,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     public static void getTableAttrsAndType(String fileName) {
         // Read data and construct tuples
-        File file = new File("../../data/" + fileName + ".txt");
+        File file = new File("../../../data/" + fileName + ".txt");
 
         Scanner sc = null;
         try {

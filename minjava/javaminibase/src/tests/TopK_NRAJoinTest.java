@@ -181,7 +181,7 @@ class TopK_NRAJoinDriver extends TestDriver
         BTreeClusteredFile file = null;
         
         try {
-            file = new BTreeClusteredFile("test1.in", AttrType.attrReal, 4, 1, (short) 2, attrType, attrSize);
+            file = new BTreeClusteredFile("test1.in", AttrType.attrReal, 4, 2, 1, (short) 2, attrType, attrSize);
         } catch (GetFileEntryException e) {
             e.printStackTrace();
         } catch (ConstructPageException e) {
@@ -208,7 +208,7 @@ class TopK_NRAJoinDriver extends TestDriver
 
             try {
                 t.setFloFld(1, list.get(i)[0]);
-                t.setFloFld(2, list.get(i)[1]);
+                t.setFloFld(2, -list.get(i)[1]);
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -224,59 +224,59 @@ class TopK_NRAJoinDriver extends TestDriver
             System.out.println("fld1 = " + list.get(i)[0] + " fld2 = " + list.get(i)[1]);
         }
 
-        // System.out.println("\n -- Scanning BTreeClusteredFile");
-        // FloatKey key1 = new FloatKey(-1.0F);
-        // FloatKey key2 = new FloatKey(0.0F);
-        // BTClusteredFileScan scan = null;
-        // try {
+        System.out.println("\n -- Scanning BTreeClusteredFile");
+        FloatKey key1 = new FloatKey(-1.0F);
+        FloatKey key2 = new FloatKey(0.0F);
+        BTClusteredFileScan scan = null;
+        try {
 
-        //     scan = file.new_scan(key1, key2);
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // } catch (KeyNotMatchException e) {
-        //     e.printStackTrace();
-        // } catch (IteratorException e) {
-        //     e.printStackTrace();
-        // } catch (ConstructPageException e) {
-        //     e.printStackTrace();
-        // } catch (PinPageException e) {
-        //     e.printStackTrace();
-        // } catch (UnpinPageException e) {
-        //     e.printStackTrace();
-        // }
-        // KeyDataEntry data = null;
-        // try {
-        //     data = scan.get_next();
-        //     if (data != null) {
-        //         try {
-        //             ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-        //         } catch (IOException e) {
-        //             e.printStackTrace();
-        //         }
-        //     }
-        // } catch (ScanIteratorException e) {
-        //     e.printStackTrace();
-        // }
+            scan = file.new_scan(key1, key2);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (KeyNotMatchException e) {
+            e.printStackTrace();
+        } catch (IteratorException e) {
+            e.printStackTrace();
+        } catch (ConstructPageException e) {
+            e.printStackTrace();
+        } catch (PinPageException e) {
+            e.printStackTrace();
+        } catch (UnpinPageException e) {
+            e.printStackTrace();
+        }
+        KeyDataEntry data = null;
+        try {
+            data = scan.get_next();
+            if (data != null) {
+                try {
+                    ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (ScanIteratorException e) {
+            e.printStackTrace();
+        }
 
-        // while (data != null) {
-        //     try {
-        //         data = scan.get_next();
-        //         if (data != null) {
-        //             try {
-        //                 ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-        //             } catch (IOException e) {
-        //                 e.printStackTrace();
-        //             }
-        //         }
+        while (data != null) {
+            try {
+                data = scan.get_next();
+                if (data != null) {
+                    try {
+                        ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
 
-        //     } catch (ScanIteratorException e) {
-        //         e.printStackTrace();
-        //     }
+            } catch (ScanIteratorException e) {
+                e.printStackTrace();
+            }
 
-        // }
+        }
 
         try {
-            file = new BTreeClusteredFile("test2.in", AttrType.attrReal, 4, 1, (short) 2, attrType, attrSize);
+            file = new BTreeClusteredFile("test2.in", AttrType.attrReal, 4, 1, 1, (short) 2, attrType, attrSize);
         } catch (GetFileEntryException e) {
             e.printStackTrace();
         } catch (ConstructPageException e) {
@@ -303,7 +303,7 @@ class TopK_NRAJoinDriver extends TestDriver
 
             try {
                 t.setFloFld(1, list2.get(i)[0]);
-                t.setFloFld(2, list2.get(i)[1]);
+                t.setFloFld(2, -list2.get(i)[1]);
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -319,52 +319,52 @@ class TopK_NRAJoinDriver extends TestDriver
             System.out.println("fld1 = " + list2.get(i)[0] + " fld2 = " + list2.get(i)[1]);
         }
 
-        // System.out.println("\n -- Scanning BTreeClusteredFile");
-        // try {
-        //     scan = file.new_scan(key1, key2);
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // } catch (KeyNotMatchException e) {
-        //     e.printStackTrace();
-        // } catch (IteratorException e) {
-        //     e.printStackTrace();
-        // } catch (ConstructPageException e) {
-        //     e.printStackTrace();
-        // } catch (PinPageException e) {
-        //     e.printStackTrace();
-        // } catch (UnpinPageException e) {
-        //     e.printStackTrace();
-        // }
-        // data = null;
-        // try {
-        //     data = scan.get_next();
-        //     if (data != null) {
-        //         try {
-        //             ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-        //         } catch (IOException e) {
-        //             e.printStackTrace();
-        //         }
-        //     }
-        // } catch (ScanIteratorException e) {
-        //     e.printStackTrace();
-        // }
+        System.out.println("\n -- Scanning BTreeClusteredFile");
+        try {
+            scan = file.new_scan(new FloatKey(1.0F), new FloatKey(5.0F));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (KeyNotMatchException e) {
+            e.printStackTrace();
+        } catch (IteratorException e) {
+            e.printStackTrace();
+        } catch (ConstructPageException e) {
+            e.printStackTrace();
+        } catch (PinPageException e) {
+            e.printStackTrace();
+        } catch (UnpinPageException e) {
+            e.printStackTrace();
+        }
+        data = null;
+        try {
+            data = scan.get_next();
+            if (data != null) {
+                try {
+                    ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (ScanIteratorException e) {
+            e.printStackTrace();
+        }
 
-        // while (data != null) {
-        //     try {
-        //         data = scan.get_next();
-        //         if (data != null) {
-        //             try {
-        //                 ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-        //             } catch (IOException e) {
-        //                 e.printStackTrace();
-        //             }
-        //         }
+        while (data != null) {
+            try {
+                data = scan.get_next();
+                if (data != null) {
+                    try {
+                        ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
 
-        //     } catch (ScanIteratorException e) {
-        //         e.printStackTrace();
-        //     }
+            } catch (ScanIteratorException e) {
+                e.printStackTrace();
+            }
 
-        // }
+        }
         FldSpec[] joinList = new FldSpec[2];
         FldSpec[] mergeList = new FldSpec[2];
         RelSpec rel1= new RelSpec(RelSpec.outer);
