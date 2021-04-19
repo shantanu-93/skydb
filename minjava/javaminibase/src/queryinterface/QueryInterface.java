@@ -71,6 +71,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     public static Heapfile outputTable = null;
     public static ArrayList<BTreeClusteredFile.RidChange> RidChanges = null;
     public static ArrayList<RidTuplePair> ridTuplePairs = null;
+    public static String[] oAttrName;
 
     private void menuInterface() {
         System.out.println("-------------------------- MENU --------------------------");
@@ -294,7 +295,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 String oTable = "null";
                                 if(tokens.length > 10){
                                     oTable = tokens[11];
-                                    createOutputTable(oTable, fileName1, fileName2, 1);
+                                    createOutputTable(oTable, jAttr1, mAttr1, mAttr2);
                                 }
 
                                 // printTable(fileName1);
@@ -685,7 +686,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     }
 
-    private void createOutputTable(String fileName, String fileName1, String fileName2, int attrIndex) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
+    private void createOutputTable(String fileName, int joinAttr1, int mergeAttr1, int mergeAttr2) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
 
         //        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
         //                != SystemDefs.JavabaseBM.getNumBuffers()) {
@@ -700,19 +701,15 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                 // getSecondTableAttrsAndType(fileName2);
                 
-                AttrType[] oAttrTypes = new AttrType[attrType.length + attrType2.length];
-                System.arraycopy(attrType, 0, oAttrTypes, 0, attrType.length);
-                System.arraycopy(attrType, 0, oAttrTypes, attrType.length, attrType2.length);
+                AttrType[] oAttrTypes = new AttrType[]{attrType[joinAttr1 - 1], attrType[mergeAttr1 - 1], attrType2[mergeAttr2 - 1]};
 
-                short[] oAttrSize = new short[attrType.length + attrType2.length];
-                System.arraycopy(attrSizes, 0, oAttrSize, 0, attrSizes.length);
-                System.arraycopy(attrSizes2, 0, oAttrSize, attrSizes.length, attrSizes2.length);
+                short[] oAttrSize = new short[]{};
+                for(int i = 0; i < oAttrTypes.length; i++){
+                    if(oAttrTypes[i].attrType == AttrType.attrString)
+                        oAttrSize = new short[]{32};
+                }
 
-                String[] oAttrName = new String[attrNames.length + attrNames2.length];
-                System.arraycopy(attrNames, 0, oAttrName, 0, attrNames.length);
-                System.arraycopy(attrNames2, 0, oAttrName, attrNames.length, attrNames2.length);
-
-                // int nColumns = attrType.length + attrType2.length;
+                oAttrName = new String[]{attrNames[joinAttr1 - 1], attrNames[mergeAttr1 - 1], attrNames2[mergeAttr2 - 1]};
 
                 try {
                     f = new Heapfile(fileName);
