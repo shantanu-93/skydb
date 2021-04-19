@@ -2014,7 +2014,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                     System.out.print("Failed to remove: ");
                                 }
                                 t.print(attrType);
-//                                break;
+                                // break;
                             } catch (Exception e) {
                                 status = FAIL;
                                 e.printStackTrace();
@@ -2051,8 +2051,10 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 removed = bulkRestructureUnclustered(RidChanges, tableName, index.indexType, index.attrIndex,tuple1);
                             }
                         }
-                        if (removed) {
-                            count++;
+                        for (int i=0; i <RidChanges.size();i++){
+                            if(RidChanges.get(i).newRid == null){
+                                count ++;
+                            }
                         }
                     } catch (Exception e) {
                         e.printStackTrace();

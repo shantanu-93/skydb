@@ -6,16 +6,21 @@
  */
 package btree;
 
-import java.io.*;
-import java.lang.*;
-
+import bufmgr.HashEntryNotFoundException;
+import bufmgr.InvalidFrameNumberException;
+import bufmgr.PageUnpinnedException;
+import bufmgr.ReplacerException;
+import diskmgr.Page;
 import global.*;
-import diskmgr.*;
-import bufmgr.*;
 import heap.FieldNumberOutOfBoundException;
 import heap.InvalidTupleSizeException;
 import heap.InvalidTypeException;
 import heap.Tuple;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * This file contains, among some debug utilities, the interface to our
@@ -200,18 +205,8 @@ public class BT implements GlobalConst {
                 rid.pageNo.pid = Convert.getIntValue(offset + length - 4, from);
                 data = new LeafData(rid);
             } else if (nodeType == NodeType.LEAF_CLUSTERED) {
-                Tuple tempTuple = new Tuple();
-                tempTuple.setHdr(tupleFldCnt, tupleAttrType, tupleStrSizes);
-                int tupleLength = tempTuple.getLength();
-                n = tupleLength;
-
-                byte[] record = new byte[tupleLength];
-                System.arraycopy(from, offset + length - tupleLength, record, 0, tupleLength);
-
-                Tuple tuple = new Tuple(record, 0, tupleLength);
-                tuple.setHdr(tupleFldCnt, tupleAttrType, tupleStrSizes);
 //        tuple.print(attrType);
-                data = new ClusteredLeafData(tuple);
+                data = null;
             } else throw new NodeNotMatchException(null, "node types do not match");
 
             if (nodeType == NodeType.LEAF_CLUSTERED) {
@@ -221,10 +216,12 @@ public class BT implements GlobalConst {
                 n = tupleLength;
 
                 byte[] record = new byte[tupleLength];
-                System.arraycopy(from, offset + length - tupleLength, record, 0, tupleLength);
+                System.arraycopy(from, offset, record, 0, tupleLength);
 
                 Tuple tuple = new Tuple(record, 0, tupleLength);
                 tuple.setHdr(tupleFldCnt, tupleAttrType, tupleStrSizes);
+
+                data = new ClusteredLeafData(tuple);
 
                 if (keyType == AttrType.attrInteger) {
                     key = new IntegerKey(tuple.getIntFld(keyIndex));
