@@ -272,7 +272,62 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             break;
 
                         case 12:
+                            System.out.println("Enter your choice:\n[1] Hash-based Top-K Join\n[2] NRA-based Top-K Join");
+                            int ch = GetStuff.getChoice();
+                            if(ch == 1){
 
+                            }else if(ch == 2){
+                                System.out.println("Enter Query:");
+                                String[] tokens = GetStuff.getStringChoice().split(" ");
+                                int jAttr1 = Integer.valueOf(tokens[4]), jAttr2 = Integer.valueOf(tokens[7]),
+                                    mAttr1 = Integer.valueOf(tokens[5]), mAttr2 = Integer.valueOf(tokens[8]);
+                                String fileName1 = tokens[3], fileName2 = tokens[6];
+                                int k = Integer.valueOf(tokens[2]);
+                                int n_pages = Integer.valueOf(tokens[9]);
+
+                                createTable(fileName1, true, (short) 5, mAttr1);
+                                createTable(fileName2, true, (short) 5, mAttr2);
+
+                                getTableAttrsAndType(fileName1);
+                                getSecondTableAttrsAndType(fileName2);
+
+                                String oTable = "null";
+                                if(tokens.length > 10){
+                                    oTable = tokens[11];
+                                    createOutputTable(oTable, fileName1, fileName2, 1);
+                                }
+
+                                // printTable(fileName1);
+                                // printTable(fileName2);
+
+                                FldSpec[] joinList = new FldSpec[2];
+                                FldSpec[] mergeList = new FldSpec[2];
+
+                                joinList[0] = new FldSpec(rel, jAttr1);
+                                joinList[1] = new FldSpec(rel, jAttr2);
+                                mergeList[0] = new FldSpec(rel, mAttr1);
+                                mergeList[1] = new FldSpec(rel, mAttr2);
+
+                                TopK_NRAJoin topK_NRAJoin = new TopK_NRAJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
+                                attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], fileName1, fileName2, k, n_pages, oTable);
+
+                                PCounter.initialize();
+                                try {
+                                    SystemDefs.JavabaseBM.flushPages();
+                                } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+                                    e.printStackTrace();
+                                }
+
+                                topK_NRAJoin.computeTopK_NRA();
+
+                                System.out.println("\nRead statistics "+PCounter.rcounter);
+                                System.out.println("Write statistics "+PCounter.wcounter);
+
+                                System.out.println("------------------- TEST 1 completed ---------------------\n");
+
+                                System.out.println();
+
+                            }
                             break;
 
                         case 13:
@@ -501,6 +556,9 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 case 3:
                     createTable(fname, false, NO_INDEX, attrInd);
                     break;
+                case 4:
+                    createTable(fname, true, (short) 5, attrInd);
+                    break;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -627,21 +685,62 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     }
 
+    private void createOutputTable(String fileName, String fileName1, String fileName2, int attrIndex) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
+
+        //        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
+        //                != SystemDefs.JavabaseBM.getNumBuffers()) {
+        //            System.err.println("*** The heap file has left pages pinned\n");
+        //            status = FAIL;
+        //        }
+
+            if (status == OK) {
+
+                // Read data and construct tuples
+                // getTableAttrsAndType(fileName1);
+
+                // getSecondTableAttrsAndType(fileName2);
+
+                AttrType[] oAttrTypes = new AttrType[attrType.length + attrType2.length];
+                System.arraycopy(attrType, 0, oAttrTypes, 0, attrType.length);
+                System.arraycopy(attrType, 0, oAttrTypes, attrType.length, attrType2.length);
+
+                short[] oAttrSize = new short[attrType.length + attrType2.length];
+                System.arraycopy(attrSizes, 0, oAttrSize, 0, attrSizes.length);
+                System.arraycopy(attrSizes2, 0, oAttrSize, attrSizes.length, attrSizes2.length);
+
+                String[] oAttrName = new String[attrNames.length + attrNames2.length];
+                System.arraycopy(attrNames, 0, oAttrName, 0, attrNames.length);
+                System.arraycopy(attrNames2, 0, oAttrName, attrNames.length, attrNames2.length);
+
+                // int nColumns = attrType.length + attrType2.length;
+
+                try {
+                    f = new Heapfile(fileName);
+                    f.deleteFile();
+                    f = new Heapfile(fileName);
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+
+                setTableMeta(fileName, oAttrTypes, oAttrSize, oAttrName);
+            }
+        }
+
     private void createTable(String fileName, Boolean createIndex, short clusteredIndexType, int attrIndex) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
 
 //        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
 //                != SystemDefs.JavabaseBM.getNumBuffers()) {
 //            System.err.println("*** The heap file has left pages pinned\n");
-//            status = FAIL;
+//            status = FAIL;fileName
 //        }
 
         if (status == OK) {
 
             // Read data and construct tuples
             setAttrDesc(fileName);
-//          File file = new File("../../data/" + fileName + ".csv");
-            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + fileName + ".csv");
-
+            File file = new File("../../data/" + fileName + ".csv");
+            // File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + fileName + ".csv");
 
             Scanner sc = new Scanner(file);
 
@@ -657,7 +756,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                     if (attrType[attrIndex - 1].attrType == AttrType.attrString) {
                         keySize = attrStringSize;
                     }
-                    if (clusteredIndexType == CLUSTERED_BTREE) {
+                    if (clusteredIndexType == CLUSTERED_BTREE || clusteredIndexType == 5) {
                         bTreeClusteredFile = new BTreeClusteredFile(fileName, attrType[attrIndex - 1].toInt(), keySize, attrIndex, 0, (short) nColumns, attrType, attrSizes);
                     } else {
                         hashFile = new ClusteredHashFile(fileName, 75, attrType[attrIndex - 1].toInt(), keySize, (short) nColumns, attrType, attrSizes);
@@ -704,7 +803,10 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 for (int i = 0; i < row.length; i++) {
                     try {
                         if (attrType[i].toInt().equals(AttrType.attrInteger)) {
-                            value = Integer.parseInt(row[i]);
+                            if(clusteredIndexType == 5 && i == attrIndex - 1)
+                                value = -Integer.parseInt(row[i]);
+                            else
+                                value = Integer.parseInt(row[i]);
                             tuple1.setIntFld(i + 1, value);
                         } else {
                             tuple1.setStrFld(i + 1, row[i]);
@@ -718,7 +820,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                 try {
                     if (createIndex) {
-                        if (clusteredIndexType == CLUSTERED_BTREE) {
+                        if (clusteredIndexType == CLUSTERED_BTREE || clusteredIndexType == 5) {
                             if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
                                 IntegerKey key = new IntegerKey(tuple1.getIntFld(attrIndex));
                                 bTreeClusteredFile.insert(key, tuple1);
@@ -1247,7 +1349,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }
         while (t != null) {
             try {
-                if (attrIndex == -1 && t.getStrFld(1).equals(relName) && (t.getIntFld(3) == CLUSTERED_BTREE || t.getIntFld(3) == CLUSTERED_HASH)) {
+                if (attrIndex == -1 && t.getStrFld(1).equals(relName) && (t.getIntFld(3) == (short) 5 || t.getIntFld(3) == CLUSTERED_BTREE || t.getIntFld(3) == CLUSTERED_HASH)) {
                     indexType = t.getIntFld(3);
                     break;
                 }
@@ -1406,7 +1508,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                     status = FAIL;
                     e.printStackTrace();
                 }
-            } else if (indexTypeIfExists == CLUSTERED_BTREE) {
+            } else if (indexTypeIfExists == CLUSTERED_BTREE || indexTypeIfExists == (short) 5) {
                 bTreeClusteredFile = new BTreeClusteredFile(tableName, (short) nColumns, attrType, attrSizes);
                 BTClusteredFileScan scan = null;
                 try {
@@ -2587,8 +2689,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             status = FAIL;
             e.printStackTrace();
         }
-//        File file = new File("../../data/" + tableName + ".csv");
-        File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + tableName + ".csv");
+        File file = new File("../../data/" + tableName + ".csv");
+        // File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + tableName + ".csv");
         Scanner sc = new Scanner(file);
 
         nColumns = Integer.valueOf(sc.nextLine().trim().split(",")[0]);
