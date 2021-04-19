@@ -22,21 +22,14 @@ public class UnclusteredHashFileScan {
 
     boolean didFirst;
 
-    boolean equalityAnswerReturned;
-
-
 
     UnclusteredHashFileScan() {
         bucketCount = 0;
         didFirst = false;
-        equalityAnswerReturned = false;
     }
 
     public UnclusteredHashRecord getNextRecord() throws IOException, PageUnpinnedException, InvalidFrameNumberException, HashEntryNotFoundException, ReplacerException {
         if (lowKey != null && highKey != null && lowKey.equals(highKey)) {
-            if (equalityAnswerReturned) {
-                return null;
-            }
             int bucketKey = lowKey.getHash() % hashFile.headerPage.getNValue();
             if (bucketKey < hashFile.headerPage.getNextValue()) {
                 bucketKey = lowKey.getHash() % (2 * hashFile.headerPage.getNValue());
@@ -56,7 +49,6 @@ public class UnclusteredHashFileScan {
                     if (!record.getKey().equals(lowKey)) {
                         continue;
                     }
-                    equalityAnswerReturned = true;
                     return record;
                 }
                 if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
