@@ -198,7 +198,7 @@ public class HashFile {
             PageId nextPageId = prevPage.getNextPage();
             nextPage = null;
             if (nextPageId.pid != HFPage.INVALID_PAGE) {
-                SystemDefs.JavabaseBM.unpinPage(prevPage.getCurPage(), true);
+//                SystemDefs.JavabaseBM.unpinPage(prevPage.getCurPage(), true);
                 nextPage = new HashHeaderPage(nextPageId);
                 recordRid = nextPage.insertRecord(tempData);
                 recordInserted = recordRid != null;

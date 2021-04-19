@@ -2033,7 +2033,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                         scan.closescan();
                     } catch (Exception e) {
                         status = FAIL;
-                        e.printStackTrace();
+//                        e.printStackTrace();
                     }
                 } else if (indexTypeIfExists == CLUSTERED_BTREE) {
                     try {
@@ -2302,7 +2302,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             fscan.close();
         } catch (Exception e) {
             status = FAIL;
-            e.printStackTrace();
         }
     }
 
