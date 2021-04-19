@@ -1599,13 +1599,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             StringKey key = new StringKey(tuple1.getStrFld(attrIndex));
                             RidChanges = bTreeClusteredFile.insert(key, tuple1);
                         }
-                        IndexDesc index;
-                        for (int i = 0; i < allIndexes.size(); i++) {
-                            index = allIndexes.get(i);
-                            if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
-                                bulkRestructureUnclustered(RidChanges, tableName, index.indexType, index.attrIndex,tuple1);
-                            }
-                        }
                     } else if (indexTypeIfExists == CLUSTERED_HASH) {
                         ridtuple = new RidTuplePair();
                         ridtuple.tuple = tuple1;
@@ -1632,6 +1625,13 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
             try {
                 if (indexTypeIfExists == CLUSTERED_BTREE) {
+                    IndexDesc index;
+                    for (int i = 0; i < allIndexes.size(); i++) {
+                        index = allIndexes.get(i);
+                        if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
+                            bulkRestructureUnclustered(RidChanges, tableName, index.indexType, index.attrIndex,tuple1);
+                        }
+                    }
                     bTreeClusteredFile.close();
                 } else if (indexTypeIfExists == CLUSTERED_HASH) {
                     hashFile.close();
@@ -1664,103 +1664,262 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 unclusteredHashFile = new UnclusteredHashFile(indexFileName);
             } else {
                 bTreeUnclusteredFile = new BTreeFile(indexFileName);
-                bTreeUnclusteredFile = new BTreeFile(indexFileName);
             }
         } catch (Exception e) {
             System.out.println("Failed to initialize unclustered index file!");
             e.printStackTrace();
         }
         Boolean isNewUpdate = false;
-        BTreeClusteredFile.RidChange ridChange = null;
+
         Tuple t;
-        for (int i = 0; i < ridChanges.size(); i++) {
-            ridChange = ridChanges.get(i);
+        if (indexType == UNCLUSTERED_HASH) {
+            ArrayList<UnclusteredHashRecord> records = new ArrayList<>();
+            UnclusteredHashRecord record = null;
+            UnclusteredHashFileScan scan = unclusteredHashFile.newScan(null, null);
             try {
-                if(ridChange.keyData!=null){
-                    t = ((Tuple) ((ClusteredLeafData) ridChange.keyData.data).getData());
-                }else{
-                    t = tuplerecord;
+                record = scan.getNextRecord();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            while (record != null) {
+                records.add(record);
+                try {
+                    record = scan.getNextRecord();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                if (indexType == UNCLUSTERED_HASH) {
-                    if (ridChange.newRid == null) {
-                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
-                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
-                        } else {
-                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
-                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
-                        }
-                        isNewUpdate = true;
-                    } else if (ridChange.oldRid == null) {
-                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
-                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
-                        } else {
-                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
-                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
-                        }
-                        isNewUpdate = true;
-                    } else if (ridChange.oldRid != null && ridChange.newRid != null) {
-                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
-                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
-                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
-                        } else {
-                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
-                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
-                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
-                        }
+            }
+
+            for (UnclusteredHashRecord rec: records) {
+                try {
+                    unclusteredHashFile.deleteRecord(rec.getKey(), rec.getRid());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            records.clear();
+
+            BTClusteredFileScan clusteredScan = null;
+            try {
+                clusteredScan = bTreeClusteredFile.new_scan(null, null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            RID tempRid = new RID();
+            KeyDataEntry entry = null;
+            try {
+                entry = clusteredScan.get_next(tempRid);
+            } catch (ScanIteratorException e) {
+                e.printStackTrace();
+            }
+
+            while (entry != null) {
+                hash.KeyClass key = null;
+                t = ((Tuple) ((ClusteredLeafData) entry.data).getData());
+                if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                    try {
+                        key = new hash.IntegerKey(t.getIntFld(attrIndex));
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 } else {
-                    if (ridChange.newRid == null) {
-                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
-                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
-                        } else {
-                            StringKey key = new StringKey(t.getStrFld(attrIndex));
-                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
-                        }
-                        isNewUpdate = true;
-                    } else if (ridChange.oldRid == null) {
-                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
-                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
-                        } else {
-                            StringKey key = new StringKey(t.getStrFld(attrIndex));
-                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
-                        }
-                        isNewUpdate = true;
-                    } else if (ridChange.oldRid != null && ridChange.newRid != null) {
-                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
-                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
-                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
-                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
-
-                        } else {
-                            StringKey key = new StringKey(t.getStrFld(attrIndex));
-                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
-                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
-                        }
+                    try {
+                        key = new hash.StringKey(t.getStrFld(attrIndex));
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
+                UnclusteredHashRecord tempRecord = new UnclusteredHashRecord(key, tempRid);
+                records.add(tempRecord);
+                try {
+                    entry = clusteredScan.get_next(tempRid);
+
+                } catch (ScanIteratorException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            for (UnclusteredHashRecord rec: records) {
+                try {
+                    unclusteredHashFile.insertRecord(rec.getKey(), rec.getRid());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                unclusteredHashFile.close();
             } catch (Exception e) {
-                status = FAIL;
+                e.printStackTrace();
+            }
+        } else {
+            ArrayList<KeyDataEntry> records = new ArrayList<>();
+            KeyDataEntry record = null;
+            BTFileScan scan = null;
+            try {
+                scan = bTreeUnclusteredFile.new_scan(null, null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                record = scan.get_next();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            while (record != null) {
+                records.add(record);
+                try {
+                    record = scan.get_next();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            for (KeyDataEntry rec: records) {
+                try {
+                    bTreeUnclusteredFile.Delete(rec.key, ((LeafData)rec.data).getData());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            records.clear();
+
+            BTClusteredFileScan clusteredScan = null;
+            try {
+                clusteredScan = bTreeClusteredFile.new_scan(null, null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            RID tempRid = new RID();
+            KeyDataEntry entry = null;
+            try {
+                entry = clusteredScan.get_next(tempRid);
+            } catch (ScanIteratorException e) {
+                e.printStackTrace();
+            }
+
+            while (entry != null) {
+                btree.KeyClass key = null;
+                t = ((Tuple) ((ClusteredLeafData) entry.data).getData());
+                if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+                    try {
+                        key = new IntegerKey(t.getIntFld(attrIndex));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    try {
+                        key = new StringKey(t.getStrFld(attrIndex));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                KeyDataEntry tempRecord = new KeyDataEntry(key, tempRid);
+                records.add(tempRecord);
+                try {
+                    entry = clusteredScan.get_next(tempRid);
+
+                } catch (ScanIteratorException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            for (KeyDataEntry rec: records) {
+                try {
+                    bTreeUnclusteredFile.insert(rec.key, ((LeafData)rec.data).getData());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                bTreeUnclusteredFile.close();
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        try {
-            if (indexType == UNCLUSTERED_HASH) {
-                unclusteredHashFile.close();
-            } else {
-                bTreeUnclusteredFile.close();
-            }
-            System.out.println("Unclustered index updated on attr " + attrIndex);
-        } catch (Exception e) {
-            status = FAIL;
-            System.out.println("Failed to close files");
-            e.printStackTrace();
-        }
+
+//        BTreeClusteredFile.RidChange ridChange = null;
+//        for (int i = 0; i < ridChanges.size(); i++) {
+//            ridChange = ridChanges.get(i);
+//            try {
+//                if(ridChange.keyData!=null){
+//                    t = ((Tuple) ((ClusteredLeafData) ridChange.keyData.data).getData());
+//                }else{
+//                    t = tuplerecord;
+//                }
+//                if (indexType == UNCLUSTERED_HASH) {
+//                    if (ridChange.newRid == null) {
+//                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+//                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
+//                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
+//                        } else {
+//                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
+//                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
+//                        }
+//                        isNewUpdate = true;
+//                    } else if (ridChange.oldRid == null) {
+//                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+//                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
+//                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
+//                        } else {
+//                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
+//                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
+//                        }
+//                        isNewUpdate = true;
+//                    } else if (ridChange.oldRid != null && ridChange.newRid != null) {
+//                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+//                            hash.IntegerKey key = new hash.IntegerKey(t.getIntFld(attrIndex));
+//                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
+//                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
+//                        } else {
+//                            hash.StringKey key = new hash.StringKey(t.getStrFld(attrIndex));
+//                            unclusteredHashFile.deleteRecord(key, ridChange.oldRid);
+//                            unclusteredHashFile.insertRecord(key, ridChange.newRid);
+//                        }
+//                    }
+//                } else {
+//                    if (ridChange.newRid == null) {
+//                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+//                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
+//                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
+//                        } else {
+//                            StringKey key = new StringKey(t.getStrFld(attrIndex));
+//                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
+//                        }
+//                        isNewUpdate = true;
+//                    } else if (ridChange.oldRid == null) {
+//                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+//                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
+//                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
+//                        } else {
+//                            StringKey key = new StringKey(t.getStrFld(attrIndex));
+//                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
+//                        }
+//                        isNewUpdate = true;
+//                    } else if (ridChange.oldRid != null && ridChange.newRid != null) {
+//                        if (attrType[attrIndex - 1].toInt().equals(AttrType.attrInteger)) {
+//                            IntegerKey key = new IntegerKey(t.getIntFld(attrIndex));
+//                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
+//                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
+//                        } else {
+//                            StringKey key = new StringKey(t.getStrFld(attrIndex));
+//                            bTreeUnclusteredFile.Delete(key, ridChange.oldRid);
+//                            bTreeUnclusteredFile.insert(key, ridChange.newRid);
+//                        }
+//                    }
+//                }
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//        }
+
         return isNewUpdate;
     }
 
@@ -2044,13 +2203,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             StringKey key = new StringKey(tuple1.getStrFld(attrIndex));
                             RidChanges = bTreeClusteredFile.Delete(key, tuple1);
                         }
-                        IndexDesc index;
-                        for (int i = 0; i < allIndexes.size(); i++) {
-                            index = allIndexes.get(i);
-                            if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
-                                removed = bulkRestructureUnclustered(RidChanges, tableName, index.indexType, index.attrIndex,tuple1);
-                            }
-                        }
                         for (int i=0; i <RidChanges.size();i++){
                             if(RidChanges.get(i).newRid == null){
                                 count ++;
@@ -2083,6 +2235,13 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
             try {
                 if (indexTypeIfExists == CLUSTERED_BTREE) {
+                    IndexDesc index;
+                    for (int i = 0; i < allIndexes.size(); i++) {
+                        index = allIndexes.get(i);
+                        if (index.indexType == UNCLUSTERED_BTREE || index.indexType == UNCLUSTERED_HASH) {
+                            removed = bulkRestructureUnclustered(RidChanges, tableName, index.indexType, index.attrIndex,tuple1);
+                        }
+                    }
                     bTreeClusteredFile.close();
                 } else if (indexTypeIfExists == CLUSTERED_HASH) {
                     hashFile.close();

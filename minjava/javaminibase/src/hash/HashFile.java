@@ -198,7 +198,7 @@ public class HashFile {
             PageId nextPageId = prevPage.getNextPage();
             nextPage = null;
             if (nextPageId.pid != HFPage.INVALID_PAGE) {
-                SystemDefs.JavabaseBM.unpinPage(prevPage.getCurPage(), true);
+//                SystemDefs.JavabaseBM.unpinPage(prevPage.getCurPage(), true);
                 nextPage = new HashHeaderPage(nextPageId);
                 recordRid = nextPage.insertRecord(tempData);
                 recordInserted = recordRid != null;
@@ -327,7 +327,6 @@ public class HashFile {
                 }
                 tempRid = bucketPage.nextRecord(tempRid);
             }
-
             if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
                 bucketPage = getHashPage(bucketPage.getNextPage());
                 tempRid = bucketPage.firstRecord();
@@ -338,6 +337,11 @@ public class HashFile {
                 SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
                 break;
             }
+        }
+        if (recordFound) {
+            System.out.println("record found");
+        } else {
+            System.out.println("record not found");
         }
         return null;
     }
