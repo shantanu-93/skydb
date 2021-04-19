@@ -38,8 +38,10 @@ import diskmgr.*;
 import index.*;
 import java.lang.*;
 import java.io.*;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Random;
 
 
@@ -52,28 +54,94 @@ public class HashJoin{
     private String outterRelName;
     private HashMap<Integer, Heapfile> innerPartitionMap;
     private HashMap<Integer, Heapfile> outerPartitionMap;
-    private int BUCKET_NUMBER=15;
+    private int BUCKET_NUMBER=5;
     private String BUCKET_NAME_PREFIX = "bucket_";
+//    private AttrType[] attrTypes;
+    private AttrType [] attrTypes1;
+    private AttrType [] attrTypes2;
     int hashAttr;
     ArrayList<Tuple> result;
+//    HashSet<Tuple> result;
     int value;
+    short[] _t1_str_sizes;
+    short[] _t2_str_sizes;
+    AttrType[] Jtypes = new AttrType[5];
+    int len_in1;
+    int len_in2;
+    int tempHeapCounter= 0;
+    Iterator outer;
+    FldSpec[] proj;
+    boolean isString;
+    Value valueObj;
 
 
 
 
 
-    public HashJoin(String inRelName, String outRelName, int attr, int value){
+    public HashJoin(
+                     String inRelName,
+                     AttrType[] attrType1,
+                     String outRelName,
+                     AttrType[] attrType2,
+
+
+                     int attr,
+                     Value valueObj,
+                     short[] _t1_str_sizes,
+                     short[] _t2_str_sizes,
+                     boolean isString)
+    {
         innerRelName = inRelName;
         outterRelName = outRelName;
         hashAttr = attr;
         result = new ArrayList<>();
-        this.value = value;
+        this._t1_str_sizes = _t1_str_sizes;
+        this._t2_str_sizes = _t2_str_sizes;
+        this.valueObj = valueObj;
+        this.attrTypes1 = attrType1;
+        this.attrTypes2 = attrType2;
+//        this.attrTypes1=attrTypes1;
+//        this.attrTypes2 = attrTypes2;
+//
+//        this.len_in1 = len_in1;
+//        this.len_in2 = len_in2;
+        this.isString = isString;
+
+
+        innerPartitionMap = new HashMap<>();
+        outerPartitionMap = new HashMap<>();
+
+
+        Jtypes[0] = new AttrType(AttrType.attrString);
+        Jtypes[1] = new AttrType(AttrType.attrString);
+        Jtypes[2] = new AttrType(AttrType.attrInteger);
+        Jtypes[3] = new AttrType(AttrType.attrInteger);
+        Jtypes[4] = new AttrType(AttrType.attrInteger);
+
+
     }
 
 
+    public static class Value{
+        public String strValue;
+        public int intValue;
+
+        public Value(int v){
+            intValue = v;
+        }
+
+        public Value(String s){
+            strValue= s;
+        }
+    }
+
+    public AttrType[] getOutputAttrType(){
+        return Jtypes;
+    }
 
     public void partition(){
         try{
+
             int hashVal = 0;
             //Inner partitionning
             Heapfile innerHf = new Heapfile(innerRelName);
@@ -82,15 +150,24 @@ public class HashJoin{
             Tuple inTup = null;
             while ((inTup=sc.getNext(inRID))!= null){
                 //call the function
-                 hashVal = hashFunction(inTup);
+                inTup.setHdr((short) attrTypes1.length, attrTypes1, _t1_str_sizes);
+//                 hashVal = hashFunction(inTup);
+                if(isString){
+                    hashVal = hashFunctionString(valueObj.strValue);
+                }else{
+                    hashVal = hashFunctionInteger(valueObj.intValue);
+                }
+//                 System.out.println(hashVal);
+//                 inTup.print(attrTypes1);
                  if(innerPartitionMap.get(hashVal)==null){
-                     Heapfile hf = new Heapfile(BUCKET_NAME_PREFIX+hashVal);
-                     innerPartitionMap.put(hashVal, hf);
-                     insertRecordInBucket(inTup, hashVal, hf);
+//                     System.out.println(tempHeapCounter);
+                     Heapfile hf1 = new Heapfile(BUCKET_NAME_PREFIX+tempHeapCounter);
+                     tempHeapCounter++;
+                     innerPartitionMap.put(hashVal, hf1);
+                     insertRecordInBucket(inTup, hf1);
                  }else {
-                     insertRecordInBucket(inTup,hashVal, innerPartitionMap.get(hashVal));
+                     insertRecordInBucket(inTup, innerPartitionMap.get(hashVal));
                  }
-
             }
 
             hashVal = 0;
@@ -98,17 +175,24 @@ public class HashJoin{
             RID outRID = new RID();
             Tuple outTup = null;
             Heapfile outterHf = new Heapfile(outterRelName);
-            Scan outerSc = innerHf.openScan();
+            Scan outerSc = outterHf.openScan();
             while ((outTup=outerSc.getNext(outRID))!= null){
+                outTup.setHdr((short) attrTypes2.length, attrTypes2, _t2_str_sizes);
                 //call the hash functin
-                hashVal = hashFunction(inTup);
-                if(outerPartitionMap.get(hashVal)==null){
-                    Heapfile hf = new Heapfile(BUCKET_NAME_PREFIX+hashVal);
-                    outerPartitionMap.put(hashVal, hf);
-                    insertRecordInBucket(outTup, hashVal, hf);
+//                hashVal = hashFunction(outTup);
+                if(isString){
+                    hashVal = hashFunctionString(valueObj.strValue);
                 }else{
-                    insertRecordInBucket(outTup, hashVal, outerPartitionMap.get(hashVal));
+                    hashVal = hashFunctionInteger(valueObj.intValue);
+                }
 
+                if(outerPartitionMap.get(hashVal)==null){
+                    Heapfile hf2 = new Heapfile(BUCKET_NAME_PREFIX+tempHeapCounter);
+                    tempHeapCounter++;
+                    outerPartitionMap.put(hashVal, hf2);
+                    insertRecordInBucket(outTup, hf2);
+                }else{
+                    insertRecordInBucket(outTup, outerPartitionMap.get(hashVal));
                 }
             }
 
@@ -127,10 +211,11 @@ public class HashJoin{
 
         try{
         //Integer hashing
+//            System.out.println(type);
+//            System.out.println(type[hashAttr]);
             if(type[hashAttr].attrType== AttrType.attrInteger){
                 int field = tple.getIntFld(hashAttr);
                 hashValue = field % BUCKET_NUMBER;
-
             }
         }catch (Exception e){
             e.printStackTrace();
@@ -149,7 +234,7 @@ public class HashJoin{
         return hashValue;
     }
 
-    public void insertRecordInBucket(Tuple tpl, int hashVal, Heapfile heap){
+    public void insertRecordInBucket(Tuple tpl, Heapfile heap){
         //Insert
         try{
             byte [] tempBytes = tpl.returnTupleByteArray();
@@ -168,68 +253,148 @@ public class HashJoin{
         return Math.abs(s.hashCode())%BUCKET_NUMBER;
     }
 
-    public boolean tupleMatchOnField(Tuple tp1, Tuple tp2, int fieldNo, boolean isString){
+    public boolean tupleMatchOnField(Tuple tp1, Tuple tp2, int fieldNo, Value value, boolean isString){
         boolean equals = false;
         try{
             if(isString){
+
                 String val1 = tp1.getStrFld(fieldNo);
                 String val2 = tp2.getStrFld(fieldNo);
-                equals = val1==val2;
+//                System.out.println(val1+" "+val2);
+                if(val1.equals(value.strValue) & val1.equals(val2)) {
+                    equals = true;
+                }
             }else{
+
                 int val1 = tp1.getIntFld(fieldNo);
                 int val2 = tp2.getIntFld(fieldNo);
-
-                equals = val1==val2;
+                if(val1==value.intValue && val1==val2) {
+                    equals = true;
+                }
             }
         }catch (Exception e){
             e.printStackTrace();
         }
         return equals;
     }
-    public void get_next(boolean isString){
+    public void get(boolean isString){
         //get the result the join
         partition();
-        int hashedValue = hashFunctionInteger(value);
+        int hashedValue = -1;
+        if(!isString){
+            hashedValue =  hashFunctionInteger(valueObj.intValue);
+        }else{
+            hashedValue = hashFunctionString(valueObj.strValue);
+        }
+
 
         try{
+//            System.out.println(hashedValue);
+//            System.out.println(hashFunctionString("1aaaaaaaa"));
             Heapfile innerHeapFile = innerPartitionMap.get(hashedValue);
             Heapfile outterHeapFile = outerPartitionMap.get(hashedValue);
-            Scan innerSc = innerHeapFile.openScan();
+
             Scan outterSc = outterHeapFile.openScan();
 
-            Tuple outterTuple = null;
+            Tuple outterTuple = new Tuple();
             RID outRid = new RID();
+//            outterSc.getNextAndCountRecords(outRid);
+//            System.out.println("number of outer elements "+ outterSc.getNumberOfRecordsPerOnePage());
+            Tuple Jtuple = new Tuple();
+
+            short[]    t_size;
+
+
+            short  []  Jsizes = new short[2];
+            Jsizes[0] = _t2_str_sizes[0];
+            Jsizes[1] = _t1_str_sizes[0];
+
+
+            Jtuple.setHdr((short)5, Jtypes, Jsizes);
+
+
+
+
             while ((outterTuple=outterSc.getNext(outRid))!=null){
+
+                outterTuple.setHdr((short) attrTypes2.length, attrTypes2, _t2_str_sizes);
+
+                boolean addedToResults =  false;
+
                 RID innerRid = new RID();
-                Tuple innerTuple = null;
+                Tuple innerTuple = new Tuple();
+//                innerSc.getNextAndCountRecords(innerRid);
+//                System.out.println("number of outer elements "+ innerSc.getNumberOfRecordsPerOnePage());
+                Scan innerSc = innerHeapFile.openScan();
                 while((innerTuple=innerSc.getNext(innerRid))!=null){
+                    innerTuple.setHdr((short) attrTypes1.length, attrTypes1, _t1_str_sizes);
+
+
+//                        Value v = new Value(value);
 //                    check where they match
-                    boolean match = tupleMatchOnField(innerTuple, outterTuple, hashAttr, isString);
+                    boolean match = tupleMatchOnField(innerTuple, outterTuple, hashAttr, valueObj, isString);
+//                    System.out.println(match);
                     if(match){
-                        result.add(innerTuple);
-                        result.add(outterTuple);
+
+//                        t_size = TupleUtils.setup_op_tuple(Jtuple, Jtypes,
+//                                attrTypes1, len_in1, attrTypes2, len_in2,
+//                                _t1_str_sizes, _t2_str_sizes,
+//                                proj, 6);
+
+
+//                        if(!addedToResults){
+
+                            Jtuple.setStrFld(1, outterTuple.getStrFld(1));
+                            Jtuple.setStrFld(2, innerTuple.getStrFld(1));
+                            Jtuple.setIntFld(3, innerTuple.getIntFld(2));
+                            Jtuple.setIntFld(4, outterTuple.getIntFld(3));
+                            Jtuple.setIntFld(5, innerTuple.getIntFld(3));
+
+//                            Projection.Join(outterTuple, attrTypes2,
+//                                    innerTuple, attrTypes1,
+//                                    Jtuple, proj, 2);
+//
+
+                            result.add(Jtuple);
+                         Jtuple = new Tuple();
+                        Jtuple.setHdr((short)5, Jtypes, Jsizes);
+//
                     }
 
-//                    add it to the list
                 }
+
             }
 
-            printAll();
+//            printAll(Jtypes);
+            System.out.println(result.size());
 
         }catch (Exception e){
             e.printStackTrace();
         }
     }
+//
+    public java.util.Iterator get_next(){
+        get(isString);
+        java.util.Iterator i = result.iterator();
+//        while (i.hasNext()){
+            return i;
+//        }
 
-    public void printAll(){
-        AttrType[] type = new AttrType[2];
-        AttrType attr1 = new AttrType(AttrType.attrInteger);
-        AttrType attr2 = new AttrType(AttrType.attrInteger);
-        type[0] = attr1;
-        type[1] = attr2;
+//        return null;
+    }
+//    nlj2 = new NestedLoopsJoins (Jtypes, 2, Jsizes,
+//                                 Btypes, 3, Bsizes,
+// 				   10,
+//                                 nlj, "boats.in",
+//                                 outFilter2, null, proj2, 1);
+
+    public void printAll(AttrType [] tp){
         try {
-            for (Tuple x:result) {
-                x.print(type);
+            java.util.Iterator i = result.iterator();
+            while (i.hasNext()){
+                Tuple t = (Tuple) i.next();
+                t.print(tp);
+
             }
         }catch (Exception e){
             e.printStackTrace();

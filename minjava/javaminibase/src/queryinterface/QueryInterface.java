@@ -6,10 +6,7 @@ import btree.StringKey;
 import btree.*;
 import bufmgr.*;
 import diskmgr.PCounter;
-import global.AttrType;
-import global.GlobalConst;
-import global.RID;
-import global.SystemDefs;
+import global.*;
 import hash.*;
 import heap.*;
 import iterator.*;
@@ -269,6 +266,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             break;
 
                         case 11:
+                            hashJoinTest();
                             break;
 
                         case 12:
@@ -639,8 +637,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
             // Read data and construct tuples
             setAttrDesc(fileName);
-//          File file = new File("../../data/" + fileName + ".csv");
-            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + fileName + ".csv");
+          File file = new File("../../data/" + fileName + ".csv");
+//            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + fileName + ".csv");
 
 
             Scanner sc = new Scanner(file);
@@ -2426,8 +2424,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             status = FAIL;
             e.printStackTrace();
         }
-//        File file = new File("../../data/" + tableName + ".csv");
-        File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + tableName + ".csv");
+        File file = new File("../../data/" + tableName + ".csv");
+//        File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + tableName + ".csv");
         Scanner sc = new Scanner(file);
 
         nColumns = Integer.valueOf(sc.nextLine().trim().split(",")[0]);
@@ -2888,6 +2886,181 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             status = FAIL;
             e.printStackTrace();
         }
+    }
+
+    public void hashJoinTest(){
+
+
+            System.out.println("------------------------ TEST 1 --------------------------");
+
+            System.out.println("\n -- Testing BlockNestedLoopsSky on correlated tuples -- ");
+            boolean status = OK;
+            String file1 = "r_sii2000_1_75_200";
+            String file2 = "r_sii2000_10_10_10";
+            try {
+                createTable(file1, false, NO_INDEX, 0);
+                createTable(file2, false, NO_INDEX, 0);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+
+//        AttrType[] attrType = new AttrType[2];
+//            attrType[0] = new AttrType(AttrType.attrInteger);
+//            attrType[1] = new AttrType(AttrType.attrInteger);
+//            short[] attrSize = new short[0];
+//
+//            TupleOrder[] order = new TupleOrder[2];
+//            order[0] = new TupleOrder(TupleOrder.Ascending);
+//            order[1] = new TupleOrder(TupleOrder.Descending);
+//
+//            Tuple t = new Tuple();
+//
+//            try {
+//                t.setHdr((short) 2, attrType, attrSizes);
+//            } catch (Exception e) {
+//                System.err.println("*** error in Tuple.setHdr() ***");
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//
+//            int size = t.size();
+//
+//            RID rid;
+//            Heapfile f = null;
+//            try {
+//                f = new Heapfile("test1.in");
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//
+//            t = new Tuple(size);
+//            try {
+//                t.setHdr((short) 2, attrType, attrSizes);
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//            int inum1 =0;
+//            int inum2 =0;
+//
+//            float fnum = 0.1567f;
+//            int count = 0;
+//            int j = 10;
+
+//            System.out.println("\n -- Generating correlated tuples -- ");
+//            int num_elements = 20;
+//            for (int i = 0; i < num_elements; i++) {
+//                // setting fields
+//                inum1 = i+1;
+//                inum2 = 0;
+//
+//                try {
+//                    t.setIntFld(1, inum1);
+//                    t.setIntFld(2, inum2);
+//                } catch (Exception e) {
+//                    status = FAIL;
+//                    e.printStackTrace();
+//                }
+//
+//                try {
+//                    rid = f.insertRecord(t.returnTupleByteArray());
+//                } catch (Exception e) {
+//                    status = FAIL;
+//                    e.printStackTrace();
+//                }
+//
+//                System.out.println("fld1 = " + inum1 + " fld2 = " + inum2);
+//            }
+
+            // create an iterator by open a file scan
+//            FldSpec[] projlist = new FldSpec[2];
+//            RelSpec rel = new RelSpec(RelSpec.outer);
+//            projlist[0] = new FldSpec(rel, 1);
+//            projlist[1] = new FldSpec(rel, 2);
+
+            short [] JJsize = new short[1];
+            JJsize[0] = 30;
+            FldSpec []  proj1 = {
+
+                    new FldSpec(new RelSpec(RelSpec.outer), 2),
+                    new FldSpec(new RelSpec(RelSpec.outer), 3),
+                    new FldSpec(new RelSpec(RelSpec.innerRel), 2),
+                    new FldSpec(new RelSpec(RelSpec.innerRel), 3)
+            }; // S.sname, R.bid
+
+
+//            FileScan fscan = null;
+
+            // Sort "test3.in" on the int attribute (field 3) -- Ascending
+            System.out.println("\n -- Hash Join results -- ");
+
+//            try {
+//                fscan = new FileScan("test1.in", attrType, attrSize, (short) 2, 2, projlist, null);
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+
+            int[] pref_list = new int[] {1,2};
+            HashJoin hashjoin = null;
+            short  []  Jsizes = new short[2];
+            Jsizes[0] = 30;
+            Jsizes[1] = 30;
+            try {
+                HashJoin.Value valueObject = new HashJoin.Value(10);
+                hashjoin = new HashJoin(file1, attrType, file2,attrType, 2, valueObject, attrSizes, attrSizes, false);
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+
+//            count = 0;
+//            t = null;
+
+            try {
+//                Tuple t = new Tuple();
+                java.util.Iterator t = hashjoin.get_next();
+
+                while((t.hasNext())){
+                    Tuple tuple = (Tuple) t.next();
+                    tuple.print(hashjoin.getOutputAttrType());
+                }
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+
+//        while (t != null) {
+//            try {
+//                System.out.println("fld1 = " + t.getFloFld(1) + " fld2 = " + t.getFloFld(2));
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//
+//            count++;
+//
+//            try {
+//                t = blockNestedLoop.get_next();
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+//        }
+
+            // clean up
+//        try {
+//            blockNestedLoop.close();
+//        } catch (Exception e) {
+//            status = FAIL;
+//            e.printStackTrace();
+//        }
+
+            System.out.println("------------------- TEST 1 completed ---------------------\n");
+
+
     }
 
     public static void main(String[] args) {
