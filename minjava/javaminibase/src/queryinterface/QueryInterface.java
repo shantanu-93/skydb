@@ -267,6 +267,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                         case 11:
                             hashJoinTest();
+//                            indexJoinTest();
                             break;
 
                         case 12:
@@ -3063,6 +3064,13 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     }
 
+//    public void indexJoinTest() {
+//        try{
+//            createIndex("Age", attrStringSize, 1);
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
+//    }
     public static void main(String[] args) {
         try {
             QueryInterface qi = new QueryInterface();

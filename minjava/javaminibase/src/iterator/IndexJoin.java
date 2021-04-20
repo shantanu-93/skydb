@@ -17,6 +17,7 @@ public class IndexJoin extends Iterator
         private   int        in1_len, in2_len;
         private   Iterator  outer;
         private   short t2_str_sizescopy[];
+        private short t1_str_sizecopy[];
         private   CondExpr OutputFilter[];
         private   CondExpr RightFilter[];
         private   int        n_buf_pgs;        // # of buffer pages available.
@@ -30,6 +31,8 @@ public class IndexJoin extends Iterator
         private   Scan      inner;
         private String relName;
         private Iterator innerIterrator;
+        NestedLoopsJoins nestedLoopsJoins;
+        private int indexAttrNumber;
 
 
         /**constructor
@@ -62,7 +65,8 @@ public class IndexJoin extends Iterator
                                  CondExpr outFilter[],
                                  CondExpr rightFilter[],
                                  FldSpec   proj_list[],
-                                 int        n_out_flds
+                                 int        n_out_flds,
+                          int indexAttrNumber
         ) throws IOException,NestedLoopException
         {
 
@@ -75,6 +79,7 @@ public class IndexJoin extends Iterator
             relName = relationName;
 
             outer = am1;
+            t1_str_sizecopy = t1_str_sizes;
             t2_str_sizescopy =  t2_str_sizes;
             inner_tuple = new Tuple();
             Jtuple = new Tuple();
@@ -91,6 +96,7 @@ public class IndexJoin extends Iterator
 
             perm_mat = proj_list;
             nOutFlds = n_out_flds;
+            this.indexAttrNumber = indexAttrNumber;
             try {
                 t_size = TupleUtils.setup_op_tuple(Jtuple, Jtypes,
                         in1, len_in1, in2, len_in2,
@@ -146,80 +152,77 @@ public class IndexJoin extends Iterator
             // This is a DUMBEST form of a join, not making use of any key information...
 
 
-            if (done)
-                return null;
+            String indexAvailable = indexAvailable();
+            if(indexAvailable==null){
+                //do nested loop join
+                nestedLoopsJoins= new NestedLoopsJoins(_in1, in1_len, t1_str_sizecopy, _in2, in2_len, t2_str_sizescopy, 10, outer, relName, OutputFilter, RightFilter,perm_mat, nOutFlds );
+            }else{
 
-            do
-            {
-                // If get_from_outer is true, Get a tuple from the outer, delete
-                // an existing scan on the file, and reopen a new scan on the file.
-                // If a get_next on the outer returns DONE?, then the nested loops
-                //join is done too.
 
-                if (get_from_outer == true)
-                {
-                    get_from_outer = false;
-                    if (inner != null)     // If this not the first time,
-                    {
-                        // close scan
-                        inner = null;
-                    }
 
-                    try {
-                        inner = hf.openScan();
-                        int in=4;
-                        int out = 2;
-                        innerIterrator = new IndexScan(new IndexType(IndexType.B_Index), relName, "BTreeIndex", _in1, t2_str_sizescopy,
-                    in, out, perm_mat, null, 1, false);
-                        System.out.println(innerIterrator);
-                        System.out.println(innerIterrator!=null);
-                    }
-                    catch(Exception e){
-                        throw new NestedLoopException(e, "openScan failed");
-                    }
+                if (done)
+                    return null;
 
-                    if ((outer_tuple=outer.get_next()) == null)
-                    {
-                        done = true;
-                        if (inner != null)
+                do {
+                    if (get_from_outer == true) {
+                        get_from_outer = false;
+                        if (inner != null)     // If this not the first time,
                         {
-
+                            // close scan
                             inner = null;
                         }
 
-                        return null;
+                        try {
+                            inner = hf.openScan();
+
+
+                            System.out.println(innerIterrator);
+                            System.out.println(innerIterrator != null);
+                        } catch (Exception e) {
+                            throw new NestedLoopException(e, "openScan failed");
+                        }
+
+                        if ((outer_tuple = outer.get_next()) == null) {
+                            done = true;
+                            if (inner != null) {
+
+                                inner = null;
+                            }
+
+                            return null;
+                        }
+                    }  // ENDS: if (get_from_outer == TRUE)
+
+//                    RID rid = new RID();
+                    if(indexAvailable=="hash"){
+                        innerIterrator = new IndexScan(new IndexType(IndexType.Hash), relName, "HashIndex", _in2, t2_str_sizescopy,
+                                in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
+                    }else if(indexAvailable=="btree"){
+                        innerIterrator = new IndexScan(new IndexType(IndexType.B_Index), relName, "BTreeIndex", _in2, t2_str_sizescopy,
+                                in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
                     }
-                }  // ENDS: if (get_from_outer == TRUE)
 
-
-                // The next step is to get a tuple from the inner,
-                // while the inner is not completely scanned && there
-                // is no match (with pred),get a tuple from the inner.
-
-
-                RID rid = new RID();
-                while ((inner_tuple = inner.getNext(rid)) != null)
-                {
-                    inner_tuple.setHdr((short)in2_len, _in2,t2_str_sizescopy);
-                    if (PredEval.Eval(RightFilter, inner_tuple, null, _in2, null) == true)
-                    {
-                        if (PredEval.Eval(OutputFilter, outer_tuple, inner_tuple, _in1, _in2) == true)
-                        {
-                            // Apply a projection on the outer and inner tuples.
-                            Projection.Join(outer_tuple, _in1,
-                                    inner_tuple, _in2,
-                                    Jtuple, perm_mat, nOutFlds);
-                            return Jtuple;
+                    while ((inner_tuple = innerIterrator.get_next()) != null) {
+                        inner_tuple.setHdr((short) in2_len, _in2, t2_str_sizescopy);
+                        if (PredEval.Eval(RightFilter, inner_tuple, null, _in2, null) == true) {
+                            if (PredEval.Eval(OutputFilter, outer_tuple, inner_tuple, _in1, _in2) == true) {
+                                // Apply a projection on the outer and inner tuples.
+                                Projection.Join(outer_tuple, _in1,
+                                        inner_tuple, _in2,
+                                        Jtuple, perm_mat, nOutFlds);
+                                return Jtuple;
+                            }
                         }
                     }
-                }
 
-                // There has been no match. (otherwise, we would have
-                //returned from t//he while loop. Hence, inner is
-                //exhausted, => set get_from_outer = TRUE, go to top of loop
+                    // There has been no match. (otherwise, we would have
+                    //returned from t//he while loop. Hence, inner is
+                    //exhausted, => set get_from_outer = TRUE, go to top of loop
 
-                get_from_outer = true; // Loop back to top and get next outer tuple.
-            } while (true);
+                    get_from_outer = true; // Loop back to top and get next outer tuple.
+                } while (true);
+            }
+            return null;
         }
 
         /**
@@ -240,6 +243,26 @@ public class IndexJoin extends Iterator
                 }
                 closeFlag = true;
             }
+        }
+
+        public String indexAvailable(){
+            Iterator iter1 = null;
+            Iterator iter2 = null;
+            try {
+                iter1 = new IndexScan(new IndexType(IndexType.B_Index), relName, "BTreeIndex", _in2, t2_str_sizescopy,
+                        in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
+
+                iter1 = new IndexScan(new IndexType(IndexType.Hash), relName, "HashIndex", _in2, t2_str_sizescopy,
+                        in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
+                if(iter1!=null && iter1.get_next()!=null){
+                    return "btree";
+                }else if (iter2!=null && iter2.get_next()!=null){
+                    return "hash";
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            return null;
         }
 
 
