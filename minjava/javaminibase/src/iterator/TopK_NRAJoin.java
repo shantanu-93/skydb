@@ -43,10 +43,13 @@ import btree.PinPageException;
 import btree.ScanIteratorException;
 import btree.UnpinPageException;
 import bufmgr.BufMgrException;
+import bufmgr.HashEntryNotFoundException;
 import bufmgr.HashOperationException;
+import bufmgr.InvalidFrameNumberException;
 import bufmgr.PageNotFoundException;
 import bufmgr.PagePinnedException;
 import bufmgr.PageUnpinnedException;
+import bufmgr.ReplacerException;
 import btree.ClusteredLeafData;
 
 public class TopK_NRAJoin {
@@ -169,45 +172,8 @@ public class TopK_NRAJoin {
             if(val){
                 System.out.println("---Top K Tuples---");
                 for(int i = 0; i < k; i++){
-                    if(!oTable.equals("null")){
-                        tuple1 = new Tuple(size);
-                        try {
-                            tuple1.setHdr((short) nColumns, oAttrTypes, oAttrSize);
-                        } catch (Exception e) {
-                            System.err.println("*** error in Tuple.setHdr() *** "+oAttrTypes.length);
-                            e.printStackTrace();
-                        }
-
-                        try {
-                            if(oAttrTypes[0].attrType == AttrType.attrInteger)
-                                tuple1.setIntFld(1, (Integer) list.get(i).getKey());
-                            else 
-                                tuple1.setStrFld(1, (String) list.get(i).getKey());
-                            tuple1.setIntFld(2, -list.get(i).getValue()[2]);
-                            tuple1.setIntFld(3, -list.get(i).getValue()[3]);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        RID rid = new RID();
-                        try {
-                            rid = f.insertRecord(tuple1.returnTupleByteArray());
-                        } catch (InvalidSlotNumberException e) {
-                            e.printStackTrace();
-                        } catch (InvalidTupleSizeException e) {
-                            e.printStackTrace();
-                        } catch (SpaceNotAvailableException e) {
-                            e.printStackTrace();
-                        } catch (HFException e) {
-                            e.printStackTrace();
-                        } catch (HFBufMgrException e) {
-                            e.printStackTrace();
-                        } catch (HFDiskMgrException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
                     
+                    insert_data(i);
                     
                     System.out.println("Key: "+list.get(i).getKey()+" ["+-list.get(i).getValue()[2]+", "+-list.get(i).getValue()[3]+"]");
                 }
@@ -221,26 +187,42 @@ public class TopK_NRAJoin {
         if(!val){
             System.out.println("\n---Top K Tuples---");
                 for(int i = 0; i < len; i++){
+                    insert_data(i);
                     System.out.println("Key: "+list.get(i).getKey()+" ["+-list.get(i).getValue()[2]+", "+-list.get(i).getValue()[3]+"]");
                 }
-                try {
-                    file[0].destroyFile();
-                    file[1].destroyFile();
-                } catch (IteratorException e) {
-                    e.printStackTrace();
-                } catch (UnpinPageException e) {
-                    e.printStackTrace();
-                } catch (FreePageException e) {
-                    e.printStackTrace();
-                } catch (DeleteFileEntryException e) {
-                    e.printStackTrace();
-                } catch (ConstructPageException e) {
-                    e.printStackTrace();
-                } catch (PinPageException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                };
+                // try {
+                //     file[0].destroyFile();
+                //     file[1].destroyFile();
+                // } catch (IteratorException e) {
+                //     e.printStackTrace();
+                // } catch (UnpinPageException e) {
+                //     e.printStackTrace();
+                // } catch (FreePageException e) {
+                //     e.printStackTrace();
+                // } catch (DeleteFileEntryException e) {
+                //     e.printStackTrace();
+                // } catch (ConstructPageException e) {
+                //     e.printStackTrace();
+                // } catch (PinPageException e) {
+                //     e.printStackTrace();
+                // } catch (IOException e) {
+                //     e.printStackTrace();
+                // };
+        }
+
+        try {
+            scan[0].DestroyBTreeFileScan();
+            scan[1].DestroyBTreeFileScan();
+        } catch (InvalidFrameNumberException e) {
+            e.printStackTrace();
+        } catch (ReplacerException e) {
+            e.printStackTrace();
+        } catch (PageUnpinnedException e) {
+            e.printStackTrace();
+        } catch (HashEntryNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -381,6 +363,47 @@ public class TopK_NRAJoin {
         return false;
     }
     
+
+    void insert_data(int i){
+        if(!oTable.equals("null")){
+            tuple1 = new Tuple(size);
+            try {
+                tuple1.setHdr((short) nColumns, oAttrTypes, oAttrSize);
+            } catch (Exception e) {
+                System.err.println("*** error in Tuple.setHdr() *** "+oAttrTypes.length);
+                e.printStackTrace();
+            }
+
+            try {
+                if(oAttrTypes[0].attrType == AttrType.attrInteger)
+                    tuple1.setIntFld(1, (Integer) list.get(i).getKey());
+                else 
+                    tuple1.setStrFld(1, (String) list.get(i).getKey());
+                tuple1.setIntFld(2, -list.get(i).getValue()[2]);
+                tuple1.setIntFld(3, -list.get(i).getValue()[3]);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            RID rid = new RID();
+            try {
+                rid = f.insertRecord(tuple1.returnTupleByteArray());
+            } catch (InvalidSlotNumberException e) {
+                e.printStackTrace();
+            } catch (InvalidTupleSizeException e) {
+                e.printStackTrace();
+            } catch (SpaceNotAvailableException e) {
+                e.printStackTrace();
+            } catch (HFException e) {
+                e.printStackTrace();
+            } catch (HFBufMgrException e) {
+                e.printStackTrace();
+            } catch (HFDiskMgrException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
 
 class RidTuplePair {
