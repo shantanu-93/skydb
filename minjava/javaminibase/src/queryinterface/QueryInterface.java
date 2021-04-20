@@ -269,6 +269,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             break;
 
                         case 11:
+                            hashJoinTest();
                             break;
 
                         case 12:
@@ -2883,6 +2884,78 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             status = FAIL;
             e.printStackTrace();
         }
+    }
+
+    public void hashJoinTest(){
+
+
+            System.out.println("------------------------ TEST 1 --------------------------");
+
+            System.out.println("\n -- Testing BlockNestedLoopsSky on correlated tuples -- ");
+            boolean status = OK;
+            String file1 = "r_sii2000_1_75_200";
+            String file2 = "r_sii2000_10_10_10";
+            try {
+                createTable(file1, false, NO_INDEX, 0);
+                createTable(file2, false, NO_INDEX, 0);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+            short [] JJsize = new short[1];
+            JJsize[0] = 30;
+            FldSpec []  proj1 = {
+
+                    new FldSpec(new RelSpec(RelSpec.outer), 2),
+                    new FldSpec(new RelSpec(RelSpec.outer), 3),
+                    new FldSpec(new RelSpec(RelSpec.innerRel), 2),
+                    new FldSpec(new RelSpec(RelSpec.innerRel), 3)
+            }; // S.sname, R.bid
+
+
+//            FileScan fscan = null;
+
+            // Sort "test3.in" on the int attribute (field 3) -- Ascending
+            System.out.println("\n -- Hash Join results -- ");
+
+//            try {
+//                fscan = new FileScan("test1.in", attrType, attrSize, (short) 2, 2, projlist, null);
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+
+            int[] pref_list = new int[] {1,2};
+            HashJoin hashjoin = null;
+            short  []  Jsizes = new short[2];
+            Jsizes[0] = 30;
+            Jsizes[1] = 30;
+            try {
+                HashJoin.Value valueObject = new HashJoin.Value(10);
+                hashjoin = new HashJoin(file1, attrType, file2,attrType, 2, valueObject, attrSizes, attrSizes, false);
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+
+//            count = 0;
+//            t = null;
+
+            try {
+//                Tuple t = new Tuple();
+                java.util.Iterator t = hashjoin.get_next();
+
+                while((t.hasNext())){
+                    Tuple tuple = (Tuple) t.next();
+                    tuple.print(hashjoin.getOutputAttrType());
+                }
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+            System.out.println("------------------- TEST 1 completed ---------------------\n");
+
+
     }
 
     public String createTempHeapFileForSkyline(String tableName) {
