@@ -690,13 +690,14 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         String fname;
         if (tokens.length > 1) {
             if (tokens[1].equals("CLUSTERED")) {
-                fname = tokens[4];
-                attrInd = Integer.parseInt(tokens[3]);
-                if (tokens[2].equals("BTREE")) {
-                    createTable(fname, true, CLUSTERED_BTREE, attrInd);
-                } else if (tokens[2].equals("HASH")) {
-                    createTable(fname, true, CLUSTERED_HASH, attrInd);
-                }
+            fname = tokens[4];
+            attrInd = Integer.parseInt(tokens[3]);
+            if (tokens[2].equals("BTREE")) {
+                createTable(fname, true, CLUSTERED_BTREE, attrInd);
+            } else if (tokens[2].equals("HASH")) {
+                createTable(fname, true, CLUSTERED_HASH, attrInd);
+            } else if (tokens[2].equals("BTREE_NRA"))
+                createTable(fname, true, (short) 5, attrInd);
             } else {
                 fname = tokens[1];
                 createTable(fname, false, NO_INDEX, attrInd);
