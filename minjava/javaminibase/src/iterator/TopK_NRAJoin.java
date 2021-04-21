@@ -182,7 +182,7 @@ public class TopK_NRAJoin {
             }
             computeLB_UB(in1[joinAttr1.offset - 1].attrType, in2[joinAttr2.offset - 1].attrType, in1[mergeAttr1.offset - 1].attrType, in2[mergeAttr2.offset - 1].attrType);
         }
-        int len = Math.max(list.size(), k);
+        int len = Math.min(list.size(), k);
 
         if(!val){
             System.out.println("\n---Top K Tuples---");
@@ -190,24 +190,7 @@ public class TopK_NRAJoin {
                     insert_data(i);
                     System.out.println("Key: "+list.get(i).getKey()+" ["+-list.get(i).getValue()[2]+", "+-list.get(i).getValue()[3]+"]");
                 }
-                // try {
-                //     file[0].destroyFile();
-                //     file[1].destroyFile();
-                // } catch (IteratorException e) {
-                //     e.printStackTrace();
-                // } catch (UnpinPageException e) {
-                //     e.printStackTrace();
-                // } catch (FreePageException e) {
-                //     e.printStackTrace();
-                // } catch (DeleteFileEntryException e) {
-                //     e.printStackTrace();
-                // } catch (ConstructPageException e) {
-                //     e.printStackTrace();
-                // } catch (PinPageException e) {
-                //     e.printStackTrace();
-                // } catch (IOException e) {
-                //     e.printStackTrace();
-                // };
+
         }
 
         try {
@@ -404,14 +387,4 @@ public class TopK_NRAJoin {
             }
         }
     }
-}
-
-class RidTuplePair {
-    public RID rid;
-    public Tuple tuple;
-
-//    public RidTuplePair(RID rid, Tuple tuple) {
-//        this.rid = rid;
-//        this.tuple = tuple;
-//    }
 }

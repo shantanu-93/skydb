@@ -286,8 +286,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 int k = Integer.valueOf(tokens[2]);
                                 int n_pages = Integer.valueOf(tokens[9]);
 
-                                createTable(fileName1, true, (short) 5, mAttr1);
-                                createTable(fileName2, true, (short) 5, mAttr2);
+                                // createTable(fileName1, true, (short) 5, mAttr1);
+                                // createTable(fileName2, true, (short) 5, mAttr2);
 
                                 getTableAttrsAndType(fileName1);
                                 getSecondTableAttrsAndType(fileName2);
@@ -539,10 +539,11 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         System.out.println("[1]   Create Clustered BT Index");
         System.out.println("[2]   Create Clustered Hash Index");
         System.out.println("[3]   Do not create index");
+        System.out.println("[4]   Create Clustered BT Index in reverse order");
         System.out.print("Please enter your choice: ");
         int choice = GetStuff.getChoice();
         int attrInd = -1;
-        if (choice == 1 || choice == 2) {
+        if (choice == 1 || choice == 2 || choice == 4) {
             System.out.print("Please enter attribute index :");
             attrInd = GetStuff.getChoice();
         }
