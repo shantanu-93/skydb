@@ -1,14 +1,22 @@
 package iterator;
 
+import btree.BTClusteredFileScan;
+import btree.BTreeClusteredFile;
+import btree.ClusteredLeafData;
+import btree.KeyDataEntry;
 import bufmgr.PageNotReadException;
 import global.AttrType;
 import global.IndexType;
 import global.RID;
+import hash.ClusteredHashFile;
+import hash.ClusteredHashFileScan;
 import heap.*;
 import index.IndexException;
 import index.IndexScan;
+import org.w3c.dom.Attr;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 
 public class IndexJoin extends Iterator
@@ -31,8 +39,17 @@ public class IndexJoin extends Iterator
         private   Scan      inner;
         private String relName;
         private Iterator innerIterrator;
-        NestedLoopsJoins nestedLoopsJoins;
+        public NestedLoopsJoins nestedLoopsJoins;
         private int indexAttrNumber;
+        public static final short CLUSTERED_HASH = 0;
+        public static final short CLUSTERED_BTREE = 1;
+        public static final short UNCLUSTERED_HASH = 2;
+        public static final short UNCLUSTERED_BTREE = 3;
+        public static final short NO_INDEX = 4;
+        private int indexTypeIfExists;
+        private ArrayList<Tuple> result;
+        AttrType[] Jtypes;
+        String relName1;
 
 
         /**constructor
@@ -61,12 +78,14 @@ public class IndexJoin extends Iterator
                                  short   t2_str_sizes[],
                                  int     amt_of_mem,
                                  Iterator     am1,
+                                 String relationName1,
                                  String relationName,
                                  CondExpr outFilter[],
                                  CondExpr rightFilter[],
                                  FldSpec   proj_list[],
                                  int        n_out_flds,
-                          int indexAttrNumber
+                          int indexAttrNumber,
+                          int indexTypeIfExists
         ) throws IOException,NestedLoopException
         {
 
@@ -77,6 +96,8 @@ public class IndexJoin extends Iterator
             in1_len = len_in1;
             in2_len = len_in2;
             relName = relationName;
+            this.result = new ArrayList<>();
+            this.relName1 = relationName1;
 
             outer = am1;
             t1_str_sizecopy = t1_str_sizes;
@@ -85,13 +106,20 @@ public class IndexJoin extends Iterator
             Jtuple = new Tuple();
             OutputFilter = outFilter;
             RightFilter  = rightFilter;
+            this.indexTypeIfExists = indexTypeIfExists;
 
             n_buf_pgs    = amt_of_mem;
             inner = null;
             done  = false;
             get_from_outer = true;
 
-            AttrType[] Jtypes = new AttrType[n_out_flds];
+            Jtypes = new AttrType[5];
+            Jtypes[0] = new AttrType(AttrType.attrString);
+            Jtypes[1] = new AttrType(AttrType.attrString);
+            Jtypes[2] = new AttrType(AttrType.attrInteger);
+            Jtypes[3] = new AttrType(AttrType.attrInteger);
+            Jtypes[4] = new AttrType(AttrType.attrInteger);
+
             short[]    t_size;
 
             perm_mat = proj_list;
@@ -115,6 +143,12 @@ public class IndexJoin extends Iterator
             catch(Exception e) {
                 throw new NestedLoopException(e, "Create new heapfile failed.");
             }
+
+
+        }
+
+        public AttrType[] getOutputAttrType(){
+            return this.Jtypes;
         }
 
         /**
@@ -132,7 +166,6 @@ public class IndexJoin extends Iterator
          *@exception UnknowAttrType attribute type unknown
          *@exception UnknownKeyTypeException key type unknown
          *@exception Exception other exceptions
-
          */
         public Tuple get_next()
                 throws IOException,
@@ -152,10 +185,11 @@ public class IndexJoin extends Iterator
             // This is a DUMBEST form of a join, not making use of any key information...
 
 
-            String indexAvailable = indexAvailable();
-            if(indexAvailable==null){
+            String indexAvailable = "indexAvailable()";
+            if(indexTypeIfExists==NO_INDEX){
                 //do nested loop join
-                nestedLoopsJoins= new NestedLoopsJoins(_in1, in1_len, t1_str_sizecopy, _in2, in2_len, t2_str_sizescopy, 10, outer, relName, OutputFilter, RightFilter,perm_mat, nOutFlds );
+//                nestedLoopsJoins= new NestedLoopsJoins(_in1, in1_len, t1_str_sizecopy, _in2, in2_len, t2_str_sizescopy, 10, outer, relName, OutputFilter, RightFilter,perm_mat, nOutFlds );
+                nestedLoopJoin(relName1, relName);
             }else{
 
 
@@ -195,25 +229,65 @@ public class IndexJoin extends Iterator
 
 //                    RID rid = new RID();
                     if(indexAvailable=="hash"){
-                        innerIterrator = new IndexScan(new IndexType(IndexType.Hash), relName, "HashIndex", _in2, t2_str_sizescopy,
-                                in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
-                    }else if(indexAvailable=="btree"){
-                        innerIterrator = new IndexScan(new IndexType(IndexType.B_Index), relName, "BTreeIndex", _in2, t2_str_sizescopy,
-                                in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
-                    }
+//                        innerIterrator = new IndexScan(new IndexType(IndexType.Hash), relName, "HashIndex", _in2, t2_str_sizescopy,
+//                                in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
 
-                    while ((inner_tuple = innerIterrator.get_next()) != null) {
-                        inner_tuple.setHdr((short) in2_len, _in2, t2_str_sizescopy);
-                        if (PredEval.Eval(RightFilter, inner_tuple, null, _in2, null) == true) {
-                            if (PredEval.Eval(OutputFilter, outer_tuple, inner_tuple, _in1, _in2) == true) {
-                                // Apply a projection on the outer and inner tuples.
-                                Projection.Join(outer_tuple, _in1,
-                                        inner_tuple, _in2,
-                                        Jtuple, perm_mat, nOutFlds);
-                                return Jtuple;
+                        ClusteredHashFile hash = new ClusteredHashFile(relName, (short) in2_len, _in2, t2_str_sizescopy);
+                        RID hashRid = new RID();
+                        ClusteredHashFileScan fscan = null;
+                        fscan = hash.newScan(null, null);
+                        Tuple t = fscan.getNextTuple(hashRid);
+
+
+                        while (t != null) {
+                            inner_tuple.setHdr((short) in2_len, _in2, t2_str_sizescopy);
+
+                            if (PredEval.Eval(RightFilter, inner_tuple, null, _in2, null) == true) {
+                                if (PredEval.Eval(OutputFilter, outer_tuple, inner_tuple, _in1, _in2) == true) {
+                                    // Apply a projection on the outer and inner tuples.
+                                    Projection.Join(outer_tuple, _in1,
+                                            inner_tuple, _in2,
+                                            Jtuple, perm_mat, nOutFlds);
+                                    return Jtuple;
+                                }
+                            }
+                            t = fscan.getNextTuple(hashRid);
+                        }
+
+
+                    }else if(indexAvailable=="btree"){
+//                        innerIterrator = new IndexScan(new IndexType(IndexType.B_Index), relName, "BTreeIndex", _in2, t2_str_sizescopy,
+//                                in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
+                        BTreeClusteredFile btree = new BTreeClusteredFile(relName, (short) in2_len, _in2, t2_str_sizescopy);
+                        BTClusteredFileScan scan = null;
+                        scan = btree.new_scan(null, null);
+                        RID btRid = new RID();
+                        KeyDataEntry data = null;
+                        data = scan.get_next(btRid);
+
+
+                        while (data != null) {
+                            if (data != null) {
+
+                                inner_tuple = (Tuple) ((ClusteredLeafData) data.data).getData();
+                                inner_tuple.setHdr((short) in2_len, _in2, t2_str_sizescopy);
+                                if (PredEval.Eval(RightFilter, inner_tuple, null, _in2, null) == true) {
+                                    if (PredEval.Eval(OutputFilter, outer_tuple, inner_tuple, _in1, _in2) == true) {
+                                        // Apply a projection on the outer and inner tuples.
+                                        Projection.Join(outer_tuple, _in1,
+                                                inner_tuple, _in2,
+                                                Jtuple, perm_mat, nOutFlds);
+                                        return Jtuple;
+                                    }
+                                }
+                                data = scan.get_next(btRid);
                             }
                         }
+
+
                     }
+
+
 
                     // There has been no match. (otherwise, we would have
                     //returned from t//he while loop. Hence, inner is
@@ -224,6 +298,222 @@ public class IndexJoin extends Iterator
             }
             return null;
         }
+
+        public void nestedLoopJoin(String fileName1, String fileName2){
+            try{
+//            System.out.println(hashedValue);
+//            System.out.println(hashFunctionString("1aaaaaaaa"));
+                Heapfile outterHeapFile =new Heapfile(fileName1);
+                Heapfile innerHeapFile = new Heapfile(fileName2);
+
+
+                Scan outterSc = outterHeapFile.openScan();
+
+                Tuple outterTuple = new Tuple();
+                RID outRid = new RID();
+//            outterSc.getNextAndCountRecords(outRid);
+//            System.out.println("number of outer elements "+ outterSc.getNumberOfRecordsPerOnePage());
+                Tuple Jtuple = new Tuple();
+
+                short[]    t_size;
+
+
+                short  []  Jsizes = new short[2];
+                Jsizes[0] = t2_str_sizescopy[0];
+                Jsizes[1] = t1_str_sizecopy[0];
+
+
+                Jtuple.setHdr((short)5, Jtypes, Jsizes);
+
+                while ((outterTuple=outterSc.getNext(outRid))!=null){
+
+                    outterTuple.setHdr((short) _in1.length, _in1, t1_str_sizecopy);
+
+                    boolean addedToResults =  false;
+
+                    RID innerRid = new RID();
+                    Tuple innerTuple = new Tuple();
+//                innerSc.getNextAndCountRecords(innerRid);
+//                System.out.println("number of outer elements "+ innerSc.getNumberOfRecordsPerOnePage());
+                    Scan innerSc = innerHeapFile.openScan();
+                    while((innerTuple=innerSc.getNext(innerRid))!=null){
+                        innerTuple.setHdr((short) _in2.length, _in2, t2_str_sizescopy);
+
+
+//                        Value v = new Value(value);
+//                    check where they match
+                        boolean match = tupleMatchOnField(innerTuple, outterTuple, indexAttrNumber, false);
+//                    System.out.println(match);
+                        if(match){
+
+//                        t_size = TupleUtils.setup_op_tuple(Jtuple, Jtypes,
+//                                attrTypes1, len_in1, attrTypes2, len_in2,
+//                                _t1_str_sizes, _t2_str_sizes,
+//                                proj, 6);
+
+
+//                        if(!addedToResults){
+
+                            Jtuple.setStrFld(1, outterTuple.getStrFld(1));
+                            Jtuple.setStrFld(2, innerTuple.getStrFld(1));
+                            Jtuple.setIntFld(3, innerTuple.getIntFld(2));
+                            Jtuple.setIntFld(4, outterTuple.getIntFld(3));
+                            Jtuple.setIntFld(5, innerTuple.getIntFld(3));
+
+//                            Projection.Join(outterTuple, attrTypes2,
+//                                    innerTuple, attrTypes1,
+//                                    Jtuple, proj, 2);
+//
+
+                            result.add(Jtuple);
+                            Jtuple = new Tuple();
+                            Jtuple.setHdr((short)5, Jtypes, Jsizes);
+//
+                        }
+
+                    }
+
+                }
+
+//            printAll(Jtypes);
+                System.out.println(result.size());
+
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+
+        }
+
+        public void joinWithIndex(String fileName1, BTClusteredFileScan sc){
+            try{
+//            System.out.println(hashedValue);
+//            System.out.println(hashFunctionString("1aaaaaaaa"));
+                Heapfile outterHeapFile =new Heapfile(fileName1);
+//                Heapfile innerHeapFile = new Heapfile(fileName2);
+
+
+                Scan outterSc = outterHeapFile.openScan();
+
+                Tuple outterTuple = new Tuple();
+                RID outRid = new RID();
+//            outterSc.getNextAndCountRecords(outRid);
+//            System.out.println("number of outer elements "+ outterSc.getNumberOfRecordsPerOnePage());
+                Tuple Jtuple = new Tuple();
+
+                short[]    t_size;
+
+
+                short  []  Jsizes = new short[2];
+                Jsizes[0] = t2_str_sizescopy[0];
+                Jsizes[1] = t1_str_sizecopy[0];
+
+
+                Jtuple.setHdr((short)5, Jtypes, Jsizes);
+
+                while ((outterTuple=outterSc.getNext(outRid))!=null){
+
+                    outterTuple.setHdr((short) _in1.length, _in1, t1_str_sizecopy);
+
+                    boolean addedToResults =  false;
+
+                    RID innerRid = new RID();
+                    Tuple innerTuple = new Tuple();
+                    KeyDataEntry data = sc.get_next(innerRid);
+//                innerSc.getNextAndCountRecords(innerRid);
+//                System.out.println("number of outer elements "+ innerSc.getNumberOfRecordsPerOnePage());
+//                    Scan innerSc = innerHeapFile.openScan();
+                    inner_tuple = (Tuple) ((ClusteredLeafData) data.data).getData();
+                    while(data!=null){
+                        innerTuple.setHdr((short) _in2.length, _in2, t2_str_sizescopy);
+
+
+//                        Value v = new Value(value);
+//                    check where they match
+                        boolean match = tupleMatchOnField(innerTuple, outterTuple, indexAttrNumber, false);
+//                    System.out.println(match);
+                        if(match){
+
+//                        t_size = TupleUtils.setup_op_tuple(Jtuple, Jtypes,
+//                                attrTypes1, len_in1, attrTypes2, len_in2,
+//                                _t1_str_sizes, _t2_str_sizes,
+//                                proj, 6);
+
+
+//                        if(!addedToResults){
+
+                            Jtuple.setStrFld(1, outterTuple.getStrFld(1));
+                            Jtuple.setStrFld(2, innerTuple.getStrFld(1));
+                            Jtuple.setIntFld(3, innerTuple.getIntFld(2));
+                            Jtuple.setIntFld(4, outterTuple.getIntFld(3));
+                            Jtuple.setIntFld(5, innerTuple.getIntFld(3));
+
+//                            Projection.Join(outterTuple, attrTypes2,
+//                                    innerTuple, attrTypes1,
+//                                    Jtuple, proj, 2);
+//
+
+                            result.add(Jtuple);
+                            Jtuple = new Tuple();
+                            Jtuple.setHdr((short)5, Jtypes, Jsizes);
+//
+                        }
+
+                    }
+                    data = sc.get_next(innerRid);
+                    inner_tuple = (Tuple) ((ClusteredLeafData) data.data).getData();
+
+                }
+
+//            printAll(Jtypes);
+                System.out.println(result.size());
+
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+
+        public boolean tupleMatchOnField(Tuple tp1, Tuple tp2, int fieldNo, boolean isString){
+            boolean equals = false;
+            try{
+                if(isString){
+
+                    String val1 = tp1.getStrFld(fieldNo);
+                    String val2 = tp2.getStrFld(fieldNo);
+//                System.out.println(val1+" "+val2);
+                    if(val1.equals(val2)) {
+                        equals = true;
+                    }
+                }else{
+
+                    int val1 = tp1.getIntFld(fieldNo);
+                    int val2 = tp2.getIntFld(fieldNo);
+                    if(val1==val2) {
+                        equals = true;
+                    }
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            return equals;
+        }
+
+        public java.util.Iterator getNext(){
+            try {
+                get_next();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+            java.util.Iterator i = result.iterator();
+//        while (i.hasNext()){
+            return i;
+//        }
+
+//        return null;
+        }
+
+
 
         /**
          * implement the abstract method close() from super class Iterator
@@ -249,14 +539,32 @@ public class IndexJoin extends Iterator
             Iterator iter1 = null;
             Iterator iter2 = null;
             try {
+//                        iter1 = new ClusteredHashFile(relName, 75, in2_len, t2_str_sizescop, (short) in2_len, _in2, t1_str_sizecopy);
+                BTreeClusteredFile btree = new BTreeClusteredFile(relName, (short) in2_len, _in2, t2_str_sizescopy);
+                BTClusteredFileScan scan = null;
+                scan = btree.new_scan(null, null);
+                RID btRid = new RID();
+                KeyDataEntry data = null;
+                data = scan.get_next(btRid);
+
+
+
+
+                ClusteredHashFile hash = new ClusteredHashFile(relName, (short) in2_len, _in2, t2_str_sizescopy);
+                RID hashRid = new RID();
+                ClusteredHashFileScan fscan = null;
+                fscan = hash.newScan(null, null);
+                Tuple t2 = fscan.getNextTuple(hashRid);
+
+
                 iter1 = new IndexScan(new IndexType(IndexType.B_Index), relName, "BTreeIndex", _in2, t2_str_sizescopy,
                         in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
 
                 iter1 = new IndexScan(new IndexType(IndexType.Hash), relName, "HashIndex", _in2, t2_str_sizescopy,
                         in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
-                if(iter1!=null && iter1.get_next()!=null){
+                if(data!=null){
                     return "btree";
-                }else if (iter2!=null && iter2.get_next()!=null){
+                }else if (t2 !=null){
                     return "hash";
                 }
             }catch (Exception e){

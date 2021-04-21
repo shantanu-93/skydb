@@ -6,10 +6,7 @@ import btree.StringKey;
 import btree.*;
 import bufmgr.*;
 import diskmgr.PCounter;
-import global.AttrType;
-import global.GlobalConst;
-import global.RID;
-import global.SystemDefs;
+import global.*;
 import hash.*;
 import heap.*;
 import iterator.*;
@@ -270,6 +267,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                         case 11:
                             hashJoinTest();
+//                            indexJoin();
                             break;
 
                         case 12:
@@ -2904,14 +2902,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
             short [] JJsize = new short[1];
             JJsize[0] = 30;
-            FldSpec []  proj1 = {
-
-                    new FldSpec(new RelSpec(RelSpec.outer), 2),
-                    new FldSpec(new RelSpec(RelSpec.outer), 3),
-                    new FldSpec(new RelSpec(RelSpec.innerRel), 2),
-                    new FldSpec(new RelSpec(RelSpec.innerRel), 3)
-            }; // S.sname, R.bid
-
 
 //            FileScan fscan = null;
 
@@ -2932,7 +2922,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             Jsizes[1] = 30;
             try {
                 HashJoin.Value valueObject = new HashJoin.Value(10);
-                hashjoin = new HashJoin(file1, attrType, file2,attrType, 2, valueObject, attrSizes, attrSizes, false);
+                hashjoin = new HashJoin(file1, attrType, file2,attrType, 3, attrSizes, attrSizes, false);
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -2955,6 +2945,82 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             }
             System.out.println("------------------- TEST 1 completed ---------------------\n");
 
+
+    }
+
+    //Index join
+    public void IndexJoin_CondExpr(CondExpr[] expr) {
+
+        expr[0].next  = null;
+        expr[0].op    = new AttrOperator(AttrOperator.aopEQ);
+        expr[0].type1 = new AttrType(AttrType.attrSymbol);
+        expr[0].type2 = new AttrType(AttrType.attrSymbol);
+        expr[0].operand1.symbol = new FldSpec (new RelSpec(RelSpec.outer),1);
+        expr[0].operand2.symbol = new FldSpec (new RelSpec(RelSpec.innerRel),1);
+
+        expr[1] = null;
+    }
+    public void indexJoin(){
+        String fileName1 = "r_sii2000_1_75_200";
+        String fileName2 = "r_sii2000_10_10_10";
+
+        try {
+            createTable(fileName1, false, NO_INDEX, 0);
+//            createTable(fileName2, false, NO_INDEX, 0);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        int indexTypeIfExists = findIfIndexExists(fileName2, -1);
+
+        CondExpr [] outFilter  = new CondExpr[2];
+        outFilter[0] = new CondExpr();
+        outFilter[1] = new CondExpr();
+
+        IndexJoin_CondExpr(outFilter);
+
+        FldSpec [] Sprojection = {
+                new FldSpec(new RelSpec(RelSpec.outer), 1),
+                new FldSpec(new RelSpec(RelSpec.innerRel), 1),
+        };
+
+
+
+        Iterator am1 = null;
+
+        //FileScan(fileName1,attrType,attrStringSize,attrType.length, attrType.length,)
+        try {
+
+            System.out.println(attrType2);
+            System.out.println(attrType);
+            System.out.println(attrSizes);
+            IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
+                    attrType, attrType.length, attrSizes, 10, am1, fileName1, fileName2, outFilter
+                    , outFilter, Sprojection, attrType.length-1, 2,indexTypeIfExists);
+            Tuple tpl=idx.get_next();
+//            if(tpl==null){
+//            if(idx.nestedLoopsJoins!=null){
+//                Tuple t = idx.nestedLoopsJoins.get_next();
+//                while (t!=null){
+//                    t.print(attrType);
+//                    t = idx.nestedLoopsJoins.get_next();
+//                }
+//
+//            }
+
+//            while (tpl!=null){
+//                tpl.print(attrType);
+//                tpl = idx.get_next();
+//            }
+            java.util.Iterator i = idx.getNext();
+
+            while((i.hasNext())){
+                Tuple tuple = (Tuple) i.next();
+                tuple.print(idx.getOutputAttrType());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
 
     }
 

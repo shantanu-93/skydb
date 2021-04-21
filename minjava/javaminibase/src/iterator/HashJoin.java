@@ -72,7 +72,6 @@ public class HashJoin{
     Iterator outer;
     FldSpec[] proj;
     boolean isString;
-    Value valueObj;
 
 
 
@@ -83,10 +82,7 @@ public class HashJoin{
                      AttrType[] attrType1,
                      String outRelName,
                      AttrType[] attrType2,
-
-
                      int attr,
-                     Value valueObj,
                      short[] _t1_str_sizes,
                      short[] _t2_str_sizes,
                      boolean isString)
@@ -97,7 +93,6 @@ public class HashJoin{
         result = new ArrayList<>();
         this._t1_str_sizes = _t1_str_sizes;
         this._t2_str_sizes = _t2_str_sizes;
-        this.valueObj = valueObj;
         this.attrTypes1 = attrType1;
         this.attrTypes2 = attrType2;
 //        this.attrTypes1=attrTypes1;
@@ -153,9 +148,9 @@ public class HashJoin{
                 inTup.setHdr((short) attrTypes1.length, attrTypes1, _t1_str_sizes);
 //                 hashVal = hashFunction(inTup);
                 if(isString){
-                    hashVal = hashFunctionString(valueObj.strValue);
+                    hashVal = hashFunctionString(inTup.getStrFld(hashAttr));
                 }else{
-                    hashVal = hashFunctionInteger(valueObj.intValue);
+                    hashVal = hashFunctionInteger(inTup.getIntFld(hashAttr));
                 }
 //                 System.out.println(hashVal);
 //                 inTup.print(attrTypes1);
@@ -181,9 +176,9 @@ public class HashJoin{
                 //call the hash functin
 //                hashVal = hashFunction(outTup);
                 if(isString){
-                    hashVal = hashFunctionString(valueObj.strValue);
+                    hashVal = hashFunctionString(outTup.getStrFld(hashAttr));
                 }else{
-                    hashVal = hashFunctionInteger(valueObj.intValue);
+                    hashVal = hashFunctionInteger(outTup.getIntFld(hashAttr));
                 }
 
                 if(outerPartitionMap.get(hashVal)==null){
@@ -253,7 +248,7 @@ public class HashJoin{
         return Math.abs(s.hashCode())%BUCKET_NUMBER;
     }
 
-    public boolean tupleMatchOnField(Tuple tp1, Tuple tp2, int fieldNo, Value value, boolean isString){
+    public boolean tupleMatchOnField(Tuple tp1, Tuple tp2, int fieldNo, boolean isString){
         boolean equals = false;
         try{
             if(isString){
@@ -261,14 +256,13 @@ public class HashJoin{
                 String val1 = tp1.getStrFld(fieldNo);
                 String val2 = tp2.getStrFld(fieldNo);
 //                System.out.println(val1+" "+val2);
-                if(val1.equals(value.strValue) & val1.equals(val2)) {
+                if(val1.equals(val2)) {
                     equals = true;
                 }
             }else{
-
                 int val1 = tp1.getIntFld(fieldNo);
                 int val2 = tp2.getIntFld(fieldNo);
-                if(val1==value.intValue && val1==val2) {
+                if(val1==val2) {
                     equals = true;
                 }
             }
@@ -280,21 +274,14 @@ public class HashJoin{
     public void get(boolean isString){
         //get the result the join
         partition();
-        int hashedValue = -1;
-        if(!isString){
-            hashedValue =  hashFunctionInteger(valueObj.intValue);
-        }else{
-            hashedValue = hashFunctionString(valueObj.strValue);
-        }
 
 
         try{
 //            System.out.println(hashedValue);
 //            System.out.println(hashFunctionString("1aaaaaaaa"));
-            Heapfile innerHeapFile = innerPartitionMap.get(hashedValue);
-            Heapfile outterHeapFile = outerPartitionMap.get(hashedValue);
 
-            Scan outterSc = outterHeapFile.openScan();
+//            Heapfile outterHeapFile = outerPartitionMap.get(hashedValue);
+
 
             Tuple outterTuple = new Tuple();
             RID outRid = new RID();
@@ -311,9 +298,8 @@ public class HashJoin{
 
 
             Jtuple.setHdr((short)5, Jtypes, Jsizes);
-
-
-
+            Heapfile outterHeapFile = new Heapfile(outterRelName);
+            Scan outterSc = outterHeapFile.openScan();
 
             while ((outterTuple=outterSc.getNext(outRid))!=null){
 
@@ -325,6 +311,13 @@ public class HashJoin{
                 Tuple innerTuple = new Tuple();
 //                innerSc.getNextAndCountRecords(innerRid);
 //                System.out.println("number of outer elements "+ innerSc.getNumberOfRecordsPerOnePage());
+                int hashedValue = 0;
+                if(!isString){
+                    hashedValue =  hashFunctionInteger(outterTuple.getIntFld(hashAttr));
+                }else{
+                    hashedValue = hashFunctionString(outterTuple.getStrFld(hashAttr));
+                }
+                Heapfile innerHeapFile = innerPartitionMap.get(hashedValue);
                 Scan innerSc = innerHeapFile.openScan();
                 while((innerTuple=innerSc.getNext(innerRid))!=null){
                     innerTuple.setHdr((short) attrTypes1.length, attrTypes1, _t1_str_sizes);
@@ -332,7 +325,7 @@ public class HashJoin{
 
 //                        Value v = new Value(value);
 //                    check where they match
-                    boolean match = tupleMatchOnField(innerTuple, outterTuple, hashAttr, valueObj, isString);
+                    boolean match = tupleMatchOnField(innerTuple, outterTuple, hashAttr, isString);
 //                    System.out.println(match);
                     if(match){
 
