@@ -63,7 +63,7 @@ public class TopK_HashJoin {
     this.oTable = oTable;
   }
 
-  public void getHashBasesTopKJoin() {
+  public void getHashBasedTopKJoin() {
 
 
 

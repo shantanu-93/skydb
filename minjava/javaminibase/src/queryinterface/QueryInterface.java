@@ -286,8 +286,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 int k = Integer.valueOf(tokens[2]);
                                 int n_pages = Integer.valueOf(tokens[9]);
 
-                                createTable(fileName1, true, (short) 5, mAttr1);
-                                createTable(fileName2, true, (short) 5, mAttr2);
+                                createTable(fileName1, false, (short) 0, mAttr1);
+                                createTable(fileName2, false, (short) 0, mAttr2);
 
                                 getTableAttrsAndType(fileName1);
                                 getSecondTableAttrsAndType(fileName2);
@@ -320,7 +320,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 // initialize after flushing pages to disk
                                 PCounter.initialize();
 
-                                topK_hashJoin.getHashBasesTopKJoin();
+                                topK_hashJoin.getHashBasedTopKJoin();
 
                                 System.out.println("\nRead statistics "+PCounter.rcounter);
                                 System.out.println("Write statistics "+PCounter.wcounter);
