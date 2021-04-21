@@ -65,14 +65,15 @@ public class HashJoin{
     int value;
     short[] _t1_str_sizes;
     short[] _t2_str_sizes;
-    AttrType[] Jtypes = new AttrType[5];
+    AttrType[] Jtypes;
     int len_in1;
     int len_in2;
     int tempHeapCounter= 0;
     Iterator outer;
     FldSpec[] proj;
     boolean isString;
-    Value valueObj;
+    Tuple Jtuple;
+    short[] JSizes;
 
 
 
@@ -83,10 +84,7 @@ public class HashJoin{
                      AttrType[] attrType1,
                      String outRelName,
                      AttrType[] attrType2,
-
-
                      int attr,
-                     Value valueObj,
                      short[] _t1_str_sizes,
                      short[] _t2_str_sizes,
                      boolean isString)
@@ -97,7 +95,6 @@ public class HashJoin{
         result = new ArrayList<>();
         this._t1_str_sizes = _t1_str_sizes;
         this._t2_str_sizes = _t2_str_sizes;
-        this.valueObj = valueObj;
         this.attrTypes1 = attrType1;
         this.attrTypes2 = attrType2;
 //        this.attrTypes1=attrTypes1;
@@ -110,29 +107,79 @@ public class HashJoin{
 
         innerPartitionMap = new HashMap<>();
         outerPartitionMap = new HashMap<>();
-
-
-        Jtypes[0] = new AttrType(AttrType.attrString);
-        Jtypes[1] = new AttrType(AttrType.attrString);
-        Jtypes[2] = new AttrType(AttrType.attrInteger);
-        Jtypes[3] = new AttrType(AttrType.attrInteger);
-        Jtypes[4] = new AttrType(AttrType.attrInteger);
+        Jtuple = new Tuple();
+        Jtypes = setuptOutputType(attrType1, attrType2);
+        JSizes =  setupOutputSize(_t1_str_sizes, _t2_str_sizes);
 
 
     }
 
-
-    public static class Value{
-        public String strValue;
-        public int intValue;
-
-        public Value(int v){
-            intValue = v;
+    public AttrType[] setuptOutputType(AttrType[] t1, AttrType[] t2){
+        AttrType[] type = new AttrType[t1.length+t2.length];
+        int count = 0;
+        for (AttrType att: t1) {
+            type[count] = att;
+            count++;
         }
 
-        public Value(String s){
-            strValue= s;
+        for (AttrType att: t2) {
+            type[count] = att;
+            count++;
         }
+        return type;
+    }
+
+    public short[] setupOutputSize(short[] s1, short[] s2){
+        short  []  Jsizes = new short[s1.length + s2.length];
+
+        int count = 0;
+        for (short x: s1) {
+            Jsizes[count] = x;
+            count++;
+        }
+
+        for (short x: s2) {
+            Jsizes[count] = x;
+            count++;
+        }
+        return Jsizes;
+    }
+
+    public void setupOutputTuple(Tuple t1, AttrType[] att1, Tuple t2, AttrType[] att2){
+        try {
+            int count = 0;
+            int fieldCount = 0;
+
+            for (AttrType x : att1) {
+                if (x.attrType==AttrType.attrString) {
+                    Jtuple.setStrFld(count + 1, t1.getStrFld(fieldCount + 1));
+                }
+
+                if (x.attrType==AttrType.attrInteger) {
+                    Jtuple.setIntFld(count + 1, t1.getIntFld(fieldCount + 1));
+                }
+                fieldCount++;
+                count++;
+
+            }
+            fieldCount = 0;
+            for (AttrType x : att2) {
+                if (x.attrType==AttrType.attrString) {
+                    Jtuple.setStrFld(count + 1, t2.getStrFld(fieldCount + 1));
+                }
+
+                if (x.attrType==AttrType.attrInteger) {
+                    Jtuple.setIntFld(count + 1, t2.getIntFld(fieldCount + 1));
+                }
+                fieldCount++;
+                count++;
+
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
     }
 
     public AttrType[] getOutputAttrType(){
@@ -153,9 +200,9 @@ public class HashJoin{
                 inTup.setHdr((short) attrTypes1.length, attrTypes1, _t1_str_sizes);
 //                 hashVal = hashFunction(inTup);
                 if(isString){
-                    hashVal = hashFunctionString(valueObj.strValue);
+                    hashVal = hashFunctionString(inTup.getStrFld(hashAttr));
                 }else{
-                    hashVal = hashFunctionInteger(valueObj.intValue);
+                    hashVal = hashFunctionInteger(inTup.getIntFld(hashAttr));
                 }
 //                 System.out.println(hashVal);
 //                 inTup.print(attrTypes1);
@@ -181,9 +228,9 @@ public class HashJoin{
                 //call the hash functin
 //                hashVal = hashFunction(outTup);
                 if(isString){
-                    hashVal = hashFunctionString(valueObj.strValue);
+                    hashVal = hashFunctionString(outTup.getStrFld(hashAttr));
                 }else{
-                    hashVal = hashFunctionInteger(valueObj.intValue);
+                    hashVal = hashFunctionInteger(outTup.getIntFld(hashAttr));
                 }
 
                 if(outerPartitionMap.get(hashVal)==null){
@@ -253,7 +300,7 @@ public class HashJoin{
         return Math.abs(s.hashCode())%BUCKET_NUMBER;
     }
 
-    public boolean tupleMatchOnField(Tuple tp1, Tuple tp2, int fieldNo, Value value, boolean isString){
+    public boolean tupleMatchOnField(Tuple tp1, Tuple tp2, int fieldNo, boolean isString){
         boolean equals = false;
         try{
             if(isString){
@@ -261,14 +308,13 @@ public class HashJoin{
                 String val1 = tp1.getStrFld(fieldNo);
                 String val2 = tp2.getStrFld(fieldNo);
 //                System.out.println(val1+" "+val2);
-                if(val1.equals(value.strValue) & val1.equals(val2)) {
+                if(val1.equals(val2)) {
                     equals = true;
                 }
             }else{
-
                 int val1 = tp1.getIntFld(fieldNo);
                 int val2 = tp2.getIntFld(fieldNo);
-                if(val1==value.intValue && val1==val2) {
+                if(val1==val2) {
                     equals = true;
                 }
             }
@@ -280,51 +326,48 @@ public class HashJoin{
     public void get(boolean isString){
         //get the result the join
         partition();
-        int hashedValue = -1;
-        if(!isString){
-            hashedValue =  hashFunctionInteger(valueObj.intValue);
-        }else{
-            hashedValue = hashFunctionString(valueObj.strValue);
-        }
 
 
         try{
 //            System.out.println(hashedValue);
 //            System.out.println(hashFunctionString("1aaaaaaaa"));
-            Heapfile innerHeapFile = innerPartitionMap.get(hashedValue);
-            Heapfile outterHeapFile = outerPartitionMap.get(hashedValue);
 
-            Scan outterSc = outterHeapFile.openScan();
+//            Heapfile outterHeapFile = outerPartitionMap.get(hashedValue);
+
 
             Tuple outterTuple = new Tuple();
             RID outRid = new RID();
 //            outterSc.getNextAndCountRecords(outRid);
 //            System.out.println("number of outer elements "+ outterSc.getNumberOfRecordsPerOnePage());
-            Tuple Jtuple = new Tuple();
+//            Tuple Jtuple = new Tuple();
 
-            short[]    t_size;
-
-
-            short  []  Jsizes = new short[2];
-            Jsizes[0] = _t2_str_sizes[0];
-            Jsizes[1] = _t1_str_sizes[0];
+//            short[]    t_size;
 
 
-            Jtuple.setHdr((short)5, Jtypes, Jsizes);
+//            short  []  Jsizes = new short[2];
+//            Jsizes[0] = _t2_str_sizes[0];
+//            Jsizes[1] = _t1_str_sizes[0];
 
 
-
+            Jtuple.setHdr((short)(attrTypes1.length+attrTypes2.length), Jtypes, JSizes);
+            Heapfile outterHeapFile = new Heapfile(outterRelName);
+            Scan outterSc = outterHeapFile.openScan();
 
             while ((outterTuple=outterSc.getNext(outRid))!=null){
-
                 outterTuple.setHdr((short) attrTypes2.length, attrTypes2, _t2_str_sizes);
-
                 boolean addedToResults =  false;
 
                 RID innerRid = new RID();
                 Tuple innerTuple = new Tuple();
 //                innerSc.getNextAndCountRecords(innerRid);
 //                System.out.println("number of outer elements "+ innerSc.getNumberOfRecordsPerOnePage());
+                int hashedValue = 0;
+                if(!isString){
+                    hashedValue =  hashFunctionInteger(outterTuple.getIntFld(hashAttr));
+                }else{
+                    hashedValue = hashFunctionString(outterTuple.getStrFld(hashAttr));
+                }
+                Heapfile innerHeapFile = innerPartitionMap.get(hashedValue);
                 Scan innerSc = innerHeapFile.openScan();
                 while((innerTuple=innerSc.getNext(innerRid))!=null){
                     innerTuple.setHdr((short) attrTypes1.length, attrTypes1, _t1_str_sizes);
@@ -332,7 +375,7 @@ public class HashJoin{
 
 //                        Value v = new Value(value);
 //                    check where they match
-                    boolean match = tupleMatchOnField(innerTuple, outterTuple, hashAttr, valueObj, isString);
+                    boolean match = tupleMatchOnField(innerTuple, outterTuple, hashAttr, isString);
 //                    System.out.println(match);
                     if(match){
 
@@ -344,11 +387,12 @@ public class HashJoin{
 
 //                        if(!addedToResults){
 
-                            Jtuple.setStrFld(1, outterTuple.getStrFld(1));
-                            Jtuple.setStrFld(2, innerTuple.getStrFld(1));
-                            Jtuple.setIntFld(3, innerTuple.getIntFld(2));
-                            Jtuple.setIntFld(4, outterTuple.getIntFld(3));
-                            Jtuple.setIntFld(5, innerTuple.getIntFld(3));
+//                            Jtuple.setStrFld(1, outterTuple.getStrFld(1));
+//                            Jtuple.setStrFld(2, innerTuple.getStrFld(1));
+//                            Jtuple.setIntFld(3, innerTuple.getIntFld(2));
+//                            Jtuple.setIntFld(4, outterTuple.getIntFld(3));
+//                            Jtuple.setIntFld(5, innerTuple.getIntFld(3));
+                        setupOutputTuple(outterTuple, attrTypes1, innerTuple, attrTypes2);
 
 //                            Projection.Join(outterTuple, attrTypes2,
 //                                    innerTuple, attrTypes1,
@@ -357,11 +401,12 @@ public class HashJoin{
 
                             result.add(Jtuple);
                          Jtuple = new Tuple();
-                        Jtuple.setHdr((short)5, Jtypes, Jsizes);
+                        Jtuple.setHdr((short)(attrTypes1.length+attrTypes2.length), Jtypes, JSizes);
 //
                     }
 
                 }
+                SystemDefs.JavabaseBM.flushPages();
 
             }
 

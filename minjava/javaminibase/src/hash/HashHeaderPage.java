@@ -70,6 +70,7 @@ class HashHeaderPage extends HFPage {
 
         Convert.setIntValue(targetUtilization, 0, tempData);
         this.insertRecord(tempData);
+        this.targetUtilization = targetUtilization;
 
         numOfRecords = 0;
         Convert.setIntValue(numOfRecords, 0, tempData);
