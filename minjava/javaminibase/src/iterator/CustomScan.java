@@ -37,6 +37,8 @@ public class CustomScan extends Iterator {
     private FileScan fscan;
     private BTClusteredFileScan btscan;
     private ClusteredHashFileScan hscan;
+    private BTreeClusteredFile bTreeClusteredFile;
+    private ClusteredHashFile hashFile;
 
     public CustomScan(String relName) throws IOException, InvalidTypeException, WrongPermat, JoinsException, PredEvalException, UnknowAttrType, PageNotReadException, InvalidTupleSizeException, FieldNumberOutOfBoundException, FileScanException, TupleUtilsException, InvalidRelation, ConstructPageException, GetFileEntryException, PinPageException, IteratorException, UnpinPageException, KeyNotMatchException, InvalidSlotNumberException, hash.ConstructPageException, AddFileEntryException {
         this.relName = relName;
@@ -47,11 +49,12 @@ public class CustomScan extends Iterator {
         if (indexType == NO_INDEX) {
             fscan = new FileScan(relName, attrType, attrSizes, (short) nColumns, nColumns, projlist, null);
         } else if (indexType == CLUSTERED_BTREE || indexType == (short) 5) {
-            BTreeClusteredFile bTreeClusteredFile = new BTreeClusteredFile(relName, (short) nColumns, attrType, attrSizes);
+            bTreeClusteredFile = new BTreeClusteredFile(relName, (short) nColumns, attrType, attrSizes);
             btscan = bTreeClusteredFile.new_scan(null, null);
         } else if (indexType == CLUSTERED_HASH) {
-            ClusteredHashFile hashFile = new ClusteredHashFile(relName, (short) nColumns, attrType, attrSizes);
+            hashFile = new ClusteredHashFile(relName, (short) nColumns, attrType, attrSizes);
             hscan = hashFile.newScan(null, null);
+            hashFile.printIndex();
         }
     }
 
@@ -107,7 +110,6 @@ public class CustomScan extends Iterator {
     }
 
     public Tuple get_next() throws IOException, JoinsException, FieldNumberOutOfBoundException, PageNotReadException, WrongPermat, InvalidTypeException, InvalidTupleSizeException, PredEvalException, UnknowAttrType, ScanIteratorException, PageUnpinnedException, ReplacerException, PageNotFoundException, PagePinnedException, BufMgrException, InvalidFrameNumberException, HashEntryNotFoundException, HashOperationException {
-
         rid = new RID();
         PCounter.initialize();
         if (indexType == NO_INDEX) {
@@ -126,8 +128,14 @@ public class CustomScan extends Iterator {
         return null;
     }
 
-    public void close() throws IOException, JoinsException, SortException, IndexException {
-
+    public void close() throws IOException, JoinsException, SortException, IndexException, HashEntryNotFoundException, ReplacerException, InvalidFrameNumberException, PageUnpinnedException {
+        if (indexType == NO_INDEX) {
+            fscan.close();
+        } else if (indexType == CLUSTERED_BTREE || indexType == (short) 5) {
+            bTreeClusteredFile.close();
+        } else if (indexType == CLUSTERED_HASH) {
+            hashFile.close();
+        }
     }
 
     // Return index type
