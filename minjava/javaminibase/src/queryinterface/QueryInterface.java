@@ -275,6 +275,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                             System.out.println("Enter Query:");
                             tokens = GetStuff.getStringChoice().split(" ");
+                            String method = String.valueOf(tokens[1]);
                             String jAttr1 = String.valueOf(tokens[2]);
                             int jAttr2 = Integer.parseInt(tokens[3]);
                             String mAttr1 = String.valueOf(tokens[4]);
@@ -303,17 +304,33 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             getTableAttrsAndType(tableName);
                             CustomScan scan = new CustomScan(tableName);
 
-                            GroupByWithSort groupBy = new GroupByWithSort(attrType,nColumns, attrSizes, scan, new FldSpec(new RelSpec(RelSpec.outer), jAttr2),
-                                    aggList, aggType, projlist, 0, _n_pages);
-                            PCounter.initialize();
-                            Tuple tup  = groupBy.get_next();
-                            while (tup != null) {
-                                tup.print();
-                                tup = groupBy.get_next();
-                            }
-                            groupBy.close();
+                            if (method == "SORT") {
+                                GroupByWithSort groupBy = new GroupByWithSort(attrType,nColumns, attrSizes, scan, new FldSpec(new RelSpec(RelSpec.outer), jAttr2),
+                                        aggList, aggType, projlist, 0, _n_pages);
+                                PCounter.initialize();
+                                Tuple tup  = groupBy.get_next();
+                                while (tup != null) {
+                                    tup.print();
+                                    tup = groupBy.get_next();
+                                }
+                                groupBy.close();
 
-                            PCounter.printStats();
+                                PCounter.printStats();
+                            } else {
+                                GroupByWithHash groupBy = new GroupByWithHash(attrType,nColumns, attrSizes, scan, new FldSpec(new RelSpec(RelSpec.outer), jAttr2),
+                                        aggList, aggType, projlist, 0, _n_pages);
+                                PCounter.initialize();
+                                Tuple tup  = groupBy.get_next();
+                                while (tup != null) {
+                                    tup.print();
+                                    tup = groupBy.get_next();
+                                }
+                                groupBy.close();
+
+                                PCounter.printStats();
+                            }
+
+
                             break;
                         case 11:
                             System.out.println("Enter your choice:\n[1] Hash Join\n [2] Index Join \n[3] NLJ [4] SMJ");
