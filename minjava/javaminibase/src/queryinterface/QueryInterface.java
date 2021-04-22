@@ -278,56 +278,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             // Hash based top k join
                             if(ch == 1){
 
-                                System.out.println("Enter Query:");
-                                String[] tokens = GetStuff.getStringChoice().split(" ");
-                                int jAttr1 = Integer.valueOf(tokens[4]), jAttr2 = Integer.valueOf(tokens[7]),
-                                        mAttr1 = Integer.valueOf(tokens[5]), mAttr2 = Integer.valueOf(tokens[8]);
-                                String fileName1 = tokens[3], fileName2 = tokens[6];
-                                int k = Integer.valueOf(tokens[2]);
-                                int n_pages = Integer.valueOf(tokens[9]);
-
-                                createTable(fileName1, false, (short) 0, mAttr1);
-                                createTable(fileName2, false, (short) 0, mAttr2);
-
-                                getTableAttrsAndType(fileName1);
-                                getSecondTableAttrsAndType(fileName2);
-
-                                String oTable = "null";
-                                if(tokens.length > 10){
-                                    oTable = tokens[11];
-                                    createOutputTable(oTable, jAttr1, mAttr1, mAttr2);
-                                }
-
-                                // printTable(fileName1);
-                                // printTable(fileName2);
-
-                                FldSpec[] joinList = new FldSpec[2];
-                                FldSpec[] mergeList = new FldSpec[2];
-
-                                joinList[0] = new FldSpec(rel, jAttr1);
-                                joinList[1] = new FldSpec(rel, jAttr2);
-                                mergeList[0] = new FldSpec(rel, mAttr1);
-                                mergeList[1] = new FldSpec(rel, mAttr2);
-
-                                TopK_HashJoin topK_hashJoin = new TopK_HashJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
-                                        attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], fileName1, fileName2, k, n_pages, oTable);
-
-                                try {
-                                    SystemDefs.JavabaseBM.flushPages();
-                                } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
-                                    e.printStackTrace();
-                                }
-                                // initialize after flushing pages to disk
-                                PCounter.initialize();
-
-                                topK_hashJoin.getHashBasedTopKJoin();
-
-                                System.out.println("\nRead statistics "+PCounter.rcounter);
-                                System.out.println("Write statistics "+PCounter.wcounter);
-
-                                System.out.println("------------------- Hash based Top K Join completed ---------------------\n");
-
-                                System.out.println();
+                                performTopKHashJoin();
 
 
                             }else if(ch == 2){
@@ -422,6 +373,90 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             }
         }
         return true;
+    }
+
+    private void performTopKHashJoin() throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
+
+        System.out.println("Enter Query:");
+        String[] tokens = GetStuff.getStringChoice().split(" ");
+        int jAttr1 = Integer.parseInt(tokens[4]);
+        int jAttr2 = Integer.parseInt(tokens[7]);
+        int mAttr1 = Integer.parseInt(tokens[5]);
+        int mAttr2 = Integer.parseInt(tokens[8]);
+        String fileName1 = tokens[3];
+        String fileName2 = tokens[6];
+        int k = Integer.parseInt(tokens[2]);
+        int n_pages = Integer.parseInt(tokens[9]);
+
+//        createTable(fileName1, false, NO_INDEX, 0);
+//        createTable(fileName2, false, NO_INDEX, 0);
+        String innerHF = null;
+        String outerHF = null;
+
+        innerHF = createTempHeapFileForSkyline(fileName1);
+        outerHF = createTempHeapFileForSkyline(fileName2);
+//        setAttrDesc(innerHF);
+//        setAttrDesc(outerHF);
+        getTableAttrsAndType(fileName1);
+        getSecondTableAttrsAndType(fileName2);
+
+        String oTable = "null";
+        if(tokens.length > 10){
+            oTable = tokens[11];
+        }
+
+        FldSpec[] joinList = new FldSpec[2];
+        FldSpec[] mergeList = new FldSpec[2];
+
+        joinList[0] = new FldSpec(rel, jAttr1);
+        joinList[1] = new FldSpec(rel, jAttr2);
+        mergeList[0] = new FldSpec(rel, mAttr1);
+        mergeList[1] = new FldSpec(rel, mAttr2);
+
+        TopK_HashJoin topK_hashJoin = new TopK_HashJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
+                attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], innerHF, outerHF, k, n_pages, oTable);
+
+        try {
+            SystemDefs.JavabaseBM.flushPages();
+        } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+            e.printStackTrace();
+        }
+        // initialize after flushing pages to disk
+        PCounter.initialize();
+
+        try {
+//                Tuple t = new Tuple();
+            java.util.Iterator t = topK_hashJoin.get_next();
+
+            while((t.hasNext())){
+                Tuple tuple = (Tuple) t.next();
+                tuple.print(topK_hashJoin.getOutputAttrType());
+            }
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        System.out.println("\nRead statistics "+PCounter.rcounter);
+        System.out.println("Write statistics "+PCounter.wcounter);
+
+        try {
+            SystemDefs.JavabaseBM.flushPages();
+        } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+            e.printStackTrace();
+        }
+//        Heapfile hf;
+//        try {
+//            hf = new Heapfile(innerHF);
+//            hf.deleteFile();
+//            hf = new Heapfile(outerHF);
+//            hf.deleteFile();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+        PCounter.initialize();
+
+        System.out.println("\n\n------------------- Hash based Top K Join completed ---------------------\n\n");
     }
 
     private void skylineMenu() {
