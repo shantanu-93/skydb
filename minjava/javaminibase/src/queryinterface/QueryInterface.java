@@ -275,9 +275,9 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             }else if(c==2){
                                 indexJoin();
                             }else if(c==3){
-//                                nlj();
+                                nlj();
                             }else if(c==4){
-//                                smj();
+                                smj();
                             }
 //
                             break;
@@ -3063,7 +3063,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
                     attrType, attrType.length, attrSizes, 10, am1, fileName1, fileName2, outFilter
                     , outFilter, Sprojection, attrType.length-1, attrIndex,indexTypeIfExists, operation);
-            Tuple tpl=idx.get_next();
+//            Tuple tpl=idx.get_next();
 //            if(tpl==null){
 //            if(idx.nestedLoopsJoins!=null){
 //                Tuple t = idx.nestedLoopsJoins.get_next();
@@ -3092,6 +3092,165 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         System.out.println("------------------- TEST 1 completed ---------------------\n");
 
     }
+
+    private void nlj() {
+        System.out.println("------------------------ TEST 1 --------------------------");
+        String fileName1 = null;
+        String fileName2 = null;
+        String c = null;
+        System.out.println("Enter Outer file name ");
+        c = GetStuff.getStringChoice();
+        fileName1 = c;
+        System.out.println("Enter Inner file name");
+        c = GetStuff.getStringChoice();
+        fileName2 = c;
+
+        System.out.println("Choose operator");
+        System.out.println("[0] =\n" +
+                "[1] <\n" +
+                "[2] >\n" +
+                "[3] <\n" +
+                "[4] >=\n" +
+                " [5] >");
+        int op= GetStuff.getChoice();
+        short operation=0;
+        if(op==0){
+            operation = EQUAL;
+        }else if(op == 1){
+            operation = LESS;
+        }else if(op==2){
+            operation = GREATER;
+        }else if(op==3){
+            operation = LESSOREQUAL;
+        }else if(op==4){
+            operation = GREATEROREQUAL;
+        }
+
+        System.out.println("Select the index");
+        int attrIndex= GetStuff.getChoice();
+
+//        int indexTypeIfExists = findIfIndexExists(fileName2, -1);
+        int indexTypeIfExists = NO_INDEX; // means NO INDEX only heapfile
+//
+        CondExpr [] outFilter  = new CondExpr[2];
+        outFilter[0] = new CondExpr();
+        outFilter[1] = new CondExpr();
+
+        IndexJoin_CondExpr(outFilter);
+
+        FldSpec [] Sprojection = {
+                new FldSpec(new RelSpec(RelSpec.outer), 1),
+                new FldSpec(new RelSpec(RelSpec.innerRel), 1),
+        };
+
+
+
+        Iterator am1 = null;
+
+        //FileScan(fileName1,attrType,attrStringSize,attrType.length, attrType.length,)
+        try {
+//            short operation = 0;
+
+//            System.out.println(attrType2);
+//            System.out.println(attrType);
+//            System.out.println(attrSizes);
+            IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
+                    attrType, attrType.length, attrSizes, 10, am1, fileName1, fileName2, outFilter
+                    , outFilter, Sprojection, attrType.length-1, attrIndex,indexTypeIfExists, operation);
+            java.util.Iterator i = idx.getNext();
+
+            while((i.hasNext())){
+                Tuple tuple = (Tuple) i.next();
+                tuple.print(idx.getOutputAttrType());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        System.out.println("\nRead statistics "+PCounter.rcounter);
+        System.out.println("Write statistics "+PCounter.wcounter);
+        System.out.println("------------------- NLJ Test completed ---------------------\n");
+
+    }
+
+    private void smj() {
+        System.out.println("------------------------ SMJ TEST 1 --------------------------");
+        String fileName1 = null;
+        String fileName2 = null;
+        String c = null;
+        System.out.println("Enter Outer file name ");
+        c = GetStuff.getStringChoice();
+        fileName1 = c;
+        System.out.println("Enter Inner file name");
+        c = GetStuff.getStringChoice();
+        fileName2 = c;
+
+        System.out.println("Choose operator");
+        System.out.println("[0] =\n" +
+                "[1] <\n" +
+                "[2] >\n" +
+                "[3] <\n" +
+                "[4] >=\n" +
+                " [5] >");
+        int op= GetStuff.getChoice();
+        short operation=0;
+        if(op==0){
+            operation = EQUAL;
+        }else if(op == 1){
+            operation = LESS;
+        }else if(op==2){
+            operation = GREATER;
+        }else if(op==3){
+            operation = LESSOREQUAL;
+        }else if(op==4){
+            operation = GREATEROREQUAL;
+        }
+
+        System.out.println("Select the index");
+        int attrIndex= GetStuff.getChoice();
+
+//        int indexTypeIfExists = findIfIndexExists(fileName2, -1);
+        int indexTypeIfExists = NO_INDEX; // means NO INDEX only heapfile
+//
+        CondExpr [] outFilter  = new CondExpr[2];
+        outFilter[0] = new CondExpr();
+        outFilter[1] = new CondExpr();
+
+        IndexJoin_CondExpr(outFilter);
+
+        FldSpec [] Sprojection = {
+                new FldSpec(new RelSpec(RelSpec.outer), 1),
+                new FldSpec(new RelSpec(RelSpec.innerRel), 1),
+        };
+
+
+
+        Iterator am1 = null;
+
+        //FileScan(fileName1,attrType,attrStringSize,attrType.length, attrType.length,)
+        try {
+//            short operation = 0;
+
+//            System.out.println(attrType2);
+//            System.out.println(attrType);
+//            System.out.println(attrSizes);
+            IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
+                    attrType, attrType.length, attrSizes, 10, am1, fileName1, fileName2, outFilter
+                    , outFilter, Sprojection, attrType.length-1, attrIndex,indexTypeIfExists, operation);
+            java.util.Iterator i = idx.getNext();
+
+            while((i.hasNext())){
+                Tuple tuple = (Tuple) i.next();
+                tuple.print(idx.getOutputAttrType());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        System.out.println("\nRead statistics "+PCounter.rcounter);
+        System.out.println("Write statistics "+PCounter.wcounter);
+        System.out.println("------------------- SMJ Test completed ---------------------\n");
+
+    }
+
 
     public String createTempHeapFileForSkyline(String tableName) {
         Tuple t;
