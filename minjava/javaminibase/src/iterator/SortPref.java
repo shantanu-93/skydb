@@ -256,7 +256,7 @@ public class SortPref extends Iterator implements GlobalConst {
                 }
 
                 try {
-                    temp_files[run_num] = new Heapfile(null);
+                    temp_files[run_num] = new Heapfile(Heapfile.getRandomHFName());
                 } catch (Exception e) {
                     throw new SortException(e, "Sort.java: create Heapfile failed");
                 }
@@ -347,7 +347,7 @@ public class SortPref extends Iterator implements GlobalConst {
                     }
 
                     try {
-                        temp_files[run_num] = new Heapfile(null);
+                        temp_files[run_num] = new Heapfile(Heapfile.getRandomHFName());
                     } catch (Exception e) {
                         throw new SortException(e, "Sort.java: create Heapfile failed");
                     }
@@ -625,7 +625,7 @@ public class SortPref extends Iterator implements GlobalConst {
         n_runs = ARBIT_RUNS;
 
         try {
-            temp_files[0] = new Heapfile(null);
+            temp_files[0] = new Heapfile(Heapfile.getRandomHFName());
         } catch (Exception e) {
             throw new SortException(e, "Sort.java: Heapfile error");
         }

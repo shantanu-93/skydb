@@ -258,7 +258,7 @@ public class Sort extends Iterator implements GlobalConst
 	}
 	
 	try {
-	    temp_files[run_num] = new Heapfile(null);
+	    temp_files[run_num] = new Heapfile(Heapfile.getRandomHFName());
 	}
 	catch (Exception e) {
 	  throw new SortException(e, "Sort.java: create Heapfile failed");
@@ -353,7 +353,7 @@ public class Sort extends Iterator implements GlobalConst
 	  }
 
 	  try {
-	    temp_files[run_num] = new Heapfile(null); 
+	    temp_files[run_num] = new Heapfile(Heapfile.getRandomHFName());
 	  }
 	  catch (Exception e) {
 	    throw new SortException(e, "Sort.java: create Heapfile failed");
@@ -628,7 +628,7 @@ public class Sort extends Iterator implements GlobalConst
     n_runs = ARBIT_RUNS;
 
     try {
-      temp_files[0] = new Heapfile(null);
+      temp_files[0] = new Heapfile(Heapfile.getRandomHFName());
     }
     catch (Exception e) {
       throw new SortException(e, "Sort.java: Heapfile error");
@@ -639,7 +639,7 @@ public class Sort extends Iterator implements GlobalConst
     o_buf.init(bufs, _n_pages, tuple_size, temp_files[0], false);
     //    output_tuple = null;
     
-    max_elems_in_heap = 200;
+    max_elems_in_heap = 2000;
     sortFldLen = sort_fld_len;
     
     Q = new pnodeSplayPQ(sort_fld, in[sort_fld - 1], order);

@@ -265,8 +265,56 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             skylineMenu();
                             break;
                         case 10:
-                            break;
 
+                            // GROUPBY SORT MAX 2 3 lol 50
+                            try {
+                                SystemDefs.JavabaseBM.flushPages();
+                            } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+                                e.printStackTrace();
+                            }
+
+                            System.out.println("Enter Query:");
+                            tokens = GetStuff.getStringChoice().split(" ");
+                            String jAttr1 = String.valueOf(tokens[2]);
+                            int jAttr2 = Integer.parseInt(tokens[3]);
+                            String mAttr1 = String.valueOf(tokens[4]);
+                            String tableName = String.valueOf(tokens[5]);
+                            _n_pages = Integer.parseInt(tokens[6]);
+
+                            AggType aggType;
+                            if (jAttr1.equals("MAX")) {
+                                aggType = new AggType(AggType.MAX);
+                            } else if (jAttr1.equals("MIN")) {
+                                aggType = new AggType(AggType.MIN);
+                            } else if (jAttr1.equals("AVG")) {
+                                aggType = new AggType(AggType.AVG);
+                            } else {
+                                aggType = new AggType(AggType.SKYLINE);
+                            }
+
+                            String[] atts = mAttr1.split(",");
+                            FldSpec[] aggList = new FldSpec[atts.length];
+                            int count = 0;
+                            for (String att: atts) {
+                                aggList[count] = new FldSpec(new RelSpec(RelSpec.outer), Integer.parseInt(att));
+                                count++;
+                            }
+
+                            getTableAttrsAndType(tableName);
+                            CustomScan scan = new CustomScan(tableName);
+
+                            GroupByWithSort groupBy = new GroupByWithSort(attrType,nColumns, attrSizes, scan, new FldSpec(new RelSpec(RelSpec.outer), jAttr2),
+                                    aggList, aggType, projlist, 0, _n_pages);
+                            PCounter.initialize();
+                            Tuple tup  = groupBy.get_next();
+                            while (tup != null) {
+                                tup.print();
+                                tup = groupBy.get_next();
+                            }
+                            groupBy.close();
+
+                            PCounter.printStats();
+                            break;
                         case 11:
                             System.out.println("Enter your choice:\n[1] Hash Join\n [2] Index Join \n[3] NLJ [4] SMJ");
                             int c = GetStuff.getChoice();
@@ -295,8 +343,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             }else if(ch == 2){
                                 System.out.println("Enter Query:");
                                 tokens = GetStuff.getStringChoice().split(" ");
-                                int jAttr1 = Integer.valueOf(tokens[4]), jAttr2 = Integer.valueOf(tokens[7]),
-                                        mAttr1 = Integer.valueOf(tokens[5]), mAttr2 = Integer.valueOf(tokens[8]);
+                                int jAttr10 = Integer.valueOf(tokens[4]), jAttr11 = Integer.valueOf(tokens[7]),
+                                        mAttr10 = Integer.valueOf(tokens[5]), mAttr2 = Integer.valueOf(tokens[8]);
                                 String fileName1 = tokens[3], fileName2 = tokens[6];
                                 int k = Integer.valueOf(tokens[2]);
                                 int n_pages = Integer.valueOf(tokens[9]);
@@ -310,7 +358,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 String oTable = "null";
                                 if (tokens.length > 10) {
                                     oTable = tokens[11];
-                                    createOutputTable(oTable, jAttr1, mAttr1, mAttr2);
+                                    createOutputTable(oTable, jAttr10, mAttr10, mAttr2);
                                 }
 
                                 // printTable(fileName1);
@@ -319,9 +367,9 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 FldSpec[] joinList = new FldSpec[2];
                                 FldSpec[] mergeList = new FldSpec[2];
 
-                                joinList[0] = new FldSpec(rel, jAttr1);
-                                joinList[1] = new FldSpec(rel, jAttr2);
-                                mergeList[0] = new FldSpec(rel, mAttr1);
+                                joinList[0] = new FldSpec(rel, jAttr10);
+                                joinList[1] = new FldSpec(rel, jAttr11);
+                                mergeList[0] = new FldSpec(rel, mAttr10);
                                 mergeList[1] = new FldSpec(rel, mAttr2);
 
                                 TopK_NRAJoin topK_NRAJoin = new TopK_NRAJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
@@ -856,8 +904,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         dbName = nameRoot;
 //        dbpath = "/tmp/" + nameRoot + ".minibase-db";
 //        logpath = "/tmp/" + nameRoot + ".minibase-log";
-        dbpath = "..\\" + nameRoot + ".minibase-db";
-        logpath = "..\\" + nameRoot + ".minibase-log";
+        dbpath = "/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/" + nameRoot + ".minibase-db";
+        logpath = "/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/" + nameRoot + ".minibase-log";
         File f = new File(dbpath);
 
         if (f.exists() && !f.isDirectory()) {
