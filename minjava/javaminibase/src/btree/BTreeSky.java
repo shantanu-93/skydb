@@ -158,7 +158,7 @@ public class BTreeSky extends Iterator implements GlobalConst {
 
       System.out.println("\nNumber of Skyline candidates: " + 1 +"\n");
 
-      return null;
+      return smallHeapFileName;
     } else{
       System.out.println("\nrunSortFirstSky");
       return smallHeapFileName;
