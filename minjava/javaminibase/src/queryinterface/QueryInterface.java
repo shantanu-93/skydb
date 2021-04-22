@@ -304,7 +304,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             getTableAttrsAndType(tableName);
                             CustomScan scan = new CustomScan(tableName);
 
-                            if (method == "SORT") {
+                            if (method.equals("SORT")) {
                                 GroupByWithSort groupBy = new GroupByWithSort(attrType,nColumns, attrSizes, scan, new FldSpec(new RelSpec(RelSpec.outer), jAttr2),
                                         aggList, aggType, projlist, 0, _n_pages);
                                 PCounter.initialize();
