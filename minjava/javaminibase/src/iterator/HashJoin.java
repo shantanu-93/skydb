@@ -50,8 +50,8 @@ public class HashJoin{
     private Heapfile _outerHf;
     private Scan _innserScan;
     private Scan _outerScan;
-    private String innerRelName;
-    private String outterRelName;
+    private CustomScan innerRelName;
+    private CustomScan outterRelName;
     private HashMap<Integer, Heapfile> innerPartitionMap;
     private HashMap<Integer, Heapfile> outerPartitionMap;
     private int BUCKET_NUMBER=5;
@@ -80,9 +80,9 @@ public class HashJoin{
 
 
     public HashJoin(
-                     String inRelName,
+            CustomScan inRelName,
                      AttrType[] attrType1,
-                     String outRelName,
+            CustomScan outRelName,
                      AttrType[] attrType2,
                      int attr,
                      short[] _t1_str_sizes,
@@ -191,11 +191,12 @@ public class HashJoin{
 
             int hashVal = 0;
             //Inner partitionning
-            Heapfile innerHf = new Heapfile(innerRelName);
-            Scan sc = innerHf.openScan();
-            RID inRID = new RID();
+//            Heapfile innerHf = new Heapfile(innerRelName);
+//            Scan sc = innerHf.openScan();
+//            RID inRID = new RID();
             Tuple inTup = null;
-            while ((inTup=sc.getNext(inRID))!= null){
+//            while ((inTup=sc.getNext(inRID))!= null){
+            while ((inTup=innerRelName.get_next())!= null){
                 //call the function
                 inTup.setHdr((short) attrTypes1.length, attrTypes1, _t1_str_sizes);
 //                 hashVal = hashFunction(inTup);
@@ -221,9 +222,10 @@ public class HashJoin{
             //Outer partitionning
             RID outRID = new RID();
             Tuple outTup = null;
-            Heapfile outterHf = new Heapfile(outterRelName);
-            Scan outerSc = outterHf.openScan();
-            while ((outTup=outerSc.getNext(outRID))!= null){
+//            Heapfile outterHf = new Heapfile(outterRelName);
+//            Scan outerSc = outterHf.openScan();
+//            while ((outTup=outerSc.getNext(outRID))!= null){
+            while ((outTup=outterRelName.get_next())!= null){
                 outTup.setHdr((short) attrTypes2.length, attrTypes2, _t2_str_sizes);
                 //call the hash functin
 //                hashVal = hashFunction(outTup);
@@ -350,10 +352,11 @@ public class HashJoin{
 
 
             Jtuple.setHdr((short)(attrTypes1.length+attrTypes2.length), Jtypes, JSizes);
-            Heapfile outterHeapFile = new Heapfile(outterRelName);
-            Scan outterSc = outterHeapFile.openScan();
+//            Heapfile outterHeapFile = new Heapfile(outterRelName);
+//            Scan outterSc = outterHeapFile.openScan();
 
-            while ((outterTuple=outterSc.getNext(outRid))!=null){
+//            while ((outterTuple=outterSc.getNext(outRid))!=null){
+            while ((outterTuple=outterRelName.get_next())!=null){
                 outterTuple.setHdr((short) attrTypes2.length, attrTypes2, _t2_str_sizes);
                 boolean addedToResults =  false;
 

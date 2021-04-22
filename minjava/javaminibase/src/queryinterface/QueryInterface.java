@@ -268,16 +268,16 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             break;
 
                         case 11:
-                            System.out.println("Enter your choice:\n[1] Hash Join\n [2] Index Join \n[3] NLJ [4] MSJ");
+                            System.out.println("Enter your choice:\n[1] Hash Join\n [2] Index Join \n[3] NLJ [4] SMJ");
                             int c = GetStuff.getChoice();
                             if (c==1) {
                                 hashJoinTest();
                             }else if(c==2){
                                 indexJoin();
                             }else if(c==3){
-                                hashJoinTest();
+//                                nlj();
                             }else if(c==4){
-                                hashJoinTest();
+//                                smj();
                             }
 //
                             break;
@@ -921,8 +921,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
             // Read data and construct tuples
             setAttrDesc(fileName);
-//            File file = new File("../../data/" + fileName + ".csv");
-            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + fileName + ".csv");
+            File file = new File("../../data/" + fileName + ".csv");
+//            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + fileName + ".csv");
 
             Scanner sc = new Scanner(file);
 
@@ -1696,8 +1696,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
         if (status == OK) {
             getTableAttrsAndType(tableName);
-//          File file = new File("../../data/" + filename + ".csv");
-            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + filename + ".csv");
+          File file = new File("../../data/" + filename + ".csv");
+//            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + filename + ".csv");
             Scanner sc = new Scanner(file);
             int attrIndex = -1;
             int indexTypeIfExists = findIfIndexExists(tableName, -1);
@@ -2105,8 +2105,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         if (status == OK) {
 
             getTableAttrsAndType(tableName);
-//          File file = new File("../../data/" + filename + ".csv");
-            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + filename + ".csv");
+          File file = new File("../../data/" + filename + ".csv");
+//            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + filename + ".csv");
             Scanner sc = new Scanner(file);
             int attrIndex = 1;
             int indexTypeIfExists = findIfIndexExists(tableName, -1);
@@ -2367,8 +2367,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
 
         if (status == OK) {
-//          File file = new File("../../data/" + filename + ".csv");
-            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + filename + ".csv");
+          File file = new File("../../data/" + filename + ".csv");
+//            File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + filename + ".csv");
             Scanner sc = new Scanner(file);
 
             nColumns = Integer.valueOf(sc.nextLine().trim().split(",")[0]);
@@ -2688,8 +2688,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             status = FAIL;
             e.printStackTrace();
         }
-//        File file = new File("../../data/" + tableName + ".csv");
-        File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + tableName + ".csv");
+        File file = new File("../../data/" + tableName + ".csv");
+//        File file = new File("..\\cse510dbmsi\\minjava\\javaminibase\\data\\" + tableName + ".csv");
         Scanner sc = new Scanner(file);
 
         nColumns = Integer.valueOf(sc.nextLine().trim().split(",")[0]);
@@ -2899,17 +2899,12 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         c = GetStuff.getStringChoice();
         fileName2 = c;
 
+        System.out.println("Enter the join attribute index");
+        int attrIndex= GetStuff.getChoice();
 
+        getTableAttrsAndType(fileName1);
+        getSecondTableAttrsAndType(fileName2);
 
-
-//            System.out.println("\n -- Testing BlockNestedLoopsSky on correlated tuples -- ");
-//            boolean status = OK;
-//            String file1 = "r_sii2000_1_75_200";
-//            String file2 = "r_sii2000_10_10_10";
-
-
-            System.out.println("Select the index");
-            int attrIndex= GetStuff.getChoice();
 
 //            try {
 //                createTable(file1, false, NO_INDEX, 0);
@@ -2918,8 +2913,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 //                e.printStackTrace();
 //            }
 
-            short [] JJsize = new short[1];
-            JJsize[0] = 30;
+//            short [] JJsize = new short[1];
+//            JJsize[0] = 30;
 
 //            FileScan fscan = null;
 
@@ -2933,14 +2928,16 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 //                e.printStackTrace();
 //            }
 
-            int[] pref_list = new int[] {1,2};
+//            int[] pref_list = new int[] {1,2};
             HashJoin hashjoin = null;
             short  []  Jsizes = new short[2];
             Jsizes[0] = 30;
             Jsizes[1] = 30;
             try {
 
-                hashjoin = new HashJoin(fileName1, attrType, fileName2,attrType, attrIndex, attrSizes, attrSizes, false);
+                CustomScan cs1 = new CustomScan(fileName1);
+                CustomScan cs2 = new CustomScan(fileName2);
+                hashjoin = new HashJoin(cs1, attrType, cs2,attrType, attrIndex, attrSizes, attrSizes, false);
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -2963,7 +2960,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             }
          System.out.println("\nRead statistics "+PCounter.rcounter);
         System.out.println("Write statistics "+PCounter.wcounter);
-            System.out.println("------------------- TEST 1 completed ---------------------\n");
+            System.out.println("------------------- Hash Join Test completed ---------------------\n");
 
 
     }
@@ -2989,6 +2986,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         c = GetStuff.getStringChoice();
         fileName1 = c;
         System.out.println("Enter Inner file name");
+        c = GetStuff.getStringChoice();
         fileName2 = c;
 
         System.out.println("Choose operator");
