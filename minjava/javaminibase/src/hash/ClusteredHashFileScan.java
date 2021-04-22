@@ -58,6 +58,9 @@ public class ClusteredHashFileScan {
         if (currDataRid == null) {
             currRecord = getNextRecord();
 //            System.out.println(currRecord);
+            if(currRecord==null){
+                return null;
+            }
             currPage = new ClusteredDataPage(currRecord.getPageId());
             currDataRid = currPage.firstRecord();
             return currDataRid;

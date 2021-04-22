@@ -63,6 +63,11 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     public static final short UNCLUSTERED_BTREE = 3;
     public static final short NO_INDEX = 4;
     public static final String INDEX_FILE_NAME = "indexCatalog";
+    public static final short EQUAL=0;
+    public static final short LESS=1;
+    public static final short GREATER=2;
+    public static final short LESSOREQUAL=3;
+    public static final short GREATEROREQUAL=4;
     public static String outputTableName = null;
     public static Boolean outputResultToTable = false;
     public static Heapfile outputTable = null;
@@ -267,8 +272,18 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             break;
 
                         case 11:
-                            hashJoinTest();
-//                            indexJoin();
+                            System.out.println("Enter your choice:\n[1] Hash Join\n [2] Index Join \n[3] NLJ [4] MSJ");
+                            int c = GetStuff.getChoice();
+                            if (c==1) {
+                                hashJoinTest();
+                            }else if(c==2){
+                                indexJoin();
+                            }else if(c==3){
+                                hashJoinTest();
+                            }else if(c==4){
+                                hashJoinTest();
+                            }
+//
                             break;
 
                         case 12:
@@ -2723,20 +2738,35 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     }
 
     public void hashJoinTest(){
+        System.out.println("------------------------ TEST 1 --------------------------");
+        String fileName1 = null;
+        String fileName2 = null;
+        String c = null;
+        System.out.println("Enter Outer file name ");
+        c = GetStuff.getStringChoice();
+        fileName1 = c;
+        System.out.println("Enter Inner file name");
+        c = GetStuff.getStringChoice();
+        fileName2 = c;
 
 
-            System.out.println("------------------------ TEST 1 --------------------------");
 
-            System.out.println("\n -- Testing BlockNestedLoopsSky on correlated tuples -- ");
-            boolean status = OK;
-            String file1 = "r_sii2000_1_75_200";
-            String file2 = "r_sii2000_10_10_10";
-            try {
-                createTable(file1, false, NO_INDEX, 0);
-                createTable(file2, false, NO_INDEX, 0);
-            }catch (Exception e){
-                e.printStackTrace();
-            }
+
+//            System.out.println("\n -- Testing BlockNestedLoopsSky on correlated tuples -- ");
+//            boolean status = OK;
+//            String file1 = "r_sii2000_1_75_200";
+//            String file2 = "r_sii2000_10_10_10";
+
+
+            System.out.println("Select the index");
+            int attrIndex= GetStuff.getChoice();
+
+//            try {
+//                createTable(file1, false, NO_INDEX, 0);
+//                createTable(file2, false, NO_INDEX, 0);
+//            }catch (Exception e){
+//                e.printStackTrace();
+//            }
 
             short [] JJsize = new short[1];
             JJsize[0] = 30;
@@ -2759,8 +2789,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             Jsizes[0] = 30;
             Jsizes[1] = 30;
             try {
-                HashJoin.Value valueObject = new HashJoin.Value(10);
-                hashjoin = new HashJoin(file1, attrType, file2,attrType, 3, attrSizes, attrSizes, false);
+
+                hashjoin = new HashJoin(fileName1, attrType, fileName2,attrType, attrIndex, attrSizes, attrSizes, false);
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
@@ -2781,6 +2811,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 status = FAIL;
                 e.printStackTrace();
             }
+         System.out.println("\nRead statistics "+PCounter.rcounter);
+        System.out.println("Write statistics "+PCounter.wcounter);
             System.out.println("------------------- TEST 1 completed ---------------------\n");
 
 
@@ -2799,15 +2831,62 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         expr[1] = null;
     }
     public void indexJoin(){
-        String fileName1 = "r_sii2000_1_75_200";
-        String fileName2 = "r_sii2000_10_10_10";
+        System.out.println("------------------------ TEST 1 --------------------------");
+        String fileName1 = null;
+        String fileName2 = null;
+        String c = null;
+        System.out.println("Enter Outer file name ");
+        c = GetStuff.getStringChoice();
+        fileName1 = c;
+        System.out.println("Enter Inner file name");
+        fileName2 = c;
 
-        try {
-            createTable(fileName1, false, NO_INDEX, 0);
-//            createTable(fileName2, false, NO_INDEX, 0);
-        }catch (Exception e){
-            e.printStackTrace();
+        System.out.println("Choose operator");
+        System.out.println("[0] =\n" +
+                "[1] <\n" +
+                "[2] >\n" +
+                "[3] <\n" +
+                "[4] >=\n" +
+                " [5] >");
+        int op= GetStuff.getChoice();
+        short operation=0;
+        if(op==0){
+            operation = EQUAL;
+        }else if(op == 1){
+            operation = LESS;
+        }else if(op==2){
+            operation = GREATER;
+        }else if(op==3){
+            operation = LESSOREQUAL;
+        }else if(op==4){
+            operation = GREATEROREQUAL;
         }
+
+
+
+
+//            System.out.println("\n -- Testing BlockNestedLoopsSky on correlated tuples -- ");
+//            boolean status = OK;
+//            String file1 = "r_sii2000_1_75_200";
+//            String file2 = "r_sii2000_10_10_10";
+
+
+        System.out.println("Select the index");
+        int attrIndex= GetStuff.getChoice();
+
+//
+//        String fileName1 = "r_sii2000_10_10_10";
+//        String fileName2 = "r_sii2000_1_75_200";
+//
+
+
+
+//        try {
+//            createTable(fileName1, false, NO_INDEX, 0);
+//            createTable(fileName2, false, NO_INDEX, 0);
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
 
         int indexTypeIfExists = findIfIndexExists(fileName2, -1);
 
@@ -2828,13 +2907,14 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
         //FileScan(fileName1,attrType,attrStringSize,attrType.length, attrType.length,)
         try {
+//            short operation = 0;
 
             System.out.println(attrType2);
             System.out.println(attrType);
             System.out.println(attrSizes);
             IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
                     attrType, attrType.length, attrSizes, 10, am1, fileName1, fileName2, outFilter
-                    , outFilter, Sprojection, attrType.length-1, 2,indexTypeIfExists);
+                    , outFilter, Sprojection, attrType.length-1, attrIndex,indexTypeIfExists, operation);
             Tuple tpl=idx.get_next();
 //            if(tpl==null){
 //            if(idx.nestedLoopsJoins!=null){
@@ -2859,6 +2939,9 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }catch (Exception e){
             e.printStackTrace();
         }
+        System.out.println("\nRead statistics "+PCounter.rcounter);
+        System.out.println("Write statistics "+PCounter.wcounter);
+        System.out.println("------------------- TEST 1 completed ---------------------\n");
 
     }
 
