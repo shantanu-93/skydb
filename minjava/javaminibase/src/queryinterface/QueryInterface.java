@@ -7,10 +7,7 @@ import btree.StringKey;
 import btree.*;
 import bufmgr.*;
 import diskmgr.PCounter;
-import global.AttrType;
-import global.GlobalConst;
-import global.RID;
-import global.SystemDefs;
+import global.*;
 import hash.*;
 import heap.*;
 import iterator.*;
@@ -72,6 +69,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     public static Heapfile outputTable = null;
     public static ArrayList<BTreeClusteredFile.RidChange> RidChanges = null;
     public static ArrayList<RidTuplePair> ridTuplePairs = null;
+    public static String[] oAttrName;
 
     private void menuInterface() {
         System.out.println("-------------------------- MENU --------------------------");
@@ -265,14 +263,21 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             break;
 
                         case 11:
+                            hashJoinTest();
+//                            indexJoin();
                             break;
 
                         case 12:
                             System.out.println("Enter your choice:\n[1] Hash-based Top-K Join\n[2] NRA-based Top-K Join");
                             int ch = GetStuff.getChoice();
-                            if (ch == 1) {
 
-                            } else if (ch == 2) {
+                            // Hash based top k join
+                            if(ch == 1){
+
+                                performTopKHashJoin();
+
+
+                            }else if(ch == 2){
                                 System.out.println("Enter Query:");
                                 tokens = GetStuff.getStringChoice().split(" ");
                                 int jAttr1 = Integer.valueOf(tokens[4]), jAttr2 = Integer.valueOf(tokens[7]),
@@ -290,7 +295,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 String oTable = "null";
                                 if (tokens.length > 10) {
                                     oTable = tokens[11];
-                                    createOutputTable(oTable, fileName1, fileName2, 1);
+                                    createOutputTable(oTable, jAttr1, mAttr1, mAttr2);
                                 }
 
                                 // printTable(fileName1);
@@ -364,6 +369,90 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             }
         }
         return true;
+    }
+
+    private void performTopKHashJoin() throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
+
+        System.out.println("Enter Query:");
+        String[] tokens = GetStuff.getStringChoice().split(" ");
+        int jAttr1 = Integer.parseInt(tokens[4]);
+        int jAttr2 = Integer.parseInt(tokens[7]);
+        int mAttr1 = Integer.parseInt(tokens[5]);
+        int mAttr2 = Integer.parseInt(tokens[8]);
+        String fileName1 = tokens[3];
+        String fileName2 = tokens[6];
+        int k = Integer.parseInt(tokens[2]);
+        int n_pages = Integer.parseInt(tokens[9]);
+
+//        createTable(fileName1, false, NO_INDEX, 0);
+//        createTable(fileName2, false, NO_INDEX, 0);
+        String innerHF = null;
+        String outerHF = null;
+
+        innerHF = createTempHeapFileForSkyline(fileName1);
+        outerHF = createTempHeapFileForSkyline(fileName2);
+//        setAttrDesc(innerHF);
+//        setAttrDesc(outerHF);
+        getTableAttrsAndType(fileName1);
+        getSecondTableAttrsAndType(fileName2);
+
+        String oTable = "null";
+        if(tokens.length > 10){
+            oTable = tokens[11];
+        }
+
+        FldSpec[] joinList = new FldSpec[2];
+        FldSpec[] mergeList = new FldSpec[2];
+
+        joinList[0] = new FldSpec(rel, jAttr1);
+        joinList[1] = new FldSpec(rel, jAttr2);
+        mergeList[0] = new FldSpec(rel, mAttr1);
+        mergeList[1] = new FldSpec(rel, mAttr2);
+
+        TopK_HashJoin topK_hashJoin = new TopK_HashJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
+                attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], innerHF, outerHF, k, n_pages, oTable);
+
+        try {
+            SystemDefs.JavabaseBM.flushPages();
+        } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+            e.printStackTrace();
+        }
+        // initialize after flushing pages to disk
+        PCounter.initialize();
+
+        try {
+//                Tuple t = new Tuple();
+            java.util.Iterator t = topK_hashJoin.get_next();
+
+            while((t.hasNext())){
+                Tuple tuple = (Tuple) t.next();
+                tuple.print(topK_hashJoin.getOutputAttrType());
+            }
+        } catch (Exception e) {
+            status = FAIL;
+            e.printStackTrace();
+        }
+
+        System.out.println("\nRead statistics "+PCounter.rcounter);
+        System.out.println("Write statistics "+PCounter.wcounter);
+
+        try {
+            SystemDefs.JavabaseBM.flushPages();
+        } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+            e.printStackTrace();
+        }
+//        Heapfile hf;
+//        try {
+//            hf = new Heapfile(innerHF);
+//            hf.deleteFile();
+//            hf = new Heapfile(outerHF);
+//            hf.deleteFile();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+        PCounter.initialize();
+
+        System.out.println("\n\n------------------- Hash based Top K Join completed ---------------------\n\n");
     }
 
     private void skylineMenu() {
@@ -767,7 +856,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     }
 
-    private void createOutputTable(String fileName, String fileName1, String fileName2, int attrIndex) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
+    private void createOutputTable(String fileName, int joinAttr1, int mergeAttr1, int mergeAttr2) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
 
         //        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
         //                != SystemDefs.JavabaseBM.getNumBuffers()) {
@@ -780,21 +869,17 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             // Read data and construct tuples
             // getTableAttrsAndType(fileName1);
 
-            // getSecondTableAttrsAndType(fileName2);
+                // getSecondTableAttrsAndType(fileName2);
+                
+                AttrType[] oAttrTypes = new AttrType[]{attrType[joinAttr1 - 1], attrType[mergeAttr1 - 1], attrType2[mergeAttr2 - 1]};
 
-            AttrType[] oAttrTypes = new AttrType[attrType.length + attrType2.length];
-            System.arraycopy(attrType, 0, oAttrTypes, 0, attrType.length);
-            System.arraycopy(attrType, 0, oAttrTypes, attrType.length, attrType2.length);
+                short[] oAttrSize = new short[]{};
+                for(int i = 0; i < oAttrTypes.length; i++){
+                    if(oAttrTypes[i].attrType == AttrType.attrString)
+                        oAttrSize = new short[]{32};
+                }
 
-            short[] oAttrSize = new short[attrSizes.length + attrSizes2.length];
-            System.arraycopy(attrSizes, 0, oAttrSize, 0, attrSizes.length);
-            System.arraycopy(attrSizes2, 0, oAttrSize, attrSizes.length, attrSizes2.length);
-
-            String[] oAttrName = new String[attrNames.length + attrNames2.length];
-            System.arraycopy(attrNames, 0, oAttrName, 0, attrNames.length);
-            System.arraycopy(attrNames2, 0, oAttrName, attrNames.length, attrNames2.length);
-
-            // int nColumns = attrType.length + attrType2.length;
+                oAttrName = new String[]{attrNames[joinAttr1 - 1], attrNames[mergeAttr1 - 1], attrNames2[mergeAttr2 - 1]};
 
             try {
                 f = new Heapfile(fileName);
@@ -1551,153 +1636,32 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     }
 
     private void printTable(String tableName) throws IOException {
-        Tuple t;
-        int count;
-        int indexTypeIfExists = findIfIndexExists(tableName, -1);
+
+        int count = 0;
         getTableAttrsAndType(tableName);
-//        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
-//                != SystemDefs.JavabaseBM.getNumBuffers()) {
-//            System.err.println("*** The heap file has left pages pinned\n");
-//            status = FAIL;
-//        }
-
-        if (status != OK) {
-            return;
-        }
-        rid = new RID();
-        PCounter.initialize();
+        CustomScan scan = null;
         try {
-            if (indexTypeIfExists == NO_INDEX) {
-                try {
-                    f = new Heapfile(tableName);
-                } catch (Exception e) {
-                    status = FAIL;
-                    System.err.println("*** Could not create heap file\n");
-                    e.printStackTrace();
-                }
-
-                FileScan fscan = null;
-
-                try {
-                    fscan = new FileScan(tableName, attrType, attrSizes, (short) nColumns, nColumns, projlist, null);
-                } catch (Exception e) {
-                    status = FAIL;
-                    e.printStackTrace();
-                }
-
-                count = 0;
-                t = null;
-                try {
-                    t = fscan.get_next();
-                } catch (Exception e) {
-                    status = FAIL;
-                    e.printStackTrace();
-                }
-                while (t != null) {
-                    try {
-                        t.print(attrType);
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-
-                    count++;
-
-                    try {
-                        t = fscan.get_next();
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-                }
-
-
-                System.out.println("Record count: " + count);
-
-                // clean up
-                try {
-                    fscan.close();
-                } catch (Exception e) {
-                    status = FAIL;
-                    e.printStackTrace();
-                }
-            } else if (indexTypeIfExists == CLUSTERED_BTREE || indexTypeIfExists == (short) 5) {
-                bTreeClusteredFile = new BTreeClusteredFile(tableName, (short) nColumns, attrType, attrSizes);
-                BTClusteredFileScan scan = null;
-                try {
-                    scan = bTreeClusteredFile.new_scan(null, null);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (KeyNotMatchException e) {
-                    e.printStackTrace();
-                } catch (IteratorException e) {
-                    e.printStackTrace();
-                } catch (ConstructPageException e) {
-                    e.printStackTrace();
-                } catch (PinPageException e) {
-                    e.printStackTrace();
-                } catch (UnpinPageException e) {
-                    e.printStackTrace();
-                }
-
-                KeyDataEntry data = null;
-                data = scan.get_next(rid);
-
-                count = 0;
-                while (data != null) {
-                    if (data != null) {
-                        try {
-                            ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    count++;
-
-                    try {
-                        data = scan.get_next(rid);
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-                }
-                bTreeClusteredFile.close();
-                System.out.println("Record count: " + count);
-
-            } else if (indexTypeIfExists == CLUSTERED_HASH) {
-                hashFile = new ClusteredHashFile(tableName, (short) nColumns, attrType, attrSizes);
-                ClusteredHashFileScan fscan = null;
-                fscan = hashFile.newScan(null, null);
-                t = null;
-                t = fscan.getNextTuple(rid);
-
-                count = 0;
-                while (t != null) {
-                    try {
-                        t.print(attrType);
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-
-                    count++;
-
-                    try {
-                        t = fscan.getNextTuple(rid);
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-                }
-                hashFile.close();
-                PCounter.printStats();
-                System.out.println("Record count: " + count);
-            }
+            scan = new CustomScan(tableName);
         } catch (Exception e) {
-            status = FAIL;
-            System.out.println("Failed to print results");
             e.printStackTrace();
         }
+
+        Tuple tup = null;
+        try {
+            tup = scan.get_next();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        while (tup != null) {
+            tup.print(attrType);
+            count++;
+            try {
+                tup = scan.get_next();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println("Record count: " + count);
 
     }
 
@@ -2900,6 +2864,146 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             status = FAIL;
             e.printStackTrace();
         }
+    }
+
+    public void hashJoinTest(){
+
+
+            System.out.println("------------------------ TEST 1 --------------------------");
+
+            System.out.println("\n -- Testing BlockNestedLoopsSky on correlated tuples -- ");
+            boolean status = OK;
+            String file1 = "r_sii2000_1_75_200";
+            String file2 = "r_sii2000_10_10_10";
+            try {
+                createTable(file1, false, NO_INDEX, 0);
+                createTable(file2, false, NO_INDEX, 0);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+            short [] JJsize = new short[1];
+            JJsize[0] = 30;
+
+//            FileScan fscan = null;
+
+            // Sort "test3.in" on the int attribute (field 3) -- Ascending
+            System.out.println("\n -- Hash Join results -- ");
+
+//            try {
+//                fscan = new FileScan("test1.in", attrType, attrSize, (short) 2, 2, projlist, null);
+//            } catch (Exception e) {
+//                status = FAIL;
+//                e.printStackTrace();
+//            }
+
+            int[] pref_list = new int[] {1,2};
+            HashJoin hashjoin = null;
+            short  []  Jsizes = new short[2];
+            Jsizes[0] = 30;
+            Jsizes[1] = 30;
+            try {
+                HashJoin.Value valueObject = new HashJoin.Value(10);
+                hashjoin = new HashJoin(file1, attrType, file2,attrType, 3, attrSizes, attrSizes, false);
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+
+//            count = 0;
+//            t = null;
+
+            try {
+//                Tuple t = new Tuple();
+                java.util.Iterator t = hashjoin.get_next();
+
+                while((t.hasNext())){
+                    Tuple tuple = (Tuple) t.next();
+                    tuple.print(hashjoin.getOutputAttrType());
+                }
+            } catch (Exception e) {
+                status = FAIL;
+                e.printStackTrace();
+            }
+            System.out.println("------------------- TEST 1 completed ---------------------\n");
+
+
+    }
+
+    //Index join
+    public void IndexJoin_CondExpr(CondExpr[] expr) {
+
+        expr[0].next  = null;
+        expr[0].op    = new AttrOperator(AttrOperator.aopEQ);
+        expr[0].type1 = new AttrType(AttrType.attrSymbol);
+        expr[0].type2 = new AttrType(AttrType.attrSymbol);
+        expr[0].operand1.symbol = new FldSpec (new RelSpec(RelSpec.outer),1);
+        expr[0].operand2.symbol = new FldSpec (new RelSpec(RelSpec.innerRel),1);
+
+        expr[1] = null;
+    }
+    public void indexJoin(){
+        String fileName1 = "r_sii2000_1_75_200";
+        String fileName2 = "r_sii2000_10_10_10";
+
+        try {
+            createTable(fileName1, false, NO_INDEX, 0);
+//            createTable(fileName2, false, NO_INDEX, 0);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        int indexTypeIfExists = findIfIndexExists(fileName2, -1);
+
+        CondExpr [] outFilter  = new CondExpr[2];
+        outFilter[0] = new CondExpr();
+        outFilter[1] = new CondExpr();
+
+        IndexJoin_CondExpr(outFilter);
+
+        FldSpec [] Sprojection = {
+                new FldSpec(new RelSpec(RelSpec.outer), 1),
+                new FldSpec(new RelSpec(RelSpec.innerRel), 1),
+        };
+
+
+
+        Iterator am1 = null;
+
+        //FileScan(fileName1,attrType,attrStringSize,attrType.length, attrType.length,)
+        try {
+
+            System.out.println(attrType2);
+            System.out.println(attrType);
+            System.out.println(attrSizes);
+            IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
+                    attrType, attrType.length, attrSizes, 10, am1, fileName1, fileName2, outFilter
+                    , outFilter, Sprojection, attrType.length-1, 2,indexTypeIfExists);
+            Tuple tpl=idx.get_next();
+//            if(tpl==null){
+//            if(idx.nestedLoopsJoins!=null){
+//                Tuple t = idx.nestedLoopsJoins.get_next();
+//                while (t!=null){
+//                    t.print(attrType);
+//                    t = idx.nestedLoopsJoins.get_next();
+//                }
+//
+//            }
+
+//            while (tpl!=null){
+//                tpl.print(attrType);
+//                tpl = idx.get_next();
+//            }
+            java.util.Iterator i = idx.getNext();
+
+            while((i.hasNext())){
+                Tuple tuple = (Tuple) i.next();
+                tuple.print(idx.getOutputAttrType());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
     }
 
     public String createTempHeapFileForSkyline(String tableName) {

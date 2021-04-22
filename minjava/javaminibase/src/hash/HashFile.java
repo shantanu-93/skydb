@@ -327,7 +327,6 @@ public class HashFile {
                 }
                 tempRid = bucketPage.nextRecord(tempRid);
             }
-
             if (bucketPage.getNextPage().pid != HFPage.INVALID_PAGE) {
                 bucketPage = getHashPage(bucketPage.getNextPage());
                 tempRid = bucketPage.firstRecord();
@@ -338,6 +337,11 @@ public class HashFile {
                 SystemDefs.JavabaseBM.unpinPage(bucketPage.getCurPage(), true);
                 break;
             }
+        }
+        if (recordFound) {
+            System.out.println("record found");
+        } else {
+            System.out.println("record not found");
         }
         return null;
     }
