@@ -375,36 +375,36 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 String oTable = "null";
                                 if (tokens.length > 10) {
                                     oTable = tokens[11];
-                                    createOutputTable(oTable, jAttr10, mAttr10, mAttr2);
+                                    createOutputTable(oTable, fileName1, fileName2, jAttr10, mAttr10, mAttr2);
                                 }
 
                                 // printTable(fileName1);
                                 // printTable(fileName2);
 
-                                FldSpec[] joinList = new FldSpec[2];
-                                FldSpec[] mergeList = new FldSpec[2];
+                                // FldSpec[] joinList = new FldSpec[2];
+                                // FldSpec[] mergeList = new FldSpec[2];
 
-                                joinList[0] = new FldSpec(rel, jAttr10);
-                                joinList[1] = new FldSpec(rel, jAttr11);
-                                mergeList[0] = new FldSpec(rel, mAttr10);
-                                mergeList[1] = new FldSpec(rel, mAttr2);
+                                // joinList[0] = new FldSpec(rel, jAttr10);
+                                // joinList[1] = new FldSpec(rel, jAttr11);
+                                // mergeList[0] = new FldSpec(rel, mAttr10);
+                                // mergeList[1] = new FldSpec(rel, mAttr2);
 
-                                TopK_NRAJoin topK_NRAJoin = new TopK_NRAJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
-                                        attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], fileName1, fileName2, k, n_pages, oTable);
+                                // TopK_NRAJoin topK_NRAJoin = new TopK_NRAJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
+                                //         attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], fileName1, fileName2, k, n_pages, oTable);
 
-                                PCounter.initialize();
-                                try {
-                                    SystemDefs.JavabaseBM.flushPages();
-                                } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
-                                    e.printStackTrace();
-                                }
+                                // PCounter.initialize();
+                                // try {
+                                //     SystemDefs.JavabaseBM.flushPages();
+                                // } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+                                //     e.printStackTrace();
+                                // }
 
-                                topK_NRAJoin.computeTopK_NRA();
+                                // topK_NRAJoin.computeTopK_NRA();
 
-                                System.out.println("\nRead statistics " + PCounter.rcounter);
-                                System.out.println("Write statistics " + PCounter.wcounter);
+                                // System.out.println("\nRead statistics " + PCounter.rcounter);
+                                // System.out.println("Write statistics " + PCounter.wcounter);
 
-                                System.out.println();
+                                // System.out.println();
 
                             }
                             break;
@@ -936,30 +936,29 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     }
 
-    private void createOutputTable(String fileName, int joinAttr1, int mergeAttr1, int mergeAttr2) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
-
-        //        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
-        //                != SystemDefs.JavabaseBM.getNumBuffers()) {
-        //            System.err.println("*** The heap file has left pages pinned\n");
-        //            status = FAIL;
-        //        }
+    private void createOutputTable(String fileName, String fileName1, String fileName2, int joinAttr1, int mergeAttr1, int mergeAttr2) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
 
         if (status == OK) {
 
             // Read data and construct tuples
             // getTableAttrsAndType(fileName1);
+            // getSecondTableAttrsAndType(fileName2);
 
-                // getSecondTableAttrsAndType(fileName2);
-                
-                AttrType[] oAttrTypes = new AttrType[]{attrType[joinAttr1 - 1], attrType[mergeAttr1 - 1], attrType2[mergeAttr2 - 1]};
+            int len1 = attrType.length, len2 = attrType2.length;
+            AttrType[] oAttrTypes = new AttrType[len1 + len2];
+            System.arraycopy(attrType, 0, oAttrTypes, 0, len1);
+            System.arraycopy(attrType2, 0, oAttrTypes, len1, len2);
 
-                short[] oAttrSize = new short[]{};
-                for(int i = 0; i < oAttrTypes.length; i++){
-                    if(oAttrTypes[i].attrType == AttrType.attrString)
-                        oAttrSize = new short[]{32};
-                }
+            short[] oAttrSize = new short[attrSizes.length + attrSizes2.length];
+            int j = 0;
+            for(int i = 0; i < oAttrTypes.length; i++){
+                if(oAttrTypes[i].attrType == AttrType.attrString)
+                    oAttrSize[j++] = (short) 32;
+            }
 
-                oAttrName = new String[]{attrNames[joinAttr1 - 1], attrNames[mergeAttr1 - 1], attrNames2[mergeAttr2 - 1]};
+            oAttrName = new String[len1 + len2];
+            System.arraycopy(attrNames, 0, oAttrName, 0, len1);
+            System.arraycopy(attrNames2, 0, oAttrName, len1, len2);
 
             try {
                 f = new Heapfile(fileName);
