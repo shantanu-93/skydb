@@ -1434,153 +1434,32 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     }
 
     private void printTable(String tableName) throws IOException {
-        Tuple t;
-        int count;
-        int indexTypeIfExists = findIfIndexExists(tableName, -1);
+
+        int count = 0;
         getTableAttrsAndType(tableName);
-//        if (status == OK && SystemDefs.JavabaseBM.getNumUnpinnedBuffers()
-//                != SystemDefs.JavabaseBM.getNumBuffers()) {
-//            System.err.println("*** The heap file has left pages pinned\n");
-//            status = FAIL;
-//        }
-
-        if (status != OK) {
-            return;
-        }
-        rid = new RID();
-        PCounter.initialize();
+        CustomScan scan = null;
         try {
-            if (indexTypeIfExists == NO_INDEX) {
-                try {
-                    f = new Heapfile(tableName);
-                } catch (Exception e) {
-                    status = FAIL;
-                    System.err.println("*** Could not create heap file\n");
-                    e.printStackTrace();
-                }
-
-                FileScan fscan = null;
-
-                try {
-                    fscan = new FileScan(tableName, attrType, attrSizes, (short) nColumns, nColumns, projlist, null);
-                } catch (Exception e) {
-                    status = FAIL;
-                    e.printStackTrace();
-                }
-
-                count = 0;
-                t = null;
-                try {
-                    t = fscan.get_next();
-                } catch (Exception e) {
-                    status = FAIL;
-                    e.printStackTrace();
-                }
-                while (t != null) {
-                    try {
-                        t.print(attrType);
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-
-                    count++;
-
-                    try {
-                        t = fscan.get_next();
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-                }
-
-
-                System.out.println("Record count: " + count);
-
-                // clean up
-                try {
-                    fscan.close();
-                } catch (Exception e) {
-                    status = FAIL;
-                    e.printStackTrace();
-                }
-            } else if (indexTypeIfExists == CLUSTERED_BTREE || indexTypeIfExists == (short) 5) {
-                bTreeClusteredFile = new BTreeClusteredFile(tableName, (short) nColumns, attrType, attrSizes);
-                BTClusteredFileScan scan = null;
-                try {
-                    scan = bTreeClusteredFile.new_scan(null, null);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (KeyNotMatchException e) {
-                    e.printStackTrace();
-                } catch (IteratorException e) {
-                    e.printStackTrace();
-                } catch (ConstructPageException e) {
-                    e.printStackTrace();
-                } catch (PinPageException e) {
-                    e.printStackTrace();
-                } catch (UnpinPageException e) {
-                    e.printStackTrace();
-                }
-
-                KeyDataEntry data = null;
-                data = scan.get_next(rid);
-
-                count = 0;
-                while (data != null) {
-                    if (data != null) {
-                        try {
-                            ((Tuple) ((ClusteredLeafData) data.data).getData()).print(attrType);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    count++;
-
-                    try {
-                        data = scan.get_next(rid);
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-                }
-                bTreeClusteredFile.close();
-                System.out.println("Record count: " + count);
-
-            } else if (indexTypeIfExists == CLUSTERED_HASH) {
-                hashFile = new ClusteredHashFile(tableName, (short) nColumns, attrType, attrSizes);
-                ClusteredHashFileScan fscan = null;
-                fscan = hashFile.newScan(null, null);
-                t = null;
-                t = fscan.getNextTuple(rid);
-
-                count = 0;
-                while (t != null) {
-                    try {
-                        t.print(attrType);
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-
-                    count++;
-
-                    try {
-                        t = fscan.getNextTuple(rid);
-                    } catch (Exception e) {
-                        status = FAIL;
-                        e.printStackTrace();
-                    }
-                }
-                hashFile.close();
-                PCounter.printStats();
-                System.out.println("Record count: " + count);
-            }
+            scan = new CustomScan(tableName);
         } catch (Exception e) {
-            status = FAIL;
-            System.out.println("Failed to print results");
             e.printStackTrace();
         }
+
+        Tuple tup = null;
+        try {
+            tup = scan.get_next();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        while (tup != null) {
+            tup.print(attrType);
+            count++;
+            try {
+                tup = scan.get_next();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println("Record count: " + count);
 
     }
 
