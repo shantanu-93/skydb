@@ -193,7 +193,7 @@ class HashJoinTestDriver extends TestDriver
         HashJoin blockNestedLoop = null;
         try {
 
-            blockNestedLoop = new HashJoin("test1.in", "test1.in", 0, 10);
+//            blockNestedLoop = new HashJoin("test1.in", "test1.in", 0, 10);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
@@ -203,7 +203,7 @@ class HashJoinTestDriver extends TestDriver
         t = null;
 
         try {
-            blockNestedLoop.get_next(false);
+//            blockNestedLoop.get_next(false);
         } catch (Exception e) {
             status = FAIL;
             e.printStackTrace();
