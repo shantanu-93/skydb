@@ -1676,6 +1676,12 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                 e.printStackTrace();
             }
         }
+
+        try {
+            scan.close();
+        } catch (Exception e) {
+//            e.printStackTrace();
+        }
         System.out.println("Record count: " + count);
 
     }
