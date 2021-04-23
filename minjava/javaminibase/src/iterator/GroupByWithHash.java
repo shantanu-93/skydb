@@ -10,6 +10,7 @@ import index.IndexException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -246,34 +247,36 @@ public class GroupByWithHash extends Iterator{
         return res;
     }
 
-    public Tuple get_next() throws IOException, JoinsException, IndexException, InvalidTupleSizeException, InvalidTypeException, PageNotReadException, TupleUtilsException, PredEvalException, SortException, LowMemException, UnknowAttrType, UnknownKeyTypeException, FieldNumberOutOfBoundException, FileAlreadyDeletedException, HFBufMgrException, InvalidSlotNumberException, HFDiskMgrException {
-        while (true) {
-            if (iter.hasNext()) {
-                return iter.next();
-            } else {
-                getNextGroup();
-                iter = res.listIterator();
-                if (iter.hasNext()) {
-                    return iter.next();
-                } else {
-                    return null;
-                }
-            }
+    public Tuple get_next() throws IndexException, UnknowAttrType, SortException, UnknownKeyTypeException, JoinsException, HFDiskMgrException, InvalidTypeException, FieldNumberOutOfBoundException, TupleUtilsException, HFBufMgrException, InvalidSlotNumberException, FileAlreadyDeletedException, PageNotReadException, LowMemException, IOException, InvalidTupleSizeException, PredEvalException {
+        if (!didFirst) {
+            computeRes();
+            iter = finalRes.listIterator();
+        }
+        if (iter.hasNext()) {
+            return iter.next();
+        } else {
+            return null;
         }
     }
 
-//    public Tuple get_next() throws IOException, JoinsException, IndexException, InvalidTupleSizeException, InvalidTypeException, PageNotReadException, TupleUtilsException, PredEvalException, SortException, LowMemException, UnknowAttrType, UnknownKeyTypeException, FieldNumberOutOfBoundException, FileAlreadyDeletedException, HFBufMgrException, InvalidSlotNumberException, HFDiskMgrException {
-//        List<List<Tuple>> resL = new ArrayList<>();
-//        while (true) {
-//            if (iter.hasNext()) {
-//            } else {
-//                resL.add(res);
-//                getNextGroup();
-//                iter = res.listIterator();
-//                if
-//            }
-//        }
-//    }
+    boolean didFirst = false;
+    List<Tuple> finalRes;
+
+    public void computeRes() throws IOException, JoinsException, IndexException, InvalidTupleSizeException, InvalidTypeException, PageNotReadException, TupleUtilsException, PredEvalException, SortException, LowMemException, UnknowAttrType, UnknownKeyTypeException, FieldNumberOutOfBoundException, FileAlreadyDeletedException, HFBufMgrException, InvalidSlotNumberException, HFDiskMgrException {
+        List<List<Tuple>> resL = new ArrayList<>();
+        getNextGroup();
+        while (res.size() > 0) {
+            List<Tuple> temp = new ArrayList<>(res);
+            resL.add(temp);
+            getNextGroup();
+        }
+        Collections.shuffle(resL);
+        finalRes = new ArrayList<>();
+        for (List<Tuple> listTup: resL) {
+            finalRes.addAll(listTup);
+        }
+        didFirst = true;
+    }
 
     public void resetResult(){
         aggrVals = new float[aggList.length];
