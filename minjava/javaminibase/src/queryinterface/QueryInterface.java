@@ -75,6 +75,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
     public static ArrayList<BTreeClusteredFile.RidChange> RidChanges = null;
     public static ArrayList<RidTuplePair> ridTuplePairs = null;
     public static String[] oAttrName;
+    public static AttrType[] oAttrTypes;
+    public static short[] oAttrSize;
 
     private void menuInterface() {
         System.out.println("-------------------------- MENU --------------------------");
@@ -344,7 +346,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                             }else if(c==4){
                                 smj();
                             }
-//
                             break;
 
                         case 12:
@@ -366,7 +367,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 int k = Integer.valueOf(tokens[2]);
                                 int n_pages = Integer.valueOf(tokens[9]);
 
-                                // createTable(fileName1, true, (short) 5, mAttr1);
+                                // createTable(fileName1, true, (short) 5, mAttr10);
                                 // createTable(fileName2, true, (short) 5, mAttr2);
 
                                 getTableAttrsAndType(fileName1);
@@ -376,35 +377,36 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 if (tokens.length > 10) {
                                     oTable = tokens[11];
                                     createOutputTable(oTable, fileName1, fileName2, jAttr10, mAttr10, mAttr2);
+                                    System.out.println("Output Table Created");
                                 }
 
                                 // printTable(fileName1);
                                 // printTable(fileName2);
 
-                                // FldSpec[] joinList = new FldSpec[2];
-                                // FldSpec[] mergeList = new FldSpec[2];
+                                FldSpec[] joinList = new FldSpec[2];
+                                FldSpec[] mergeList = new FldSpec[2];
 
-                                // joinList[0] = new FldSpec(rel, jAttr10);
-                                // joinList[1] = new FldSpec(rel, jAttr11);
-                                // mergeList[0] = new FldSpec(rel, mAttr10);
-                                // mergeList[1] = new FldSpec(rel, mAttr2);
+                                joinList[0] = new FldSpec(rel, jAttr10);
+                                joinList[1] = new FldSpec(rel, jAttr11);
+                                mergeList[0] = new FldSpec(rel, mAttr10);
+                                mergeList[1] = new FldSpec(rel, mAttr2);
 
-                                // TopK_NRAJoin topK_NRAJoin = new TopK_NRAJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
-                                //         attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], fileName1, fileName2, k, n_pages, oTable);
+                                TopK_NRAJoin topK_NRAJoin = new TopK_NRAJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
+                                        attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], fileName1, fileName2, k, n_pages, oTable);
 
-                                // PCounter.initialize();
-                                // try {
-                                //     SystemDefs.JavabaseBM.flushPages();
-                                // } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
-                                //     e.printStackTrace();
-                                // }
+                                PCounter.initialize();
+                                try {
+                                    SystemDefs.JavabaseBM.flushPages();
+                                } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+                                    e.printStackTrace();
+                                }
 
-                                // topK_NRAJoin.computeTopK_NRA();
+                                topK_NRAJoin.computeTopK_NRA(oAttrTypes, oAttrSize, oAttrName);
 
-                                // System.out.println("\nRead statistics " + PCounter.rcounter);
-                                // System.out.println("Write statistics " + PCounter.wcounter);
+                                System.out.println("\nRead statistics " + PCounter.rcounter);
+                                System.out.println("Write statistics " + PCounter.wcounter);
 
-                                // System.out.println();
+                                System.out.println();
 
                             }
                             break;
@@ -921,8 +923,10 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         dbName = nameRoot;
 //        dbpath = "/tmp/" + nameRoot + ".minibase-db";
 //        logpath = "/tmp/" + nameRoot + ".minibase-log";
-        dbpath = "/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/" + nameRoot + ".minibase-db";
-        logpath = "/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/" + nameRoot + ".minibase-log";
+        // dbpath = "/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/" + nameRoot + ".minibase-db";
+        // logpath = "/Users/musabafzal/Desktop/cse510dbmsi/minjava/javaminibase/" + nameRoot + ".minibase-log";
+        dbpath = "..\\" + nameRoot + ".minibase-db";
+        logpath = "..\\" + nameRoot + ".minibase-log";
         File f = new File(dbpath);
 
         if (f.exists() && !f.isDirectory()) {
@@ -945,20 +949,30 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             // getSecondTableAttrsAndType(fileName2);
 
             int len1 = attrType.length, len2 = attrType2.length;
-            AttrType[] oAttrTypes = new AttrType[len1 + len2];
+            oAttrTypes = new AttrType[len1 + len2 + 2];
             System.arraycopy(attrType, 0, oAttrTypes, 0, len1);
             System.arraycopy(attrType2, 0, oAttrTypes, len1, len2);
 
-            short[] oAttrSize = new short[attrSizes.length + attrSizes2.length];
+            oAttrTypes[len1+len2] = new AttrType(AttrType.attrInteger);
+            oAttrTypes[len1+len2+1] = new AttrType(AttrType.attrInteger);
+
+            oAttrSize = new short[attrSizes.length + attrSizes2.length];
             int j = 0;
             for(int i = 0; i < oAttrTypes.length; i++){
                 if(oAttrTypes[i].attrType == AttrType.attrString)
                     oAttrSize[j++] = (short) 32;
             }
 
-            oAttrName = new String[len1 + len2];
+            oAttrName = new String[len1 + len2 + 2];
             System.arraycopy(attrNames, 0, oAttrName, 0, len1);
             System.arraycopy(attrNames2, 0, oAttrName, len1, len2);
+
+            for (int i = 0; i < oAttrName.length; i++) {
+                System.out.println(oAttrName[i]);
+            }
+            
+            oAttrName[len1+len2] = "LB";
+            oAttrName[len1+len2+1] = "UB";
 
             try {
                 f = new Heapfile(fileName);

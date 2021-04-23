@@ -17,6 +17,7 @@ import queryinterface.QueryInterface;
 import static tests.TestDriver.OK;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -71,6 +72,7 @@ public class TopK_NRAJoin {
     private BTClusteredFileScan[] scan;
     boolean status = OK;
     List<Map.Entry<?, Integer[]> > list;
+    List<Tuple> result = new ArrayList<>(); 
     private Heapfile f;
     int nColumns;
     short[] oAttrSize;
@@ -78,6 +80,7 @@ public class TopK_NRAJoin {
     String[] oAttrName;
     Tuple tuple1;
     short size;
+    private Map<Object, TupleList> tList = new HashMap<>();
 
     public TopK_NRAJoin(){
 
@@ -102,7 +105,7 @@ public class TopK_NRAJoin {
         this.oTable = oTable;    
     }
 
-    public void computeTopK_NRA(){
+    public void computeTopK_NRA(AttrType[] oAttrTypes, short[] oAttrSize, String[] oAttrName){
         try {
             file[0] = new BTreeClusteredFile(relationName1, (short) in1.length, in1, t1_str_sizes);
             file[1] = new BTreeClusteredFile(relationName2, (short) in2.length, in2, t2_str_sizes);
@@ -116,21 +119,9 @@ public class TopK_NRAJoin {
             e.printStackTrace();
         }
         if(!oTable.equals("null")){
-            oAttrTypes = new AttrType[]{in1[joinAttr1.offset - 1], in1[mergeAttr1.offset - 1], in2[mergeAttr2.offset - 1]};
-
-            oAttrSize = new short[]{};
-            for(int i = 0; i < oAttrTypes.length; i++){
-                if(oAttrTypes[i].attrType == AttrType.attrString)
-                    oAttrSize = new short[]{32};
-            }
-
-            oAttrName = new String[]{QueryInterface.oAttrName[joinAttr1.offset - 1], QueryInterface.oAttrName[mergeAttr1.offset - 1], QueryInterface.oAttrName[mergeAttr2.offset - 1]};
-
-            try {
-                f = new Heapfile(oTable);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            this.oAttrTypes = oAttrTypes;
+            this.oAttrSize = oAttrSize;
+            this.oAttrName = oAttrName;
 
             nColumns = oAttrTypes.length;
 
@@ -143,6 +134,18 @@ public class TopK_NRAJoin {
             }
 
             size = tuple1.size();
+
+            try {
+                f = new Heapfile(oTable);
+            } catch (HFException e) {
+                e.printStackTrace();
+            } catch (HFBufMgrException e) {
+                e.printStackTrace();
+            } catch (HFDiskMgrException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         // System.out.println("\n -- Scanning BTreeClusteredFile");
 
@@ -167,30 +170,23 @@ public class TopK_NRAJoin {
         computeLB_UB(in1[joinAttr1.offset - 1].attrType, in2[joinAttr2.offset - 1].attrType, in1[mergeAttr1.offset - 1].attrType, in2[mergeAttr2.offset - 1].attrType);
 
         while (data[0] != null || data[1] != null) {
-            val = sortByValue(lub, k);
+            val = sortByValue(result, k);
             
             if(val){
-                System.out.println("---Top K Tuples---");
-                for(int i = 0; i < k; i++){
-                    
-                    insert_data(i);
-                    
-                    System.out.println("Key: "+list.get(i).getKey()+" ["+-list.get(i).getValue()[2]+", "+-list.get(i).getValue()[3]+"]");
-                }
-                
                 break;
             }
             computeLB_UB(in1[joinAttr1.offset - 1].attrType, in2[joinAttr2.offset - 1].attrType, in1[mergeAttr1.offset - 1].attrType, in2[mergeAttr2.offset - 1].attrType);
         }
-        int len = Math.min(list.size(), k);
+        int len = Math.min(result.size(), k);
 
-        if(!val){
-            System.out.println("\n---Top K Tuples---");
-                for(int i = 0; i < len; i++){
-                    insert_data(i);
-                    System.out.println("Key: "+list.get(i).getKey()+" ["+-list.get(i).getValue()[2]+", "+-list.get(i).getValue()[3]+"]");
-                }
-
+        System.out.println("\n---Top K Tuples---");
+        for(int i = 0; i < len; i++){
+            insert_data(result.get(i));
+            try {
+                result.get(i).print();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         try {
@@ -222,57 +218,46 @@ public class TopK_NRAJoin {
                 t1 = (Tuple) ((ClusteredLeafData) data[0].data).getData();
                 t1merge = getField(t1,attrTypemerge_1,mergeAttr1.offset);
                 t1join = getField(t1, attrTypejoin_1, joinAttr1.offset);
-                try {
-                    t1.print(in1);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                TupleList tl = tList.getOrDefault(t1join, new TupleList(new ArrayList<>(), new ArrayList<>()));
+                tl.getList1().add(t1);
+                // System.out.println("Size 1: "+tl.getList1().size());
+                tList.put(t1join, tl);
+                // t1.print(in1);
             }
             if (data[1] != null){
                 t2 = (Tuple) ((ClusteredLeafData) data[1].data).getData();
                 t2join = getField(t2,attrTypejoin_2,joinAttr2.offset);   
                 t2merge = getField(t2, attrTypemerge_2, mergeAttr2.offset);
-                try {
-                    t2.print(in2);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                TupleList tl = tList.getOrDefault(t2join, new TupleList(new ArrayList<>(), new ArrayList<>()));
+                tl.getList2().add(t2);
+                // System.out.println("Size 2: "+tl.getList2().size());
+                tList.put(t2join, tl);
+                // t2.print(in2);
             } 
             
             if (data[0] != null) {
-
                 ub2  = (Integer) t2merge;
-                if(!lub.containsKey(t1join)){
-                    Integer[] temp = new Integer[nColumns+2];
-                    temp[0] = (Integer) t1merge;
-                    temp[1] = ub2 + (Integer) t1merge;
-
-                    lub.put(t1join, new Integer[]{(Integer) t1merge, ub2 + (Integer) t1merge, (Integer) t1merge, 1});
+                if(tList.get(t1join).getList2().isEmpty()){
+                    result.add(setTuple(t1, null, (Integer) t1merge, ub2 + (Integer) t1merge));
                 }else{
-                    if(lub.get(t1join)[2] == 1){
-                        lub.put(t1join, new Integer[]{lub.get(t1join)[0] + (Integer) t1merge, 
-                            lub.get(t1join)[0] + (Integer) t1merge, (Integer) t1merge, lub.get(t1join)[3]});
+                    for(int i = 0; i < tList.get(t1join).getList2().size(); i++){
+                        Tuple tup = tList.get(t1join).getList2().get(i);
+                        int put = (Integer) t1merge + (Integer) getField(tup, AttrType.attrInteger, mergeAttr2.offset);
+                        result.add(setTuple(t1, tup, put, put));
                     }
                 }
-
             }
             if (data[1] != null) {
-                try {
-                    ub1 = t1.getIntFld(mergeAttr1.offset);
-                    if(!lub.containsKey(t2join)){
-                        lub.put(t2join, new Integer[]{(Integer) t2merge, ub1 + (Integer) t2merge, 1, (Integer) t2merge});
-
+                    ub1 = (Integer) t1merge;
+                    if(tList.get(t2join).getList1().isEmpty()){
+                        result.add(setTuple(null, t2, (Integer) t2merge, ub1 + (Integer) t2merge));
                     }else{
-                        if(lub.get(t2join)[3] == 1){
-                            lub.put(t2join, new Integer[]{lub.get(t2join)[0] + (Integer) t2merge, 
-                                lub.get(t2join)[0] + (Integer) t2merge, lub.get(t2join)[2], (Integer) t2merge});
+                        for(int i = 0; i < tList.get(t2join).getList1().size(); i++){
+                            Tuple tup = tList.get(t2join).getList1().get(i);
+                            int put = (Integer) t2merge + (Integer) getField(tup, AttrType.attrInteger, mergeAttr1.offset);
+                            result.add(setTuple(tup, t2, put, put));
                         }
                     }
-                } catch (FieldNumberOutOfBoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
         } catch (ScanIteratorException e) {
             e.printStackTrace();
@@ -311,34 +296,23 @@ public class TopK_NRAJoin {
     }
 
     // function to sort hashmap by values
-    public boolean sortByValue(HashMap<?, Integer[]> hm, int k)
+    public boolean sortByValue(List<Tuple> list, int k)
     {
-        // Create a list from elements of HashMap
-        list = new LinkedList<Map.Entry<?, Integer[]> >(hm.entrySet());
-  
+          
         // Sort the list
-        Collections.sort(list, new Comparator<Map.Entry<?, Integer[]> >() {
-            public int compare(Map.Entry<?, Integer[]> o1, 
-                               Map.Entry<?, Integer[]> o2)
+        Collections.sort(list, new Comparator<Tuple>() {
+            public int compare(Tuple o1, 
+                               Tuple o2)
             {
-                return (o1.getValue())[0].compareTo(o2.getValue()[0]);
+                return ((Integer) getField(o1, AttrType.attrInteger, nColumns -1)).compareTo((Integer) getField(o2, AttrType.attrInteger, nColumns -1));
             }
         });
-  
-        // put data from sorted list to hashmap 
-        HashMap<Object, Integer[]> temp = new LinkedHashMap<Object, Integer[]>();
-        for (Map.Entry<?, Integer[]> aa : list) {
-            temp.put(aa.getKey(), aa.getValue());
-        }
 
-        lub = temp;
-        System.out.println("\nPass "+(i++));
-        lub.entrySet().forEach(entry -> {
-            System.out.println("Key: " + entry.getKey() + " LB: " + -entry.getValue()[0]+" UB: " + -entry.getValue()[1]);
-        });
+        // System.out.println("\nPass "+(i++));
 
         if(list.size() > k){
-            if(list.get(k).getValue()[1] >= list.get(k - 1).getValue()[0])
+            // System.out.println("Condition "+(Integer) getField(list.get(k), AttrType.attrInteger, nColumns)+" "+(Integer) getField(list.get(k - 1), AttrType.attrInteger, nColumns - 1));
+            if((Integer) getField(list.get(k), AttrType.attrInteger, nColumns) >= (Integer) getField(list.get(k - 1), AttrType.attrInteger, nColumns - 1))
                 return true;
             else
                 return false;
@@ -347,44 +321,120 @@ public class TopK_NRAJoin {
     }
     
 
-    void insert_data(int i){
-        if(!oTable.equals("null")){
-            tuple1 = new Tuple(size);
-            try {
-                tuple1.setHdr((short) nColumns, oAttrTypes, oAttrSize);
-            } catch (Exception e) {
-                System.err.println("*** error in Tuple.setHdr() *** "+oAttrTypes.length);
-                e.printStackTrace();
-            }
+    void insert_data(Tuple tuple1){
 
-            try {
-                if(oAttrTypes[0].attrType == AttrType.attrInteger)
-                    tuple1.setIntFld(1, (Integer) list.get(i).getKey());
-                else 
-                    tuple1.setStrFld(1, (String) list.get(i).getKey());
-                tuple1.setIntFld(2, -list.get(i).getValue()[2]);
-                tuple1.setIntFld(3, -list.get(i).getValue()[3]);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            RID rid = new RID();
-            try {
-                rid = f.insertRecord(tuple1.returnTupleByteArray());
-            } catch (InvalidSlotNumberException e) {
-                e.printStackTrace();
-            } catch (InvalidTupleSizeException e) {
-                e.printStackTrace();
-            } catch (SpaceNotAvailableException e) {
-                e.printStackTrace();
-            } catch (HFException e) {
-                e.printStackTrace();
-            } catch (HFBufMgrException e) {
-                e.printStackTrace();
-            } catch (HFDiskMgrException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        RID rid = new RID();
+        try {
+            rid = f.insertRecord(tuple1.returnTupleByteArray());
+        } catch (InvalidSlotNumberException e) {
+            e.printStackTrace();
+        } catch (InvalidTupleSizeException e) {
+            e.printStackTrace();
+        } catch (SpaceNotAvailableException e) {
+            e.printStackTrace();
+        } catch (HFException e) {
+            e.printStackTrace();
+        } catch (HFBufMgrException e) {
+            e.printStackTrace();
+        } catch (HFDiskMgrException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }
+    
+
+    Tuple setTuple(Tuple t1, Tuple t2, Integer lb, Integer ub){
+        tuple1 = new Tuple(size);
+        try {
+            tuple1.setHdr((short) nColumns, oAttrTypes, oAttrSize);
+        } catch (Exception e) {
+            System.err.println("*** error in Tuple.setHdr() *** "+oAttrTypes.length);
+            e.printStackTrace();
+        }
+        try {
+            if(t1 == null){
+                for(int i = 0; i < in1.length; i++){
+                    if(oAttrTypes[i].attrType == AttrType.attrInteger)
+                        tuple1.setIntFld(i + 1, -1);
+                    else 
+                        tuple1.setStrFld(i + 1, "-1");
+                    
+                }
+
+                for(int i = in1.length; i < nColumns - 2; i++){
+                    if(oAttrTypes[i].attrType == AttrType.attrInteger){
+                        if(i - in1.length + 1 == mergeAttr2.offset)
+                            tuple1.setIntFld(i + 1, -t2.getIntFld(i - in1.length + 1));
+                        else
+                            tuple1.setIntFld(i + 1, t2.getIntFld(i - in1.length + 1));
+                    }else 
+                        tuple1.setStrFld(i + 1, t2.getStrFld(i - in1.length + 1));
+                }
+            }else if(t2 == null){
+                for(int i = 0; i < in1.length; i++){
+                    if(oAttrTypes[i].attrType == AttrType.attrInteger){
+                        if(i + 1 == mergeAttr2.offset)
+                            tuple1.setIntFld(i + 1, -t1.getIntFld(i + 1));
+                        else
+                            tuple1.setIntFld(i + 1, t1.getIntFld(i + 1));
+                    }else 
+                        tuple1.setStrFld(i + 1, t1.getStrFld(i + 1));
+                }
+
+                for(int i = in1.length; i < nColumns - 2; i++){
+                    if(oAttrTypes[i].attrType == AttrType.attrInteger)
+                        tuple1.setIntFld(i + 1, -1);
+                    else 
+                        tuple1.setStrFld(i + 1, "-1");
+                }
+            }else{
+                for(int i = 0; i < in1.length; i++){
+                    if(oAttrTypes[i].attrType == AttrType.attrInteger){
+                        if(i + 1 == mergeAttr2.offset)
+                            tuple1.setIntFld(i + 1, -t1.getIntFld(i + 1));
+                        else
+                            tuple1.setIntFld(i + 1, t1.getIntFld(i + 1));
+                    }else 
+                        tuple1.setStrFld(i + 1, t1.getStrFld(i + 1));
+                }
+
+                for(int i = in1.length; i < nColumns - 2; i++){
+                    if(oAttrTypes[i].attrType == AttrType.attrInteger){
+                        if(i - in1.length + 1 == mergeAttr2.offset)
+                            tuple1.setIntFld(i + 1, -t2.getIntFld(i - in1.length + 1));
+                        else
+                            tuple1.setIntFld(i + 1, t2.getIntFld(i - in1.length + 1));
+                    }else 
+                        tuple1.setStrFld(i + 1, t2.getStrFld(i - in1.length + 1));
+                }
+            }
+            
+            tuple1.setIntFld(nColumns - 1, lb);
+            tuple1.setIntFld(nColumns, ub);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return tuple1;
+    }
+}
+
+class TupleList{
+    List<Tuple> list1;
+    List<Tuple> list2;
+
+    public TupleList(List<Tuple> list1, List<Tuple> list2){
+        this.list1 = list1;
+        this.list2 = list2;
+    }
+
+    public List<Tuple> getList1() {
+        return list1;
+    }
+
+    public List<Tuple> getList2() {
+        return list2;
     }
 }
