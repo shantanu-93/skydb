@@ -109,6 +109,10 @@ public class CustomScan extends Iterator {
         }
     }
 
+    public String getRelName(){
+        return this.relName;
+    }
+
     public Tuple get_next() throws IOException, JoinsException, FieldNumberOutOfBoundException, PageNotReadException, WrongPermat, InvalidTypeException, InvalidTupleSizeException, PredEvalException, UnknowAttrType, ScanIteratorException, PageUnpinnedException, ReplacerException, PageNotFoundException, PagePinnedException, BufMgrException, InvalidFrameNumberException, HashEntryNotFoundException, HashOperationException {
         rid = new RID();
         PCounter.initialize();
