@@ -2977,8 +2977,11 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         c = GetStuff.getStringChoice();
         fileName2 = c;
 
-        System.out.println("Enter the join attribute index");
+        System.out.println("Enter the inner join attribute index");
         int attrIndex= GetStuff.getChoice();
+
+        System.out.println("Enter the outer join attrbute index");
+        int attrIndex2 = GetStuff.getChoice();
 
         getTableAttrsAndType(fileName1);
         getSecondTableAttrsAndType(fileName2);
@@ -3015,7 +3018,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                 CustomScan cs1 = new CustomScan(fileName1);
                 CustomScan cs2 = new CustomScan(fileName2);
-                hashjoin = new HashJoin(cs1, attrType, cs2,attrType, attrIndex, attrSizes, attrSizes, false);
+                hashjoin = new HashJoin(cs1, attrType, cs2,attrType, attrIndex, attrIndex2, attrSizes, attrSizes, false);
             } catch (Exception e) {
                 status = FAIL;
                 e.printStackTrace();
