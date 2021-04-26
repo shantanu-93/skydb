@@ -11,13 +11,11 @@ import global.*;
 import hash.*;
 import heap.*;
 import iterator.*;
+import iterator.Iterator;
 import tests.TestDriver;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class QueryInterface extends TestDriver implements GlobalConst {
 
@@ -335,17 +333,18 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                             break;
                         case 11:
-                            System.out.println("Enter your choice:\n[1] Hash Join\n [2] Index Join \n[3] NLJ [4] SMJ");
-                            int c = GetStuff.getChoice();
-                            if (c==1) {
-                                hashJoinTest();
-                            }else if(c==2){
-                                indexJoin();
-                            }else if(c==3){
-                                nlj();
-                            }else if(c==4){
-                                smj();
-                            }
+                            hashJoinTest();
+//                            System.out.println("Enter your choice:\n[1] Hash Join\n [2] Index Join \n[3] NLJ [4] SMJ");
+//                            int c = GetStuff.getChoice();
+//                            if (c==1) {
+//                                hashJoinTest();
+//                            }else if(c==2){
+//                                indexJoin();
+//                            }else if(c==3){
+//                                nlj();
+//                            }else if(c==4){
+//                                smj();
+//                            }
                             break;
 
                         case 12:
@@ -2972,6 +2971,14 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         String fileName1 = null;
         String fileName2 = null;
         HashJoin hashJoin = null;
+        HashMap<String, Short> operationMap = new HashMap<>();
+        operationMap.put("=", EQUAL);
+        operationMap.put(">", GREATER);
+        operationMap.put("<", LESS);
+        operationMap.put(">=", GREATEROREQUAL);
+        operationMap.put("<=", LESSOREQUAL);
+
+
 
         // Join NLS 2,3 r_sii2000_10_10_10_dup 10 MATER
 //        Join HJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 == 10 mater
@@ -2982,33 +2989,118 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             String operation = tokens[6];
             int attr1 = Integer.parseInt(tokens[3]);
             int attr2 = Integer.parseInt(tokens[5]);
+            outputTableName = null;
+            outputResultToTable = false;
 
-            if(!tokens[6].equals("=")){
-                System.out.println("Hash Join supports only equijoin, will consider your operation as ==");
+            if(tokens.length>9){
+
+                if(tokens[8].toLowerCase().equals("mater")){
+                    try {
+                        outputTableName = tokens[9];
+                        outputResultToTable = true;
+                        outputTable = new Heapfile(outputTableName);
+                        outputTable.deleteFile();
+                        outputTable = new Heapfile(outputTableName);
+//                        setTableMeta(outputTableName, attrType, attrSizes, attrNames);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
             }
 
-            if(tokens[1]=="NLJ" || tokens[1].toLowerCase()=="nlj"){
-                //nlj
+
+
+            if(tokens[1].equals("NLJ") || tokens[1].toLowerCase().equals("nlj")){
+//                if(!tokens[6].equals("=")){
+//                    System.out.println("Hash Join supports only equijoin, will consider your operation as ==");
+//                }
+                try {
+                    SystemDefs.JavabaseBM.flushPages();
+                    PCounter.initialize();
+                    IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
+                            attrType, attrType.length, attrSizes, 10, fileName1, fileName2, attrType.length - 1, attr1, attr2, NO_INDEX, operationMap.get(operation));
+                    java.util.Iterator i = idx.getNext();
+                    AttrType[] outType = idx.getOutputAttrType();
+                    while((i.hasNext())){
+                        Tuple tuple = (Tuple) i.next();
+                        tuple.print(idx.getOutputAttrType());
+                        Tuple tempTpl = new Tuple(tuple.size());
+                        tempTpl.tupleCopy(tuple);
+                        if(outputTable!=null){
+                            outputTable.insertRecord(tempTpl.getTupleByteArray());
+                        }
+                    }
+
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
             }else if(tokens[1].equals("HJ") || tokens[1].toLowerCase().equals("hj")){
                 try {
+                    SystemDefs.JavabaseBM.flushPages();
+                    PCounter.initialize();
                     CustomScan cs1 = new CustomScan(fileName1);
                     CustomScan cs2 = new CustomScan(fileName2);
 
-                    hashJoin = new HashJoin(cs1, attrType, cs2, attrType, attr1, attr2, attrSizes, attrSizes, false);
+                    hashJoin = new HashJoin(cs2, attrType, cs1, attrType, attr2, attr1, attrSizes, attrSizes, false);
                     java.util.Iterator t = hashJoin.get_next();
 
                     while((t.hasNext())){
                         Tuple tuple = (Tuple) t.next();
                         tuple.print(hashJoin.getOutputAttrType());
+                        Tuple tempTpl = new Tuple(tuple.size());
+                        tempTpl.tupleCopy(tuple);
+                        if(outputTable!=null){
+                            outputTable.insertRecord(tempTpl.getTupleByteArray());
+                        }
                     }
 
                 }catch (Exception e){
                     e.printStackTrace();
                 }
                 //hj
-            }else if(tokens[1]=="INLJ" || tokens[1].toLowerCase()=="inlj"){
+            }else if(tokens[1].equals("INLJ") || tokens[1].toLowerCase().equals("inlj")){
+                int indexTypeIfExists = findIfIndexExists(fileName2, attr2);
+                try {
+                    SystemDefs.JavabaseBM.flushPages();
+                    PCounter.initialize();
+                    IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
+                            attrType, attrType.length, attrSizes, 10, fileName1, fileName2, attrType.length - 1, attr1, attr2, indexTypeIfExists, operationMap.get(operation));
+                    java.util.Iterator i = idx.getNext();
+                    while((i.hasNext())){
+                        Tuple tuple = (Tuple) i.next();
+                        tuple.print(idx.getOutputAttrType());
+                        Tuple tempTpl = new Tuple(tuple.size());
+                        tempTpl.tupleCopy(tuple);
+                        if(outputTable!=null){
+                            outputTable.insertRecord(tempTpl.getTupleByteArray());
+                        }
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
                 //index nlj
-            }else if(tokens[1]=="SMJ" || tokens[1].toLowerCase()=="smj"){
+            }else if(tokens[1].equals("SMJ") || tokens[1].toLowerCase().equals("smj")){
+                try{
+                    SystemDefs.JavabaseBM.flushPages();
+                    PCounter.initialize();
+                    IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
+                            attrType, attrType.length, attrSizes, 10, fileName1, fileName2, attrType.length - 1, attr1, attr2, NO_INDEX, operationMap.get(operation));
+                    java.util.Iterator i = idx.getNext();
+                    AttrType[] outType = idx.getOutputAttrType();
+                    while((i.hasNext())){
+                        Tuple tuple = (Tuple) i.next();
+                        tuple.print(idx.getOutputAttrType());
+                        Tuple tempTpl = new Tuple(tuple.size());
+                        tempTpl.tupleCopy(tuple);
+                        if(outputTable!=null){
+                            outputTable.insertRecord(tempTpl.getTupleByteArray());
+                        }
+                    }
+                    RID tempRID = new RID();
+
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
                 //smj
             }
 
@@ -3154,8 +3246,10 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 //            String file2 = "r_sii2000_10_10_10";
 
 
-        System.out.println("Select the index");
+        System.out.println("Enter the outer attribute");
         int attrIndex= GetStuff.getChoice();
+        System.out.println("Enter the inner attribute");
+        int attrIndex2 = GetStuff.getChoice();
 
 //
 //        String fileName1 = "r_sii2000_10_10_10";
@@ -3192,12 +3286,11 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         try {
 //            short operation = 0;
 
-            System.out.println(attrType2);
-            System.out.println(attrType);
-            System.out.println(attrSizes);
+//            System.out.println(attrType2);
+//            System.out.println(attrType);
+//            System.out.println(attrSizes);
             IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
-                    attrType, attrType.length, attrSizes, 10, am1, fileName1, fileName2, outFilter
-                    , outFilter, Sprojection, attrType.length-1, attrIndex,indexTypeIfExists, operation);
+                    attrType, attrType.length, attrSizes, 10, fileName1, fileName2,attrType.length-1, attrIndex,attrIndex2, indexTypeIfExists, operation);
 //            Tuple tpl=idx.get_next();
 //            if(tpl==null){
 //            if(idx.nestedLoopsJoins!=null){
@@ -3261,8 +3354,11 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             operation = GREATEROREQUAL;
         }
 
-        System.out.println("Select the index");
+        System.out.println("Enter the outer attribute");
         int attrIndex= GetStuff.getChoice();
+
+        System.out.println("Enter the inner attribute");
+        int attrIndex2 = GetStuff.getChoice();
 
 //        int indexTypeIfExists = findIfIndexExists(fileName2, -1);
         int indexTypeIfExists = NO_INDEX; // means NO INDEX only heapfile
@@ -3290,8 +3386,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 //            System.out.println(attrType);
 //            System.out.println(attrSizes);
             IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
-                    attrType, attrType.length, attrSizes, 10, am1, fileName1, fileName2, outFilter
-                    , outFilter, Sprojection, attrType.length-1, attrIndex,indexTypeIfExists, operation);
+                    attrType, attrType.length, attrSizes, 10, fileName1, fileName2, attrType.length-1, attrIndex,attrIndex2, NO_INDEX, operation);
             java.util.Iterator i = idx.getNext();
 
             while((i.hasNext())){
@@ -3340,8 +3435,10 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             operation = GREATEROREQUAL;
         }
 
-        System.out.println("Select the index");
+        System.out.println("Enter the outer attribute");
         int attrIndex= GetStuff.getChoice();
+        System.out.println("Enter the inner attribute");
+        int attrIndex2 = GetStuff.getChoice();
 
 //        int indexTypeIfExists = findIfIndexExists(fileName2, -1);
         int indexTypeIfExists = NO_INDEX; // means NO INDEX only heapfile
@@ -3369,8 +3466,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 //            System.out.println(attrType);
 //            System.out.println(attrSizes);
             IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,
-                    attrType, attrType.length, attrSizes, 10, am1, fileName1, fileName2, outFilter
-                    , outFilter, Sprojection, attrType.length-1, attrIndex,indexTypeIfExists, operation);
+                    attrType, attrType.length, attrSizes, 10, fileName1, fileName2, attrType.length-1, attrIndex,attrIndex2, indexTypeIfExists, operation);
             java.util.Iterator i = idx.getNext();
 
             while((i.hasNext())){

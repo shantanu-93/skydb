@@ -40,6 +40,7 @@ public class IndexJoin extends Iterator
         private Iterator innerIterrator;
         public NestedLoopsJoins nestedLoopsJoins;
         private int indexAttrNumber;
+        private int indexAttrNumber2;
         public static final short CLUSTERED_HASH = 0;
         public static final short CLUSTERED_BTREE = 1;
         public static final short UNCLUSTERED_HASH = 2;
@@ -68,11 +69,8 @@ public class IndexJoin extends Iterator
          *@param len_in2  # of columns in S
          *@param  t2_str_sizes shows the length of the string fields.
          *@param amt_of_mem  IN PAGES
-         *@param am1  access method for left i/p to join
          *@param relationName  access hfapfile for right i/p to join
-         *@param outFilter   select expressions
-         *@param rightFilter reference to filter applied on right i/p
-         *@param proj_list shows what input fields go where in the output tuple
+
          *@param n_out_flds number of outer relation fileds
          *@exception IOException some I/O fault
          *@exception NestedLoopException exception from this class
@@ -84,14 +82,15 @@ public class IndexJoin extends Iterator
                                  int     len_in2,
                                  short   t2_str_sizes[],
                                  int     amt_of_mem,
-                                 Iterator     am1,
+//                                 Iterator     am1,
                                  String relationName1,
                                  String relationName,
-                                 CondExpr outFilter[],
-                                 CondExpr rightFilter[],
-                                 FldSpec   proj_list[],
+//                                 CondExpr outFilter[],
+//                                 CondExpr rightFilter[],
+//                                 FldSpec   proj_list[],
                                  int        n_out_flds,
                           int indexAttrNumber,
+                          int indexAttrNumber2,
                           int indexTypeIfExists,
                           short operation
         ) throws IOException,NestedLoopException
@@ -113,8 +112,8 @@ public class IndexJoin extends Iterator
             t2_str_sizescopy =  t2_str_sizes;
             inner_tuple = new Tuple();
             Jtuple = new Tuple();
-            OutputFilter = outFilter;
-            RightFilter  = rightFilter;
+//            OutputFilter = outFilter;
+//            RightFilter  = rightFilter;
             this.indexTypeIfExists = indexTypeIfExists;
 
             n_buf_pgs    = amt_of_mem;
@@ -134,9 +133,10 @@ public class IndexJoin extends Iterator
 
             short[]    t_size;
 
-            perm_mat = proj_list;
+//            perm_mat = proj_list;
             nOutFlds = n_out_flds;
             this.indexAttrNumber = indexAttrNumber;
+            this.indexAttrNumber2 = indexAttrNumber2;
 //            try {
 //                t_size = TupleUtils.setup_op_tuple(Jtuple, Jtypes,
 //                        in1, len_in1, in2, len_in2,
@@ -272,16 +272,16 @@ public class IndexJoin extends Iterator
                 nestedLoopJoin(relName1, relName);
             }else{
                 short keySize = 4;
-                if (_in2[indexAttrNumber - 1].attrType == AttrType.attrString) {
+                if (_in2[indexAttrNumber2 - 1].attrType == AttrType.attrString) {
                     keySize = 32;
                 }
                 BTreeClusteredFile btree = null; // new BTreeClusteredFile(relName, (short) in2_len, _in2, t2_str_sizescopy);
-                btree = new BTreeClusteredFile(relName, _in2[indexAttrNumber - 1].toInt(), keySize, indexAttrNumber, 0, (short) _in2.length, _in2, t2_str_sizescopy);
+                btree = new BTreeClusteredFile(relName, _in2[indexAttrNumber2 - 1].toInt(), keySize, indexAttrNumber2, 0, (short) _in2.length, _in2, t2_str_sizescopy);
 
                 BTClusteredFileScan scan = null;
 
                 ClusteredHashFile hash = new ClusteredHashFile(relName, 75,
-                        _in2[indexAttrNumber - 1].toInt(), keySize, (short) _in2.length, _in2, t2_str_sizescopy);
+                        _in2[indexAttrNumber2 - 1].toInt(), keySize, (short) _in2.length, _in2, t2_str_sizescopy);
                 RID hashRid = new RID();
                 ClusteredHashFileScan fscan = null;
 
@@ -294,18 +294,23 @@ public class IndexJoin extends Iterator
                 RID btRid = new RID();
 
 
+
+
                 while((outer_tuple = outer.getNext(outerRid))!=null){
                     outer_tuple.setHdr((short)in1_len, _in1, t1_str_sizecopy);
                     if(indexTypeIfExists==CLUSTERED_HASH){
+
 //                        innerIterrator = new IndexScan(new IndexType(IndexType.Hash), relName, "HashIndex", _in2, t2_str_sizescopy,
 //                                in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
 
 
                         hash.IntegerKey key1 = new hash.IntegerKey(outer_tuple.getIntFld(indexAttrNumber));
 
-                        fscan = hash.newScan(key1, key1);
+                        fscan = null;
                         if(operation==LESS || operation== LESSOREQUAL){
-                            fscan = hash.newScan(null,key1);
+                            fscan = hash.newScan(key1,null);
+                        }else if(operation==GREATER || operation==GREATEROREQUAL){
+                            fscan = hash.newScan(null, key1);
                         }else{
                             fscan = hash.newScan(key1, null);
                         }
@@ -315,7 +320,7 @@ public class IndexJoin extends Iterator
                         while (t != null) {
                             inner_tuple = t;
                             inner_tuple.setHdr((short) in2_len, _in2, t2_str_sizescopy);
-                            boolean match = tupleMatchOnField(inner_tuple, outer_tuple, indexAttrNumber, false, operation);
+                            boolean match = tupleMatchOnField( outer_tuple, inner_tuple, indexAttrNumber, indexAttrNumber2, false, operation);
                             if(match){
 
                                 setupOutputTuple(outer_tuple, _in1, inner_tuple, _in2);
@@ -335,11 +340,14 @@ public class IndexJoin extends Iterator
 //                        innerIterrator = new IndexScan(new IndexType(IndexType.B_Index), relName, "BTreeIndex", _in2, t2_str_sizescopy,
 //                                in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
                         btree.IntegerKey key = new btree.IntegerKey(outer_tuple.getIntFld(indexAttrNumber));
-                        scan = btree.new_scan(key, key);
+                        scan = null;
 
 
                         if(operation==LESS || operation== LESSOREQUAL){
+                            scan = btree.new_scan(key, null);
+                        }else if(operation==GREATER || operation== GREATEROREQUAL){
                             scan = btree.new_scan(null, key);
+
                         }else{
                             scan = btree.new_scan(key, null);
                         }
@@ -353,12 +361,13 @@ public class IndexJoin extends Iterator
 
 //                                System.out.println("Hey, I m here: "+ indexTypeIfExists);
 
+
                                 inner_tuple = (Tuple) ((ClusteredLeafData) data.data).getData();
                                 inner_tuple.setHdr((short) in2_len, _in2, t2_str_sizescopy);
-//                                inner_tuple.print(_in2);
-//
-                                boolean match = tupleMatchOnField(inner_tuple, outer_tuple, indexAttrNumber, false, operation);
-//                    System.out.println(match);
+                                outer_tuple.print(_in1);
+                                inner_tuple.print(_in2);
+                                boolean match = tupleMatchOnField( outer_tuple, inner_tuple, indexAttrNumber, indexAttrNumber2, false, operation);
+                    System.out.println(match);
                                 if(match){
 
 //                        t_size = TupleUtils.setup_op_tuple(Jtuple, Jtypes,
@@ -404,15 +413,7 @@ public class IndexJoin extends Iterator
 
                 Tuple outterTuple = new Tuple();
                 RID outRid = new RID();
-
-
                 short[]    t_size;
-
-
-//                short  []  Jsizes = new short[2];
-//                Jsizes[0] = t2_str_sizescopy[0];
-//                Jsizes[1] = t1_str_sizecopy[0];
-
 
                 Jtuple.setHdr((short)(_in1.length+_in2.length), Jtypes, Jsizes);
 
@@ -431,9 +432,9 @@ public class IndexJoin extends Iterator
 
 //                        Value v = new Value(value);
 //                    check where they match
-                        boolean match = tupleMatchOnField(innerTuple, outterTuple, indexAttrNumber, false, operation);
-//                    System.out.println(match);
+                        boolean match = tupleMatchOnField( outterTuple, innerTuple, indexAttrNumber, indexAttrNumber2, false, operation);
                         if(match){
+
 
                             setupOutputTuple(outterTuple, _in1, innerTuple, _in2);
                             result.add(Jtuple);
@@ -524,7 +525,7 @@ public class IndexJoin extends Iterator
 
 //                        Value v = new Value(value);
 //                    check where they match
-                        boolean match = tupleMatchOnField(innerTuple, outterTuple, indexAttrNumber, false, operation);
+                        boolean match = tupleMatchOnField(outterTuple, innerTuple, indexAttrNumber, indexAttrNumber2, false, operation);
 //                    System.out.println(match);
                         if(match){
 
@@ -567,14 +568,14 @@ public class IndexJoin extends Iterator
             }
         }
 
-        public boolean tupleMatchOnField(Tuple tp1, Tuple tp2, int fieldNo, boolean isString, short operation){
+        public boolean tupleMatchOnField(Tuple tp1, Tuple tp2, int fieldNo, int fieldNo2, boolean isString, short operation){
             boolean match=false;
             if(operation==EQUAL){
                 try{
                     if(isString){
 
                         String val1 = tp1.getStrFld(fieldNo);
-                        String val2 = tp2.getStrFld(fieldNo);
+                        String val2 = tp2.getStrFld(fieldNo2);
     //                System.out.println(val1+" "+val2);
                         if(val1.equals(val2)) {
                             match = true;
@@ -582,7 +583,7 @@ public class IndexJoin extends Iterator
                     }else{
 
                         int val1 = tp1.getIntFld(fieldNo);
-                        int val2 = tp2.getIntFld(fieldNo);
+                        int val2 = tp2.getIntFld(fieldNo2);
                         if(val1==val2) {
                             match = true;
                         }
@@ -594,7 +595,7 @@ public class IndexJoin extends Iterator
             else if(operation==LESS){
                 try {
                     int val1 = tp1.getIntFld(fieldNo);
-                    int val2 = tp2.getIntFld(fieldNo);
+                    int val2 = tp2.getIntFld(fieldNo2);
                     if (val1 < val2) {
                         match = true;
                     }
@@ -604,7 +605,7 @@ public class IndexJoin extends Iterator
             }else if(operation==GREATER){
                 try {
                 int val1 = tp1.getIntFld(fieldNo);
-                int val2 = tp2.getIntFld(fieldNo);
+                int val2 = tp2.getIntFld(fieldNo2);
                 if (val1 > val2) {
                     match = true;
                 }
@@ -615,7 +616,7 @@ public class IndexJoin extends Iterator
             }else if(operation==LESSOREQUAL){
                 try {
                     int val1 = tp1.getIntFld(fieldNo);
-                    int val2 = tp2.getIntFld(fieldNo);
+                    int val2 = tp2.getIntFld(fieldNo2);
                     if (val1 <= val2) {
                         match = true;
                     }
@@ -626,7 +627,7 @@ public class IndexJoin extends Iterator
             }else if(operation == GREATEROREQUAL){
                 try {
                     int val1 = tp1.getIntFld(fieldNo);
-                    int val2 = tp2.getIntFld(fieldNo);
+                    int val2 = tp2.getIntFld(fieldNo2);
                     if (val1 >= val2) {
                         match = true;
                     }
@@ -674,42 +675,42 @@ public class IndexJoin extends Iterator
             }
         }
 
-        public String indexAvailable(){
-            Iterator iter1 = null;
-            Iterator iter2 = null;
-            try {
-//                        iter1 = new ClusteredHashFile(relName, 75, in2_len, t2_str_sizescop, (short) in2_len, _in2, t1_str_sizecopy);
-                BTreeClusteredFile btree = new BTreeClusteredFile(relName, (short) in2_len, _in2, t2_str_sizescopy);
-                BTClusteredFileScan scan = null;
-                scan = btree.new_scan(null, null);
-                RID btRid = new RID();
-                KeyDataEntry data = null;
-                data = scan.get_next(btRid);
-
-
-
-
-                ClusteredHashFile hash = new ClusteredHashFile(relName, (short) in2_len, _in2, t2_str_sizescopy);
-                RID hashRid = new RID();
-                ClusteredHashFileScan fscan = null;
-                fscan = hash.newScan(null, null);
-                Tuple t2 = fscan.getNextTuple(hashRid);
-
-
-                iter1 = new IndexScan(new IndexType(IndexType.B_Index), relName, "BTreeIndex", _in2, t2_str_sizescopy,
-                        in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
-
-                iter1 = new IndexScan(new IndexType(IndexType.Hash), relName, "HashIndex", _in2, t2_str_sizescopy,
-                        in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber, false);
-                if(data!=null){
-                    return "btree";
-                }else if (t2 !=null){
-                    return "hash";
-                }
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-            return null;
-        }
+//        public String indexAvailable(){
+//            Iterator iter1 = null;
+//            Iterator iter2 = null;
+//            try {
+////                        iter1 = new ClusteredHashFile(relName, 75, in2_len, t2_str_sizescop, (short) in2_len, _in2, t1_str_sizecopy);
+//                BTreeClusteredFile btree = new BTreeClusteredFile(relName, (short) in2_len, _in2, t2_str_sizescopy);
+//                BTClusteredFileScan scan = null;
+//                scan = btree.new_scan(null, null);
+//                RID btRid = new RID();
+//                KeyDataEntry data = null;
+//                data = scan.get_next(btRid);
+//
+//
+//
+//
+//                ClusteredHashFile hash = new ClusteredHashFile(relName, (short) in2_len, _in2, t2_str_sizescopy);
+//                RID hashRid = new RID();
+//                ClusteredHashFileScan fscan = null;
+//                fscan = hash.newScan(null, null);
+//                Tuple t2 = fscan.getNextTuple(hashRid);
+//
+//
+//                iter1 = new IndexScan(new IndexType(IndexType.B_Index), relName, "BTreeIndex", _in2, t2_str_sizescopy,
+//                        in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber2, false);
+//
+//                iter1 = new IndexScan(new IndexType(IndexType.Hash), relName, "HashIndex", _in2, t2_str_sizescopy,
+//                        in2_len, in2_len, perm_mat, OutputFilter, indexAttrNumber2, false);
+//                if(data!=null){
+//                    return "btree";
+//                }else if (t2 !=null){
+//                    return "hash";
+//                }
+//            }catch (Exception e){
+//                e.printStackTrace();
+//            }
+//            return null;
+//        }
 
     }
