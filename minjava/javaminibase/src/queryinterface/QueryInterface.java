@@ -2967,80 +2967,130 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
     public void hashJoinTest(){
         System.out.println("------------------------ TEST 1 --------------------------");
+        System.out.println("Enter the Query: ");
+        String[] tokens = GetStuff.getStringChoice().split(" ");
         String fileName1 = null;
         String fileName2 = null;
-        String c = null;
-        System.out.println("Enter Outer file name ");
-        c = GetStuff.getStringChoice();
-        fileName1 = c;
-        System.out.println("Enter Inner file name");
-        c = GetStuff.getStringChoice();
-        fileName2 = c;
+        HashJoin hashJoin = null;
 
-        System.out.println("Enter the inner join attribute index");
-        int attrIndex= GetStuff.getChoice();
+        // Join NLS 2,3 r_sii2000_10_10_10_dup 10 MATER
+//        Join HJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 == 10 mater
+//        JOIN NLJ/SMJ/INLJ/HJ OTABLENAME O_ATT_NO ITABLENAME I_ATT_NO OP NPAGES [MATER OUTTABLENAME]
+        if(tokens.length>1){
+            fileName1 = tokens[2];
+            fileName2 = tokens[4];
+            String operation = tokens[6];
+            int attr1 = Integer.parseInt(tokens[3]);
+            int attr2 = Integer.parseInt(tokens[5]);
 
-        System.out.println("Enter the outer join attrbute index");
-        int attrIndex2 = GetStuff.getChoice();
+            if(tokens[1]=="NLJ" || tokens[1].toLowerCase()=="nlj"){
+                //nlj
+            }else if(tokens[1].equals("HJ") || tokens[1].toLowerCase().equals("hj")){
+                try {
+                    CustomScan cs1 = new CustomScan(fileName1);
+                    CustomScan cs2 = new CustomScan(fileName2);
 
-        getTableAttrsAndType(fileName1);
-        getSecondTableAttrsAndType(fileName2);
+                    hashJoin = new HashJoin(cs1, attrType, cs2, attrType, attr1, attr2, attrSizes, attrSizes, false);
+                    java.util.Iterator t = hashJoin.get_next();
 
+                    while((t.hasNext())){
+                        Tuple tuple = (Tuple) t.next();
+                        tuple.print(hashJoin.getOutputAttrType());
+                    }
 
-//            try {
-//                createTable(file1, false, NO_INDEX, 0);
-//                createTable(file2, false, NO_INDEX, 0);
-//            }catch (Exception e){
-//                e.printStackTrace();
-//            }
-
-//            short [] JJsize = new short[1];
-//            JJsize[0] = 30;
-
-//            FileScan fscan = null;
-
-            // Sort "test3.in" on the int attribute (field 3) -- Ascending
-            System.out.println("\n -- Hash Join results -- ");
-
-//            try {
-//                fscan = new FileScan("test1.in", attrType, attrSize, (short) 2, 2, projlist, null);
-//            } catch (Exception e) {
-//                status = FAIL;
-//                e.printStackTrace();
-//            }
-
-//            int[] pref_list = new int[] {1,2};
-            HashJoin hashjoin = null;
-            short  []  Jsizes = new short[2];
-            Jsizes[0] = 30;
-            Jsizes[1] = 30;
-            try {
-
-                CustomScan cs1 = new CustomScan(fileName1);
-                CustomScan cs2 = new CustomScan(fileName2);
-                hashjoin = new HashJoin(cs1, attrType, cs2,attrType, attrIndex, attrIndex2, attrSizes, attrSizes, false);
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
-            }
-
-//            count = 0;
-//            t = null;
-
-            try {
-//                Tuple t = new Tuple();
-                java.util.Iterator t = hashjoin.get_next();
-
-                while((t.hasNext())){
-                    Tuple tuple = (Tuple) t.next();
-                    tuple.print(hashjoin.getOutputAttrType());
+                }catch (Exception e){
+                    e.printStackTrace();
                 }
-            } catch (Exception e) {
-                status = FAIL;
-                e.printStackTrace();
+                //hj
+            }else if(tokens[1]=="INLJ" || tokens[1].toLowerCase()=="inlj"){
+                //index nlj
+            }else if(tokens[1]=="SMJ" || tokens[1].toLowerCase()=="smj"){
+                //smj
             }
-         System.out.println("\nRead statistics "+PCounter.rcounter);
-        System.out.println("Write statistics "+PCounter.wcounter);
+
+            System.out.println("\nRead statistics "+PCounter.rcounter);
+            System.out.println("Write statistics "+PCounter.wcounter);
+
+
+
+
+
+
+        }else{
+
+            String c = null;
+            System.out.println("Enter Outer file name ");
+            c = GetStuff.getStringChoice();
+            fileName1 = c;
+            System.out.println("Enter Inner file name");
+            c = GetStuff.getStringChoice();
+            fileName2 = c;
+
+            System.out.println("Enter the inner join attribute index");
+            int attrIndex= GetStuff.getChoice();
+
+            System.out.println("Enter the outer join attrbute index");
+            int attrIndex2 = GetStuff.getChoice();
+
+            getTableAttrsAndType(fileName1);
+            getSecondTableAttrsAndType(fileName2);
+
+
+    //            try {
+    //                createTable(file1, false, NO_INDEX, 0);
+    //                createTable(file2, false, NO_INDEX, 0);
+    //            }catch (Exception e){
+    //                e.printStackTrace();
+    //            }
+
+    //            short [] JJsize = new short[1];
+    //            JJsize[0] = 30;
+
+    //            FileScan fscan = null;
+
+                // Sort "test3.in" on the int attribute (field 3) -- Ascending
+                System.out.println("\n -- Hash Join results -- ");
+
+    //            try {
+    //                fscan = new FileScan("test1.in", attrType, attrSize, (short) 2, 2, projlist, null);
+    //            } catch (Exception e) {
+    //                status = FAIL;
+    //                e.printStackTrace();
+    //            }
+
+    //            int[] pref_list = new int[] {1,2};
+                HashJoin hashjoin = null;
+                short  []  Jsizes = new short[2];
+                Jsizes[0] = 30;
+                Jsizes[1] = 30;
+                try {
+
+                    CustomScan cs1 = new CustomScan(fileName1);
+                    CustomScan cs2 = new CustomScan(fileName2);
+                    hashjoin = new HashJoin(cs1, attrType, cs2,attrType, attrIndex, attrIndex2, attrSizes, attrSizes, false);
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+
+    //            count = 0;
+    //            t = null;
+
+                try {
+    //                Tuple t = new Tuple();
+                    java.util.Iterator t = hashjoin.get_next();
+
+                    while((t.hasNext())){
+                        Tuple tuple = (Tuple) t.next();
+                        tuple.print(hashjoin.getOutputAttrType());
+                    }
+                } catch (Exception e) {
+                    status = FAIL;
+                    e.printStackTrace();
+                }
+             System.out.println("\nRead statistics "+PCounter.rcounter);
+            System.out.println("Write statistics "+PCounter.wcounter);
+        }
             System.out.println("------------------- Hash Join Test completed ---------------------\n");
 
 
