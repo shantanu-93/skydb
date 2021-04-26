@@ -1,14 +1,10 @@
 package iterator;
 
-import btree.BTClusteredFileScan;
-import btree.BTreeClusteredFile;
-import btree.KeyDataEntry;
+import btree.*;
+import bufmgr.PageNotReadException;
 import global.AttrType;
 import global.RID;
-import heap.FieldNumberOutOfBoundException;
-import heap.Heapfile;
-import heap.Scan;
-import heap.Tuple;
+import heap.*;
 import tests.TestDriver;
 
 import java.io.IOException;
@@ -23,7 +19,7 @@ public class TopK_HashJoin {
   private int len_in1, len_in2;
   private short[] t1_str_sizes, t2_str_sizes;
   private FldSpec joinAttr1, joinAttr2, mergeAttr1, mergeAttr2;
-  private String relationName1, relationName2;
+  private CustomScan relationName1, relationName2;
   private int k;
   private String oTable;
   boolean val;
@@ -43,6 +39,7 @@ public class TopK_HashJoin {
   String[] oAttrName;
   Tuple tuple1;
   short size;
+  short[] Jsizes;
 
   // ADDITIONAL from HashJoin class
   AttrType[] Jtypes;
@@ -52,8 +49,8 @@ public class TopK_HashJoin {
   private Map<Integer, Heapfile> innerPartitionMap;
   private Map<Integer, Heapfile> outerPartitionMap;
   private int BUCKET_NUMBER=5;
-  private String BUCKET_NAME_PREFIX = "bucket_";
-  int tempHeapCounter= 0;
+//  private String BUCKET_NAME_PREFIX = "bucket_";
+//  int tempHeapCounter= 0;
   PriorityQueue<MyEntry> result;
 
   private boolean debug = true;
@@ -61,8 +58,12 @@ public class TopK_HashJoin {
 
   public TopK_HashJoin(AttrType[] in1, int len_in1, short[] t1_str_sizes, FldSpec joinAttr1, FldSpec mergeAttr1, AttrType[] in2, int len_in2,
                        short[] t2_str_sizes, FldSpec joinAttr2, FldSpec mergeAttr2, String relationName1, String relationName2, int k, int n_pages, String oTable){
-    this.relationName1 = relationName1;
-    this.relationName2 = relationName2;
+    try{
+      this.relationName1 = new CustomScan(relationName1);
+      this.relationName2 = new CustomScan(relationName2);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
     this.in1 = in1;
     this.in2 = in2;
     this.len_in1 = len_in1;
@@ -168,33 +169,39 @@ public class TopK_HashJoin {
       // build phase start
       int hashVal = 0;
       //Inner partitionning
-      Heapfile innerHf = new Heapfile(relationName1);
-      Scan sc = innerHf.openScan();
-      RID inRID = new RID();
+//      Heapfile innerHf = new Heapfile(relationName1);
+//      Scan sc = innerHf.openScan();
+//      RID inRID = new RID();
       Tuple inTup = null;
-      while ((inTup=sc.getNext(inRID))!= null){
-        //call the function
-        inTup.setHdr((short) len_in1, in1, t1_str_sizes);
+      try {
+        while ((inTup = relationName2.get_next()) != null) {
+          //call the function
+          inTup.setHdr((short) len_in1, in1, t1_str_sizes);
 //                 hashVal = hashFunction(inTup);
-        if(isString){
-          hashVal = hashFunctionString(inTup.getStrFld(hashAttr1));
-        }else{
-          hashVal = hashFunctionInteger(inTup.getIntFld(hashAttr1));
-        }
+          if (isString) {
+            hashVal = hashFunctionString(inTup.getStrFld(hashAttr1));
+          } else {
+            hashVal = hashFunctionInteger(inTup.getIntFld(hashAttr1));
+          }
 //                 System.out.println(hashVal);
 //                 inTup.print(attrTypes1);
-        if(innerPartitionMap.get(hashVal)==null){
+          if (innerPartitionMap.get(hashVal) == null) {
 //                     System.out.println(tempHeapCounter);
-          Heapfile hf1 = new Heapfile(BUCKET_NAME_PREFIX+tempHeapCounter);
-          tempHeapCounter++;
-          innerPartitionMap.put(hashVal, hf1);
-          insertRecordInBucket(inTup, hf1);
-        }else {
-          insertRecordInBucket(inTup, innerPartitionMap.get(hashVal));
+            Heapfile hf1 = new Heapfile(Heapfile.getRandomHFName());
+//          Heapfile hf1 = new Heapfile(BUCKET_NAME_PREFIX+tempHeapCounter);
+//          tempHeapCounter++;
+            innerPartitionMap.put(hashVal, hf1);
+            insertRecordInBucket(inTup, hf1);
+          } else {
+            insertRecordInBucket(inTup, innerPartitionMap.get(hashVal));
+          }
         }
+      }catch (Exception e){
+        e.printStackTrace();
       }
       try {
-        sc.closescan();
+//        sc.closescan();
+        relationName2.close();
       } catch (Exception e) {
         status = TestDriver.FAIL;
         e.printStackTrace();
@@ -202,36 +209,38 @@ public class TopK_HashJoin {
 
       hashVal = 0;
       //Outer partitionning
-      RID outRID = new RID();
-      Tuple outTup = null;
-      Heapfile outterHf = new Heapfile(relationName2);
-      Scan outerSc = outterHf.openScan();
-      while ((outTup=outerSc.getNext(outRID))!= null){
-        outTup.setHdr((short) len_in2, in2, t2_str_sizes);
-        //call the hash functin
-//                hashVal = hashFunction(outTup);
-        if(isString){
-          hashVal = hashFunctionString(outTup.getStrFld(hashAttr2));
-        }else{
-          hashVal = hashFunctionInteger(outTup.getIntFld(hashAttr2));
-        }
-
-        if(outerPartitionMap.get(hashVal)==null){
-          // TODO : check if bucket heapfile name should be different
-          Heapfile hf2 = new Heapfile(BUCKET_NAME_PREFIX+relationName2+"_"+hashVal);
-          tempHeapCounter++;
-          outerPartitionMap.put(hashVal, hf2);
-          insertRecordInBucket(outTup, hf2);
-        }else{
-          insertRecordInBucket(outTup, outerPartitionMap.get(hashVal));
-        }
-      }
-      try {
-        outerSc.closescan();
-      } catch (Exception e) {
-        status = TestDriver.FAIL;
-        e.printStackTrace();
-      }
+//      RID outRID = new RID();
+//      Tuple outTup = null;
+//      Heapfile outterHf = new Heapfile(relationName2);
+//      Scan outerSc = outterHf.openScan();
+//      while ((outTup=relationName1.get_next())!= null){
+//        outTup.setHdr((short) len_in2, in2, t2_str_sizes);
+//        //call the hash functin
+////                hashVal = hashFunction(outTup);
+//        if(isString){
+//          hashVal = hashFunctionString(outTup.getStrFld(hashAttr2));
+//        }else{
+//          hashVal = hashFunctionInteger(outTup.getIntFld(hashAttr2));
+//        }
+//
+//        if(outerPartitionMap.get(hashVal)==null){
+//          // TODO : check if bucket heapfile name should be different
+////          Heapfile hf2 = new Heapfile(BUCKET_NAME_PREFIX+relationName2+"_"+hashVal);
+//          Heapfile hf2 = new Heapfile(Heapfile.getRandomHFName());
+////          tempHeapCounter++;
+//          outerPartitionMap.put(hashVal, hf2);
+//          insertRecordInBucket(outTup, hf2);
+//        }else{
+//          insertRecordInBucket(outTup, outerPartitionMap.get(hashVal));
+//        }
+//      }
+//      try {
+////        outerSc.closescan();
+//        relationName1.close();
+//      } catch (Exception e) {
+//        status = TestDriver.FAIL;
+//        e.printStackTrace();
+//      }
 
       // build phase end
     }catch (Exception e){
@@ -335,7 +344,7 @@ public class TopK_HashJoin {
       short[] t_size;
 
 
-      short[] Jsizes = new short[2];
+      Jsizes = new short[2];
       Jsizes[0] = t2_str_sizes[0];
       Jsizes[1] = t1_str_sizes[0];
 
@@ -343,11 +352,11 @@ public class TopK_HashJoin {
       Jtuple.setHdr((short) Jtypes.length, Jtypes, Jsizes);
 
       // Probe phase start
-        Heapfile outterHeapFile = new Heapfile(relationName2);
-        Scan outterSc = outterHeapFile.openScan();
+//        Heapfile outterHeapFile = new Heapfile(relationName2);
+//        Scan outterSc = outterHeapFile.openScan();
 
       int joinTuplesCount = 0;
-      while ((outterTuple = outterSc.getNext(outRid)) != null) {
+      while ((outterTuple = relationName1.get_next()) != null) {
 
           outterTuple.setHdr((short) len_in2, in2, t2_str_sizes);
 //          if(debug)
@@ -416,7 +425,6 @@ public class TopK_HashJoin {
                 }
 
                 Jtuple = new Tuple();
-
                 Jtuple.setHdr((short) Jtypes.length, Jtypes, Jsizes);
               }
 
@@ -431,13 +439,14 @@ public class TopK_HashJoin {
           }
         }
       try {
-        outterSc.closescan();
+//        outterSc.closescan();
+        relationName1.close();
       } catch (Exception e) {
         status = TestDriver.FAIL;
         e.printStackTrace();
       }
 
-      System.out.println("\n\nHash Join total tuples count: "+joinTuplesCount);
+      System.out.println("\nHash Join total tuples count: "+joinTuplesCount);
 
     }catch (Exception e){
       e.printStackTrace();
@@ -449,6 +458,34 @@ public class TopK_HashJoin {
     List<Tuple> topKTuples = new ArrayList<>();
     for(MyEntry e : result){
       topKTuples.add(e.getKey());
+    }
+    if(oTable != null){
+      try {
+        Heapfile outFile = new Heapfile(oTable);
+
+        for(Tuple t : topKTuples){
+          t.setHdr((short) Jtypes.length, Jtypes, Jsizes);
+          outFile.insertRecord(t.getTupleByteArray());
+        }
+        System.out.println("\nJoin table "+oTable+" created with "+topKTuples.size()+" records.\n");
+      } catch (HFException e) {
+        e.printStackTrace();
+      } catch (HFBufMgrException e) {
+        e.printStackTrace();
+      } catch (HFDiskMgrException e) {
+        e.printStackTrace();
+      } catch (IOException e) {
+        e.printStackTrace();
+      } catch (InvalidTupleSizeException e) {
+        e.printStackTrace();
+      } catch (InvalidSlotNumberException e) {
+        e.printStackTrace();
+      } catch (SpaceNotAvailableException e) {
+        e.printStackTrace();
+      } catch (InvalidTypeException e) {
+        e.printStackTrace();
+      }
+
     }
     java.util.Iterator i = topKTuples.iterator();
     return i;
