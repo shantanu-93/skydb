@@ -83,9 +83,10 @@ public class BTClusteredFileScan implements GlobalConst {
             TupleRid.slotNo = curRid.slotNo;
             return entry;
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new ScanIteratorException();
+//            e.printStackTrace();
+//            throw new ScanIteratorException();
         }
+        return null;
     }
 
     public RID get_next_rid()
