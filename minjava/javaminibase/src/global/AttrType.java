@@ -59,7 +59,7 @@ public class AttrType {
       case attrInteger:
         return 1;
       case attrReal:
-        return 3;
+        return 2;
       case attrSymbol:
         return 4;
       case attrNull:
