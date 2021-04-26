@@ -54,7 +54,7 @@ public class CustomScan extends Iterator {
         } else if (indexType == CLUSTERED_HASH) {
             hashFile = new ClusteredHashFile(relName, (short) nColumns, attrType, attrSizes);
             hscan = hashFile.newScan(null, null);
-            hashFile.printIndex();
+//            hashFile.printIndex();
         }
     }
 
@@ -115,7 +115,7 @@ public class CustomScan extends Iterator {
 
     public Tuple get_next() throws IOException, JoinsException, FieldNumberOutOfBoundException, PageNotReadException, WrongPermat, InvalidTypeException, InvalidTupleSizeException, PredEvalException, UnknowAttrType, ScanIteratorException, PageUnpinnedException, ReplacerException, PageNotFoundException, PagePinnedException, BufMgrException, InvalidFrameNumberException, HashEntryNotFoundException, HashOperationException {
         rid = new RID();
-        PCounter.initialize();
+//        PCounter.initialize();
         if (indexType == NO_INDEX) {
             return fscan.get_next();
         } else if (indexType == CLUSTERED_BTREE || indexType == (short) 5) {

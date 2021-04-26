@@ -144,7 +144,7 @@ public class BTreeClusteredFile extends IndexFile
          * - headerPage, headerPageId valid and pinned
          * - dbname contains a copy of the name of the database
          */
-        System.out.println("lol" + headerPage.get_keyIndex());
+//        System.out.println("lol" + headerPage.get_keyIndex());
     }
 
     public BTreeClusteredFile(String filename, int keytype,

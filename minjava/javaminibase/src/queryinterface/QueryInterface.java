@@ -10,6 +10,7 @@ import diskmgr.PCounter;
 import global.*;
 import hash.*;
 import heap.*;
+import index.IndexException;
 import iterator.*;
 import iterator.Iterator;
 import tests.TestDriver;
@@ -353,9 +354,13 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                             // Hash based top k join
                             if(ch == 1){
+                                // Sample Queries
+//                                create_table CLUSTERED HASH 2 r_sii2000_10_10_10_dup
+//                                create_table CLUSTERED BTREE 2 r_sii2000_10_75_200
+//                                TOPKJOIN HASH 11 r_sii2000_10_10_10_dup 2 3 r_sii2000_10_75_200 2 3 5 mater j1
+//                                TOPKJOIN HASH 8 r_sii2000_10_10_10_dup 2 3 r_sii2000_10_75_200 2 3 5
 
                                 performTopKHashJoin();
-
 
                             }else if(ch == 2){
                                 System.out.println("Enter Query:");
@@ -452,7 +457,11 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         return true;
     }
 
-    private void performTopKHashJoin() throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
+    private void performTopKHashJoin() throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException,
+            UnknowAttrType, AddFileEntryException, InvalidSlotNumberException, WrongPermat, JoinsException,
+            UnpinPageException, PinPageException, TupleUtilsException, InvalidRelation, GetFileEntryException,
+            PageNotReadException, FileScanException, KeyNotMatchException, InvalidTypeException,
+            ConstructPageException, hash.ConstructPageException, PredEvalException, IteratorException {
 
         System.out.println("Enter Query:");
         String[] tokens = GetStuff.getStringChoice().split(" ");
@@ -467,19 +476,28 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
 //        createTable(fileName1, false, NO_INDEX, 0);
 //        createTable(fileName2, false, NO_INDEX, 0);
-        String innerHF = null;
-        String outerHF = null;
+//        CustomScan outerCS = new CustomScan(fileName1);
+//        CustomScan innerCS = new CustomScan(fileName2);
 
-        innerHF = createTempHeapFileForSkyline(fileName1);
-        outerHF = createTempHeapFileForSkyline(fileName2);
+//        String innerHF = createTempHeapFileForSkyline(fileName1);
+//        String outerHF = createTempHeapFileForSkyline(fileName2);
 //        setAttrDesc(innerHF);
 //        setAttrDesc(outerHF);
         getTableAttrsAndType(fileName1);
         getSecondTableAttrsAndType(fileName2);
 
-        String oTable = "null";
+        String oTable = null;
+        Heapfile outFile = null;
         if(tokens.length > 10){
             oTable = tokens[11];
+
+//                outFile = new Heapfile(oTable);
+//                outFile.deleteFile();
+//                outFile = new Heapfile(oTable);
+//                setTableMeta(outFile, oAttrTypes, oAttrSize, oAttrName);
+            createTypeDefForHashTopK();
+            createOutputTable(oTable, "","",0,0,0);
+
         }
 
         FldSpec[] joinList = new FldSpec[2];
@@ -491,11 +509,19 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         mergeList[1] = new FldSpec(rel, mAttr2);
 
         TopK_HashJoin topK_hashJoin = new TopK_HashJoin(attrType, attrType.length, attrSizes, joinList[0], mergeList[0],
-                attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], innerHF, outerHF, k, n_pages, oTable);
+                attrType2, attrType2.length, attrSizes2, joinList[1], mergeList[1], fileName1, fileName2, k, n_pages, oTable);
 
         try {
+//            outerCS.close();
+//            innerCS.close();
             SystemDefs.JavabaseBM.flushPages();
-        } catch (PageNotFoundException | BufMgrException | HashOperationException | PagePinnedException e) {
+        } catch (PageNotFoundException e) {
+            e.printStackTrace();
+        } catch (PagePinnedException e) {
+            e.printStackTrace();
+        } catch (HashOperationException e) {
+            e.printStackTrace();
+        } catch (BufMgrException e) {
             e.printStackTrace();
         }
         // initialize after flushing pages to disk
@@ -503,10 +529,12 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
         try {
 //                Tuple t = new Tuple();
-            java.util.Iterator t = topK_hashJoin.get_next();
+            java.util.Iterator it = topK_hashJoin.get_next();
 
-            while((t.hasNext())){
-                Tuple tuple = (Tuple) t.next();
+            while((it.hasNext())){
+                Tuple tuple = (Tuple) it.next();
+//                RID rid = new RID();
+//                rid = outFile.insertRecord(tuple.returnTupleByteArray());
                 tuple.print(topK_hashJoin.getOutputAttrType());
             }
         } catch (Exception e) {
@@ -534,6 +562,28 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         PCounter.initialize();
 
         System.out.println("\n\n------------------- Hash based Top K Join completed ---------------------\n\n");
+    }
+
+    private void createTypeDefForHashTopK() {
+        int len1 = attrType.length, len2 = attrType2.length;
+        oAttrTypes = new AttrType[len1 + len2 + 1];
+        System.arraycopy(attrType, 0, oAttrTypes, 0, len1);
+        System.arraycopy(attrType2, 0, oAttrTypes, len1, len2);
+
+        oAttrTypes[len1+len2] = new AttrType(AttrType.attrReal);
+
+        oAttrSize = new short[attrSizes.length + attrSizes2.length];
+        int j = 0;
+        for(int i = 0; i < oAttrTypes.length; i++){
+            if(oAttrTypes[i].attrType == AttrType.attrString)
+                oAttrSize[j++] = (short) 32;
+        }
+
+        oAttrName = new String[len1 + len2 + 1];
+        System.arraycopy(attrNames, 0, oAttrName, 0, len1);
+        System.arraycopy(attrNames2, 0, oAttrName, len1, len2);
+
+        oAttrName[len1+len2] = "mergeAttr";
     }
 
     private void skylineMenu() {
