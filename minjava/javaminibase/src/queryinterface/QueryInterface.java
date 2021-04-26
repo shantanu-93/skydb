@@ -377,7 +377,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 getTableAttrsAndType(fileName1);
                                 getSecondTableAttrsAndType(fileName2);
 
-                                createAttrDef();
+                                createAttrDef(mAttr10);
 
                                 String oTable = "null";
                                 if (tokens.length > 10) {
@@ -1012,14 +1012,18 @@ public class QueryInterface extends TestDriver implements GlobalConst {
         }
     }
 
-    private void createAttrDef(){
+    private void createAttrDef(int mergeAttr1){
         int len1 = attrType.length, len2 = attrType2.length;
         oAttrTypes = new AttrType[len1 + len2 + 2];
         System.arraycopy(attrType, 0, oAttrTypes, 0, len1);
         System.arraycopy(attrType2, 0, oAttrTypes, len1, len2);
-
-        oAttrTypes[len1+len2] = new AttrType(AttrType.attrInteger);
-        oAttrTypes[len1+len2+1] = new AttrType(AttrType.attrInteger);
+        if(attrType[mergeAttr1 - 1].attrType == AttrType.attrInteger){
+            oAttrTypes[len1+len2] = new AttrType(AttrType.attrInteger);
+            oAttrTypes[len1+len2+1] = new AttrType(AttrType.attrInteger);
+        }else{
+            oAttrTypes[len1+len2] = new AttrType(AttrType.attrReal);
+            oAttrTypes[len1+len2+1] = new AttrType(AttrType.attrReal);
+        }
 
         oAttrSize = new short[attrSizes.length + attrSizes2.length];
         int j = 0;
@@ -1110,6 +1114,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                 for (int i = 0; i < row.length; i++) {
                     try {
+                        // System.out.println(attrType[i].toInt());
                         if (attrType[i].toInt().equals(AttrType.attrInteger)) {
                             int value;
                             if (clusteredIndexType == 5 && i == attrIndex - 1)

@@ -49,12 +49,10 @@ public class TopK_NRAJoin {
     int i = 1;
     private int n_pages;
     private BTreeClusteredFile[] file = new BTreeClusteredFile[2];
-    private HashMap<Object, Integer[]> lub = new HashMap<Object, Integer[]>();
-    int ub1=0, ub2=0;
+    Object ub1, ub2;
     private KeyDataEntry[] data = new KeyDataEntry[2];
     private BTClusteredFileScan[] scan;
     boolean status = OK;
-    List<Map.Entry<?, Integer[]> > list;
     List<Tuple> result = new ArrayList<>(); 
     private Heapfile f;
     int nColumns;
@@ -63,6 +61,7 @@ public class TopK_NRAJoin {
     String[] oAttrName;
     Tuple tuple1;
     short size;
+    int type;
     private Map<Object, TupleList> tList = new HashMap<>();
 
     public TopK_NRAJoin(){
@@ -131,6 +130,8 @@ public class TopK_NRAJoin {
                 e.printStackTrace();
             }
         }
+
+        type = in1[mergeAttr1.offset - 1].attrType;
 
         // System.out.println("\n -- Scanning BTreeClusteredFile");
 
@@ -206,9 +207,7 @@ public class TopK_NRAJoin {
                 t1join = getField(t1, attrTypejoin_1, joinAttr1.offset);
                 TupleList tl = tList.getOrDefault(t1join, new TupleList(new ArrayList<>(), new ArrayList<>()));
                 tl.getList1().add(t1);
-                // System.out.println("Size 1: "+tl.getList1().size());
                 tList.put(t1join, tl);
-                // t1.print(in1);
             }
             if (data[1] != null){
                 t2 = (Tuple) ((ClusteredLeafData) data[1].data).getData();
@@ -216,31 +215,43 @@ public class TopK_NRAJoin {
                 t2merge = getField(t2, attrTypemerge_2, mergeAttr2.offset);
                 TupleList tl = tList.getOrDefault(t2join, new TupleList(new ArrayList<>(), new ArrayList<>()));
                 tl.getList2().add(t2);
-                // System.out.println("Size 2: "+tl.getList2().size());
                 tList.put(t2join, tl);
-                // t2.print(in2);
             } 
             
             if (data[0] != null) {
-                ub2  = (Integer) t2merge;
+                if(type == AttrType.attrInteger) ub2 = (Integer) t2merge + (Integer) t1merge;
+                else ub2 = (Float) t2merge + (Float) t1merge;
                 if(tList.get(t1join).getList2().isEmpty()){
-                    result.add(setTuple(t1, null, (Integer) t1merge, ub2 + (Integer) t1merge));
+
+                    result.add(setTuple(t1, null, t1merge, ub2));
                 }else{
                     for(int i = 0; i < tList.get(t1join).getList2().size(); i++){
                         Tuple tup = tList.get(t1join).getList2().get(i);
-                        int put = (Integer) t1merge + (Integer) getField(tup, AttrType.attrInteger, mergeAttr2.offset);
+                        
+                        Object put;
+                        if(type == AttrType.attrInteger){
+                            put = (Integer) t1merge + (Integer) getField(tup, AttrType.attrInteger, mergeAttr2.offset);
+                        }else{
+                            put = (Float) t1merge + (Float) getField(tup, AttrType.attrReal, mergeAttr2.offset);
+                        }
                         result.add(setTuple(t1, tup, put, put));
                     }
                 }
             }
             if (data[1] != null) {
-                    ub1 = (Integer) t1merge;
+                if(type == AttrType.attrInteger) ub1 = (Integer) t2merge + (Integer) t1merge;
+                else ub1 = (Float) t2merge + (Float) t1merge;
                     if(tList.get(t2join).getList1().isEmpty()){
-                        result.add(setTuple(null, t2, (Integer) t2merge, ub1 + (Integer) t2merge));
+                        result.add(setTuple(null, t2, t2merge, ub1));
                     }else{
                         for(int i = 0; i < tList.get(t2join).getList1().size(); i++){
                             Tuple tup = tList.get(t2join).getList1().get(i);
-                            int put = (Integer) t2merge + (Integer) getField(tup, AttrType.attrInteger, mergeAttr1.offset);
+                            Object put;
+                            if(type == AttrType.attrInteger)
+                                put = (Integer) t2merge + (Integer) getField(tup, AttrType.attrInteger, mergeAttr1.offset);
+                            else{
+                                put = (Float) t2merge + (Float) getField(tup, AttrType.attrReal, mergeAttr1.offset);
+                            }
                             result.add(setTuple(tup, t2, put, put));
                         }
                     }
@@ -289,8 +300,11 @@ public class TopK_NRAJoin {
         Collections.sort(list, new Comparator<Tuple>() {
             public int compare(Tuple o1, 
                                Tuple o2)
-            {
-                return ((Integer) getField(o1, AttrType.attrInteger, nColumns -1)).compareTo((Integer) getField(o2, AttrType.attrInteger, nColumns -1));
+            {   
+                if(type == AttrType.attrInteger)
+                    return ((Integer) getField(o1, AttrType.attrInteger, nColumns -1)).compareTo((Integer) getField(o2, AttrType.attrInteger, nColumns -1));
+                else
+                    return ((Float) getField(o1, AttrType.attrReal, nColumns -1)).compareTo((Float) getField(o2, AttrType.attrReal, nColumns -1));
             }
         });
 
@@ -298,7 +312,12 @@ public class TopK_NRAJoin {
 
         if(list.size() > k){
             // System.out.println("Condition "+(Integer) getField(list.get(k), AttrType.attrInteger, nColumns)+" "+(Integer) getField(list.get(k - 1), AttrType.attrInteger, nColumns - 1));
-            if((Integer) getField(list.get(k), AttrType.attrInteger, nColumns) >= (Integer) getField(list.get(k - 1), AttrType.attrInteger, nColumns - 1))
+            boolean temp;
+            if(type == AttrType.attrInteger)
+                temp = (Integer) getField(list.get(k), AttrType.attrInteger, nColumns) >= (Integer) getField(list.get(k - 1), AttrType.attrInteger, nColumns - 1);
+            else
+                temp = (Float) getField(list.get(k), AttrType.attrReal, nColumns) >= (Float) getField(list.get(k - 1), AttrType.attrReal, nColumns - 1);
+            if(temp)
                 return true;
             else
                 return false;
@@ -330,7 +349,7 @@ public class TopK_NRAJoin {
     }
     
 
-    Tuple setTuple(Tuple t1, Tuple t2, Integer lb, Integer ub){
+    Tuple setTuple(Tuple t1, Tuple t2, Object lb, Object ub){
         tuple1 = new Tuple(size);
         try {
             tuple1.setHdr((short) nColumns, oAttrTypes, oAttrSize);
@@ -343,8 +362,10 @@ public class TopK_NRAJoin {
                 for(int i = 0; i < in1.length; i++){
                     if(oAttrTypes[i].attrType == AttrType.attrInteger)
                         tuple1.setIntFld(i + 1, -1);
-                    else 
+                    else if(oAttrTypes[i].attrType == AttrType.attrString)
                         tuple1.setStrFld(i + 1, "-1");
+                    else
+                        tuple1.setFloFld(i + 1, -1.00f);
                     
                 }
 
@@ -354,8 +375,17 @@ public class TopK_NRAJoin {
                             tuple1.setIntFld(i + 1, -t2.getIntFld(i - in1.length + 1));
                         else
                             tuple1.setIntFld(i + 1, t2.getIntFld(i - in1.length + 1));
-                    }else 
+                        
+                    }else if(oAttrTypes[i].attrType == AttrType.attrString)
                         tuple1.setStrFld(i + 1, t2.getStrFld(i - in1.length + 1));
+                    else{
+                        if(i - in1.length + 1 == mergeAttr2.offset)
+                            tuple1.setFloFld(i + 1, -t2.getFloFld(i - in1.length + 1));
+                        else{
+                            t2.getFloFld(i - in1.length + 1);
+                            tuple1.setFloFld(i + 1, t2.getFloFld(i - in1.length + 1));
+                        }
+                    }
                 }
             }else if(t2 == null){
                 for(int i = 0; i < in1.length; i++){
@@ -364,15 +394,25 @@ public class TopK_NRAJoin {
                             tuple1.setIntFld(i + 1, -t1.getIntFld(i + 1));
                         else
                             tuple1.setIntFld(i + 1, t1.getIntFld(i + 1));
-                    }else 
+                    }else if(oAttrTypes[i].attrType == AttrType.attrString)
                         tuple1.setStrFld(i + 1, t1.getStrFld(i + 1));
+                    else{
+                            if(i + 1 == mergeAttr2.offset)
+                                tuple1.setFloFld(i + 1, -t1.getFloFld(i + 1));
+                            else{
+                                System.out.println(t1.getFloFld(i + 1));
+                                tuple1.setFloFld(i + 1, t1.getFloFld(i + 1));
+                            }
+                        }
                 }
 
                 for(int i = in1.length; i < nColumns - 2; i++){
                     if(oAttrTypes[i].attrType == AttrType.attrInteger)
                         tuple1.setIntFld(i + 1, -1);
-                    else 
+                    else if(oAttrTypes[i].attrType == AttrType.attrString)
                         tuple1.setStrFld(i + 1, "-1");
+                    else
+                        tuple1.setFloFld(i + 1, -1.00f);
                 }
             }else{
                 for(int i = 0; i < in1.length; i++){
@@ -381,8 +421,14 @@ public class TopK_NRAJoin {
                             tuple1.setIntFld(i + 1, -t1.getIntFld(i + 1));
                         else
                             tuple1.setIntFld(i + 1, t1.getIntFld(i + 1));
-                    }else 
+                    }else if(oAttrTypes[i].attrType == AttrType.attrString)
                         tuple1.setStrFld(i + 1, t1.getStrFld(i + 1));
+                    else{
+                        if(i + 1 == mergeAttr2.offset)
+                            tuple1.setFloFld(i + 1, -t1.getFloFld(i + 1));
+                        else
+                            tuple1.setFloFld(i + 1, t1.getFloFld(i + 1));
+                    }
                 }
 
                 for(int i = in1.length; i < nColumns - 2; i++){
@@ -391,13 +437,24 @@ public class TopK_NRAJoin {
                             tuple1.setIntFld(i + 1, -t2.getIntFld(i - in1.length + 1));
                         else
                             tuple1.setIntFld(i + 1, t2.getIntFld(i - in1.length + 1));
-                    }else 
+                    }else if(oAttrTypes[i].attrType == AttrType.attrString)
                         tuple1.setStrFld(i + 1, t2.getStrFld(i - in1.length + 1));
+                    else{
+
+                        if(i - in1.length + 1 == mergeAttr2.offset)
+                            tuple1.setFloFld(i + 1, -t2.getFloFld(i - in1.length + 1));
+                        else
+                            tuple1.setFloFld(i + 1, t2.getFloFld(i - in1.length + 1));
+                    }
                 }
             }
-            
-            tuple1.setIntFld(nColumns - 1, lb);
-            tuple1.setIntFld(nColumns, ub);
+            if(in1[mergeAttr1.offset - 1].attrType == AttrType.attrInteger){
+                tuple1.setIntFld(nColumns - 1, (Integer) lb);
+                tuple1.setIntFld(nColumns, (Integer) ub);
+            }else{
+                tuple1.setFloFld(nColumns - 1, (Float) lb);
+                tuple1.setFloFld(nColumns, (Float) ub);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
