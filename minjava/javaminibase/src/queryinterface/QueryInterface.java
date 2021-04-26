@@ -411,9 +411,7 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
                                 System.out.println("\nRead statistics " + PCounter.rcounter);
                                 System.out.println("Write statistics " + PCounter.wcounter);
-
                                 System.out.println();
-
                             }
                             break;
 
@@ -3056,7 +3054,38 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                         outputTable = new Heapfile(outputTableName);
                         outputTable.deleteFile();
                         outputTable = new Heapfile(outputTableName);
-//                        setTableMeta(outputTableName, attrType, attrSizes, attrNames);
+                        AttrType[] type = new AttrType[attrType.length+attrType.length];
+                        int count = 0;
+                        for (AttrType att: attrType) {
+                            type[count] = att;
+                            count++;
+                        }
+
+                        for (AttrType att: attrType) {
+                            type[count] = att;
+                            count++;
+                        }
+
+                        short  []  Jsizes = new short[attrSizes.length + attrSizes.length];
+
+                        count = 0;
+                        for (short x: attrSizes) {
+                            Jsizes[count] = x;
+                            count++;
+                        }
+
+                        for (short x: attrSizes) {
+                            Jsizes[count] = x;
+                            count++;
+                        }
+                        String[] attrNameJoin = new String[attrNames.length+ attrNames.length];
+                        for(int i = 0; i<attrNames.length; i++){
+                            attrNameJoin[i] = attrNames[i];
+                        }
+                        for(int i = 0; i<attrNames.length; i++){
+                            attrNameJoin[i] = attrNames[i];
+                        }
+//                        setTableMeta(outputTableName, type, Jsizes, attrNameJoin);
                     }catch (Exception e){
                         e.printStackTrace();
                     }
@@ -3070,6 +3099,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 //                    System.out.println("Hash Join supports only equijoin, will consider your operation as ==");
 //                }
                 try {
+
+
                     SystemDefs.JavabaseBM.flushPages();
                     PCounter.initialize();
                     IndexJoin idx = new IndexJoin(attrType, attrType.length, attrSizes,

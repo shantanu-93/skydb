@@ -286,8 +286,8 @@ public class IndexJoin extends Iterator
                 ClusteredHashFileScan fscan = null;
 
 
-                Heapfile outterHeap = new Heapfile(relName1);
-                Scan outer = outterHeap.openScan();
+//                Heapfile outterHeap = new Heapfile(relName1);
+//                Scan outer = outterHeap.openScan();
                 RID outerRid = new RID();
 
                 Jtuple.setHdr((short)(_in1.length+_in2.length), Jtypes, Jsizes);
@@ -295,8 +295,9 @@ public class IndexJoin extends Iterator
 
 
 
-
-                while((outer_tuple = outer.getNext(outerRid))!=null){
+                CustomScan sc = new CustomScan(relName1);
+//                while((outer_tuple = outer.getNext(outerRid))!=null){
+                while((outer_tuple = sc.get_next())!=null){
                     outer_tuple.setHdr((short)in1_len, _in1, t1_str_sizecopy);
                     if(indexTypeIfExists==CLUSTERED_HASH){
 
@@ -405,11 +406,14 @@ public class IndexJoin extends Iterator
 
         public void nestedLoopJoin(String fileName1, String fileName2){
             try{
-                Heapfile outterHeapFile = new Heapfile(fileName1);
-                Heapfile innerHeapFile = new Heapfile(fileName2);
+//                Heapfile outterHeapFile = new Heapfile(fileName1);
+//                Heapfile innerHeapFile = new Heapfile(fileName2);
+
+                CustomScan scan1 = new CustomScan(fileName1);
 
 
-                Scan outterSc = outterHeapFile.openScan();
+
+//                Scan outterSc = outterHeapFile.openScan();
 
                 Tuple outterTuple = new Tuple();
                 RID outRid = new RID();
@@ -417,7 +421,8 @@ public class IndexJoin extends Iterator
 
                 Jtuple.setHdr((short)(_in1.length+_in2.length), Jtypes, Jsizes);
 
-                while ((outterTuple=outterSc.getNext(outRid))!=null){
+//                while ((outterTuple=outterSc.getNext(outRid))!=null){
+                while ((outterTuple=scan1.get_next())!=null){
 
                     outterTuple.setHdr((short) _in1.length, _in1, t1_str_sizecopy);
 
@@ -425,8 +430,9 @@ public class IndexJoin extends Iterator
 
                     RID innerRid = new RID();
                     Tuple innerTuple = new Tuple();
-                    Scan innerSc = innerHeapFile.openScan();
-                    while((innerTuple=innerSc.getNext(innerRid))!=null){
+//                    Scan innerSc = innerHeapFile.openScan();
+                    CustomScan scan2 = new CustomScan(fileName2);
+                    while((innerTuple=scan2.get_next())!=null){
                         innerTuple.setHdr((short) _in2.length, _in2, t2_str_sizescopy);
 
 
@@ -652,6 +658,8 @@ public class IndexJoin extends Iterator
 
 //        return null;
         }
+
+
 
 
 
