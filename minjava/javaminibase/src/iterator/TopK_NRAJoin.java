@@ -2,7 +2,6 @@ package iterator;
 
 import global.AttrType;
 import global.RID;
-import global.SystemDefs;
 import heap.FieldNumberOutOfBoundException;
 import heap.HFBufMgrException;
 import heap.HFDiskMgrException;
@@ -12,8 +11,6 @@ import heap.InvalidSlotNumberException;
 import heap.InvalidTupleSizeException;
 import heap.SpaceNotAvailableException;
 import heap.Tuple;
-import queryinterface.QueryInterface;
-
 import static tests.TestDriver.OK;
 
 import java.io.IOException;
@@ -21,34 +18,20 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.w3c.dom.Attr;
-
-import btree.AddFileEntryException;
 import btree.BTClusteredFileScan;
 import btree.BTreeClusteredFile;
 import btree.ConstructPageException;
-import btree.DeleteFileEntryException;
-import btree.FloatKey;
-import btree.FreePageException;
 import btree.GetFileEntryException;
-import btree.IntegerKey;
 import btree.IteratorException;
 import btree.KeyDataEntry;
 import btree.KeyNotMatchException;
 import btree.PinPageException;
 import btree.ScanIteratorException;
 import btree.UnpinPageException;
-import bufmgr.BufMgrException;
 import bufmgr.HashEntryNotFoundException;
-import bufmgr.HashOperationException;
 import bufmgr.InvalidFrameNumberException;
-import bufmgr.PageNotFoundException;
-import bufmgr.PagePinnedException;
 import bufmgr.PageUnpinnedException;
 import bufmgr.ReplacerException;
 import btree.ClusteredLeafData;
@@ -118,14 +101,14 @@ public class TopK_NRAJoin {
         } catch (ConstructPageException e) {
             e.printStackTrace();
         }
-        if(!oTable.equals("null")){
-            this.oAttrTypes = oAttrTypes;
-            this.oAttrSize = oAttrSize;
-            this.oAttrName = oAttrName;
 
-            nColumns = oAttrTypes.length;
+        this.oAttrTypes = oAttrTypes;
+        this.oAttrSize = oAttrSize;
+        this.oAttrName = oAttrName;
 
-            tuple1 = new Tuple();
+        nColumns = oAttrTypes.length;
+
+        tuple1 = new Tuple();
             try {
                 tuple1.setHdr((short) nColumns, oAttrTypes, oAttrSize);
             } catch (Exception e) {
@@ -135,6 +118,7 @@ public class TopK_NRAJoin {
 
             size = tuple1.size();
 
+        if(!oTable.equals("null")){
             try {
                 f = new Heapfile(oTable);
             } catch (HFException e) {
@@ -147,6 +131,7 @@ public class TopK_NRAJoin {
                 e.printStackTrace();
             }
         }
+
         // System.out.println("\n -- Scanning BTreeClusteredFile");
 
         scan = new BTClusteredFileScan[2];
@@ -180,8 +165,9 @@ public class TopK_NRAJoin {
         int len = Math.min(result.size(), k);
 
         System.out.println("\n---Top K Tuples---");
+        System.out.println("Total Join count: "+result.size());
         for(int i = 0; i < len; i++){
-            insert_data(result.get(i));
+            if(oTable != "null") insert_data(result.get(i));
             try {
                 result.get(i).print();
             } catch (IOException e) {

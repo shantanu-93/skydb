@@ -373,6 +373,8 @@ public class QueryInterface extends TestDriver implements GlobalConst {
                                 getTableAttrsAndType(fileName1);
                                 getSecondTableAttrsAndType(fileName2);
 
+                                createAttrDef();
+
                                 String oTable = "null";
                                 if (tokens.length > 10) {
                                     oTable = tokens[11];
@@ -948,32 +950,6 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             // getTableAttrsAndType(fileName1);
             // getSecondTableAttrsAndType(fileName2);
 
-            int len1 = attrType.length, len2 = attrType2.length;
-            oAttrTypes = new AttrType[len1 + len2 + 2];
-            System.arraycopy(attrType, 0, oAttrTypes, 0, len1);
-            System.arraycopy(attrType2, 0, oAttrTypes, len1, len2);
-
-            oAttrTypes[len1+len2] = new AttrType(AttrType.attrInteger);
-            oAttrTypes[len1+len2+1] = new AttrType(AttrType.attrInteger);
-
-            oAttrSize = new short[attrSizes.length + attrSizes2.length];
-            int j = 0;
-            for(int i = 0; i < oAttrTypes.length; i++){
-                if(oAttrTypes[i].attrType == AttrType.attrString)
-                    oAttrSize[j++] = (short) 32;
-            }
-
-            oAttrName = new String[len1 + len2 + 2];
-            System.arraycopy(attrNames, 0, oAttrName, 0, len1);
-            System.arraycopy(attrNames2, 0, oAttrName, len1, len2);
-
-            for (int i = 0; i < oAttrName.length; i++) {
-                System.out.println(oAttrName[i]);
-            }
-            
-            oAttrName[len1+len2] = "LB";
-            oAttrName[len1+len2+1] = "UB";
-
             try {
                 f = new Heapfile(fileName);
                 f.deleteFile();
@@ -985,6 +961,30 @@ public class QueryInterface extends TestDriver implements GlobalConst {
 
             setTableMeta(fileName, oAttrTypes, oAttrSize, oAttrName);
         }
+    }
+
+    private void createAttrDef(){
+        int len1 = attrType.length, len2 = attrType2.length;
+        oAttrTypes = new AttrType[len1 + len2 + 2];
+        System.arraycopy(attrType, 0, oAttrTypes, 0, len1);
+        System.arraycopy(attrType2, 0, oAttrTypes, len1, len2);
+
+        oAttrTypes[len1+len2] = new AttrType(AttrType.attrInteger);
+        oAttrTypes[len1+len2+1] = new AttrType(AttrType.attrInteger);
+
+        oAttrSize = new short[attrSizes.length + attrSizes2.length];
+        int j = 0;
+        for(int i = 0; i < oAttrTypes.length; i++){
+            if(oAttrTypes[i].attrType == AttrType.attrString)
+                oAttrSize[j++] = (short) 32;
+        }
+
+        oAttrName = new String[len1 + len2 + 2];
+        System.arraycopy(attrNames, 0, oAttrName, 0, len1);
+        System.arraycopy(attrNames2, 0, oAttrName, len1, len2);
+        
+        oAttrName[len1+len2] = "LB";
+        oAttrName[len1+len2+1] = "UB";
     }
 
     private void createTable(String fileName, Boolean createIndex, short clusteredIndexType, int attrIndex) throws IOException, InvalidTupleSizeException, FieldNumberOutOfBoundException {
