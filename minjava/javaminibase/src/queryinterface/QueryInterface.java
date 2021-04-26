@@ -2983,6 +2983,10 @@ public class QueryInterface extends TestDriver implements GlobalConst {
             int attr1 = Integer.parseInt(tokens[3]);
             int attr2 = Integer.parseInt(tokens[5]);
 
+            if(!tokens[6].equals("=")){
+                System.out.println("Hash Join supports only equijoin, will consider your operation as ==");
+            }
+
             if(tokens[1]=="NLJ" || tokens[1].toLowerCase()=="nlj"){
                 //nlj
             }else if(tokens[1].equals("HJ") || tokens[1].toLowerCase().equals("hj")){
